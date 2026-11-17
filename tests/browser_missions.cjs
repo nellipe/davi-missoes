@@ -106,8 +106,13 @@ async function main() {
   childPage.on('pageerror',e=>report.errors.push(e.message));
   const childIdle=()=>childPage.waitForFunction(()=>!document.querySelector('#content').hasAttribute('aria-busy'));
   const childGame=async action=>{await childIdle();await childPage.locator(`[data-action="game-${action}"]`).first().click();await childIdle();};
+  const openFirst=async()=>{
+    await childPage.locator('#worldMap, [data-action="mission-open"]').first().waitFor();
+    if(await childPage.locator('#worldMap').count()){await childPage.locator('.w-hud [data-action="world-calendar"]').click();await childIdle();}
+    await childPage.locator('[data-action="mission-open"]').first().click();await childIdle();
+  };
   await childPage.goto(base);
-  await childPage.locator('[data-action="mission-open"]').first().click();
+  await openFirst();
   await childGame('do');
   assert.equal(await childPage.locator('#gameStepTitle').count(),1);
   assert((await childPage.locator('#gameStepTitle').textContent()).includes('Vista o dobok'));
@@ -133,19 +138,20 @@ async function main() {
   assert.equal(calendar.events.find(e=>e.id===ids[0]).done,false);
   assert.equal((await (await api.get('/api/missions/history')).json()).history.length,1);
   report.checks.push('Criança confirma por toque/teclado, foco é preservado, API administrativa retorna 403 e compromisso continua pendente.');
-  await childPage.reload();await childPage.locator('[data-action="mission-open"]').first().click();
+  await childPage.reload();await openFirst();
   await childGame('do');
   const progress=await (await childContext.request.get(base+`/api/events/${ids[0]}/mission?date=2026-11-17`)).json();
   assert.equal(progress.mission.confirmed,2);
   await click('[data-action="mission-edit"][data-template="taekwondo"]');
   await page.locator('#ms-title-0').fill('Versão seguinte sintética');await submit('#missionForm');
-  await childPage.reload();await childPage.locator('[data-action="mission-open"]').first().click();
+  await childPage.reload();await openFirst();
   await childGame('learn');
   assert((await childPage.locator('#gameStepTitle').textContent()).includes('Vista o dobok'));
   await childGame('exit');
+  await childPage.locator('.w-hud [data-action="world-calendar"]').click();await childIdle();
   await childPage.locator('#childDate').fill('2026-11-18');
   await childPage.waitForFunction(()=>document.querySelector('#childDate')?.value==='2026-11-18'&&!document.querySelector('#content').hasAttribute('aria-busy'));
-  await childPage.locator('[data-action="mission-open"]').first().click();
+  await openFirst();
   await childGame('learn');
   assert((await childPage.locator('#gameStepTitle').textContent()).includes('Versão seguinte sintética'));
   const nextProgress=await (await childContext.request.get(base+`/api/events/${ids[0]}/mission?date=2026-11-18`)).json();

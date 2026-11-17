@@ -58,9 +58,22 @@ async function main() {
     const selected=['taekwondo-modos-1366','taekwondo-trilha-360','mochila-bolsa-1366','taekwondo-fazer-360'];
     if(selected.includes(`${name}-${width}`))await page.screenshot({path:path.join(evidence,`${name}-${width}.png`),fullPage:true});
   }
-  await page.goto(base);await idle();
-  for(const event of events) {
+  const enter=async event=>{
+    if(await page.locator('#worldMap').count())await click('.w-hud [data-action="world-calendar"]');
     await click(`[data-action="mission-open"][data-id="${event.id}"]`);
+  };
+  const worldEvidence=path.join(root,'docs','evidencias-etapa-c');fs.mkdirSync(worldEvidence,{recursive:true});
+  async function worldCapture(name,width) {
+    await page.setViewportSize({width,height:1000});await page.evaluate(()=>window.scrollTo(0,0));
+    await page.locator('#content').focus();
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Mundo sem overflow');
+    const audit=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+    assert.equal(audit.violations.length,0,JSON.stringify(audit.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))));
+    await page.screenshot({path:path.join(worldEvidence,`${name}-${width}.png`),fullPage:true});
+  }
+  await page.goto(base);await idle();await worldCapture('ilha-inicial',1366);
+  for(const event of events) {
+    await enter(event);
     if(event===events[0])await capture('taekwondo-modos',1366);
     await capture(event.template+'-modos',360);
     const before=dbState();
@@ -125,15 +138,56 @@ async function main() {
     await game('previous');await game('undo');
     await game('confirm');await game('exit');
     await page.reload();await idle();
-    await click(`[data-action="mission-open"][data-id="${event.id}"]`);await game('do');
+    await enter(event);await game('do');
     const effective=(await (await context.request.get(base+`/api/events/${event.id}/mission?date=2026-11-17`)).json()).mission;
     assert.equal(effective.confirmed,1,'Reabrir conserva a execução real');
     assert.equal(dbState().completions.length,0,'Agenda só conclui pelo botão da agenda');
     await game('exit');
     checks.push(`${event.template}: Aprender, Fazer, trilha e bolsa; pistas, recomeço, teclado e progresso preservado.`);
   }
+  // Completar Fazer é independente dos jogos e da conclusão da agenda.
+  await enter(events[0]);await game('do');
+  for(let i=1;i<7;i++)await game('confirm');
+  assert((await page.locator('.g-reward-chest').textContent()).includes('2 estrelas'));
+  await game('chest');await game('exit');
+  assert.equal(await page.locator('#worldStars').textContent(),'12');
+  assert.equal(dbState().completions.length,0);
+  // O responsável ajusta preços pela interface protegida, só nesta fixture.
+  const adminContext=await browser.newContext();await adminContext.addCookies((await api.storageState()).cookies);
+  const admin=await adminContext.newPage();await admin.goto(base);await admin.locator('#parentTab').click();
+  await admin.locator('[data-action="world-settings"]').click();await admin.locator('#worldSettingsForm').waitFor();
+  for(const id of ['house','portal','buddy','cape'])await admin.locator('#price-'+id).fill('1');
+  await admin.locator('#worldSettingsForm').evaluate(form=>form.requestSubmit());
+  await admin.waitForFunction(()=>!document.querySelector('#content').hasAttribute('aria-busy'));
+  await page.reload();await idle();
+  const worldAction=async name=>click(`[data-action="world-${name}"]`);
+  for(const id of ['bridge','hat','house','portal','buddy','cape']) {
+    await worldAction('shop');await click(`.w-product[data-item="${id}"]`);await worldAction('buy');
+  }
+  assert.equal(await page.locator('#worldStars').textContent(),'1');
+  for(const id of ['bridge','house','portal'])assert.equal(await page.locator(`.w-map [data-building="${id}"]`).getAttribute('data-owned'),'true');
+  await click('.w-hud [data-action="world-wardrobe"]');
+  for(const id of ['hat','cape','buddy'])await click(`[data-action="world-equip"][data-item="${id}"]`);
+  await click('[data-action="world-color"][data-color="sky"]');
+  await worldCapture('personagem',390);await worldAction('close');
+  await worldCapture('ilha-construida',1366);
+  // Andar muda posição/câmera e a posição é guardada pelo servidor.
+  await page.locator('#worldMap').focus();await page.keyboard.down('ArrowLeft');await page.waitForTimeout(180);await page.keyboard.up('ArrowLeft');
+  await page.waitForFunction(()=>Number(document.querySelector('#worldPlayer').getAttribute('transform').match(/[\d.]+/)[0])<530);
+  const point=await page.locator('#worldMap').evaluate(svg=>new DOMPoint(220,350).matrixTransform(svg.getScreenCTM()).toJSON());
+  await page.mouse.click(point.x,point.y);await page.waitForTimeout(100);
+  const second=await browser.newContext({viewport:{width:390,height:1000},locale:'pt-BR',extraHTTPHeaders:{Origin:base}});
+  const secondCode=(await write('/api/devices/code',{})).code;
+  assert.equal((await second.request.post(base+'/api/pair',{data:{code:secondCode}})).status(),200);
+  const saved=await (await second.request.get(base+'/api/world')).json();
+  assert.equal(saved.stars,1);assert.equal(saved.avatar.hat,'hat');assert.equal(saved.avatar.cape,'cape');assert.equal(saved.avatar.buddy,'buddy');
+  assert.equal(saved.avatar.color,'sky');assert(saved.inventory.includes('bridge'));assert.equal(Math.round(saved.avatar.x),220);
+  const otherPage=await second.newPage();await otherPage.goto(base);await otherPage.locator('#worldMap').waitFor();
+  assert.equal(await otherPage.locator('.w-map [data-building="bridge"]').getAttribute('data-owned'),'true');
+  await page.reload();await idle();await worldCapture('exploracao',360);
+  await adminContext.close();await second.close();
   assert.equal(errors.length,0,JSON.stringify(errors));
-  console.log('PASS: Taekwondo e mochila, três modos, dois minigames, prática isolada e 360/1366px.');
+  console.log('PASS: modos/minigames validados; estrelas, três construções, avatar/Pipo, movimento e segundo aparelho persistentes.');
   await api.dispose();
 }
 main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{

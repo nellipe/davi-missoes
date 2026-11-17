@@ -70,6 +70,9 @@ async function main() {
   async function click(sel) {
     await page.locator(sel).first().click();
     await idle();
+    if (sel === '#childTab' && await page.locator('#worldMap').count()) {
+      await page.locator('.w-hud [data-action="world-calendar"]').click();await idle();
+    }
   }
   async function submit(sel) {
     await page.locator(sel).evaluate((f) => f.requestSubmit());

@@ -18,6 +18,7 @@ from threading import RLock, Thread, Event
 from urllib.parse import urlsplit, parse_qs
 from lan_security import Config, AuthStore
 import missions
+import world
 
 ROOT = Path(__file__).resolve().parent
 DATA = Path(os.environ.get("DAVI_DATA_DIR", ROOT / "dados")).resolve()
@@ -62,7 +63,7 @@ def initialize():
         from contextlib import closing
         from maintenance import readonly, backup
         with closing(readonly(DB)) as existing:
-            pending = missions.needs_migration(existing)
+            pending = missions.needs_migration(existing) or world.needs_migration(existing)
         if pending:
             backup(DB, DATA / 'antes-v06', keep=14)
     AUTH.initialize()
@@ -87,6 +88,7 @@ def initialize():
         """)
         c.execute("INSERT OR IGNORE INTO settings VALUES('name','Davi')")
         missions.initialize(c)
+        world.initialize(c)
 
 def set_setting(k, v):
     with LOCK, db() as c:
@@ -284,8 +286,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self.request_ok(): return self.fail("Acesso não autorizado.",403)
         try:
             url=urlsplit(self.path); path=url.path
-            if path in ('/','/app.js','/app.css','/game.js','/game.css'):
-                name={"/":"app.html","/app.js":"app.js","/app.css":"app.css","/game.js":"game.js","/game.css":"game.css"}[path]
+            if path in ('/','/app.js','/app.css','/game.js','/game.css','/world.js','/world.css'):
+                name='app.html' if path=='/' else path[1:]
                 kind='text/html; charset=utf-8' if name.endswith('.html') else 'text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
                 return self.send(200,(ROOT/name).read_bytes(),kind)
             if path=="/api/me":
@@ -329,6 +331,14 @@ class Handler(BaseHTTPRequestHandler):
                         return self.send(200,{'history':rows})
                     match=re.fullmatch(r'/api/missions/([a-zA-Z0-9_-]{1,80})',path)
                     if match: return self.send(200,missions.template(c,match.group(1)))
+            if path.startswith('/api/world'):
+                with db() as c:
+                    if path=='/api/world': return self.send(200,world.scene(c))
+                    if path=='/api/world/config':
+                        if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                        return self.send(200,world.config(c))
+                    match=re.fullmatch(r'/api/world/practice/([a-f0-9]{48})',path)
+                    if match: return self.send(200,world.practice(c,match.group(1)))
             match=re.fullmatch(r'/api/events/(\d+)/mission',path)
             if match:
                 date=parse_qs(url.query).get('date',[''])[0]
@@ -378,6 +388,20 @@ class Handler(BaseHTTPRequestHandler):
                 token,age=AUTH.create_session(role)
                 return self.send(200,{"ok":True},extra={"Set-Cookie":self.session_cookie(token,age)})
             if not session: return self.fail("Autorização necessária.",403)
+            if path.startswith('/api/world'):
+                if path=='/api/world/config' and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                with LOCK, db() as c:
+                    c.execute('BEGIN IMMEDIATE')
+                    if path=='/api/world/buy' and method=='POST': result=world.buy(c,body)
+                    elif path=='/api/world/equip' and method=='PUT': result=world.equip(c,body)
+                    elif path=='/api/world/move' and method=='PUT': result=world.move(c,body)
+                    elif path=='/api/world/config' and method=='PUT': result=world.configure(c,body)
+                    elif path=='/api/world/real' and method=='POST': result=world.real_reward(c,body,mission_event)
+                    elif path=='/api/world/practice' and method=='POST': result=world.start(c,body,mission_event)
+                    elif (match:=re.fullmatch(r'/api/world/practice/([a-f0-9]{48})/(advance|answer|hint)',path)) and method=='POST':
+                        result=world.practice_action(c,match.group(1),match.group(2),body,mission_event)
+                    else: return self.fail('Rota não encontrada.',404)
+                return self.send(200,result)
             if path.startswith('/api/missions'):
                 if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c:
