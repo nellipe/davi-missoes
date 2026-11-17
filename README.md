@@ -93,6 +93,10 @@ Legislação de referência:
 - Backups consistentes, rotação, integridade e restauração ficam em `maintenance.py`. O banco, backups, configuração privada e CA não são versionados.
 - O acesso físico ao computador e a dispositivos autorizados exige cuidado. Sem recuperação automática por e-mail; guarde a senha do responsável.
 
+## Controle do responsável — V0.6D
+
+Revogação individual de estrelas, histórico preservado, remoção/reativação de itens e correções de passos/compromissos no painel protegido. O mundo mostra todas as atividades da data, mesmo sem roteiro. Veja o [guia V0.6D](docs/controle-responsavel-v06d.md). O visual 3D cartoon fica para uma próxima PR.
+
 ## Mundo de aventuras — Etapas A, B e C
 
 A tela inicial infantil agora é a **Ilha das ideias**: caminhe com setas/WASD, botões de direção ou toque no chão. Visite os pontos de interesse, entre nas missões e use estrelas para construir a ponte, a casa na árvore e o portal. A oficina mostra preço e prévia; o guarda-roupa permite equipar chapéu/capa, escolher uma cor e vestir o Pipo. Saldo, construções e personagem persistem no servidor e aparecem nos outros aparelhos LAN. O calendário clássico continua disponível na ilha.

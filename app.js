@@ -320,7 +320,7 @@ function earlierNotice(count) {
 }
 function eventHtml(e, admin = false, clock = calendarClock()) {
   const controls = admin
-    ? '<div class="row admin-actions"><button data-action="mission-link" data-id="' + e.id + '" data-date="' + esc(e.date) + '">Roteiro e progresso</button><button data-action="edit" data-id="' +
+    ? '<div class="row admin-actions">' + doneButton(e).replace('✓ Consegui!', 'Confirmar compromisso') + '<button data-action="mission-link" data-id="' + e.id + '" data-date="' + esc(e.date) + '">Roteiro e progresso</button><button data-action="edit" data-id="' +
       e.id +
       '">Editar série</button><button data-action="skip" data-id="' +
       e.id +
@@ -410,7 +410,7 @@ async function child() {
   await fetchCalendar(state.date, state.date);
   if (state.childSurface!=='calendar' && typeof DaviWorld!=='undefined') {
     state.view='child-world';
-    await DaviWorld.open({layout,api,missions:dayEvents(state.date),dateLabel:fmt(state.date),onMission:openMission,
+    await DaviWorld.open({layout,api,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,
       onCalendar:async()=>{state.childSurface='calendar';await child();}});
     return;
   }
@@ -558,7 +558,7 @@ async function parentMonth() {
   }
   const selected = dayEvents(state.selected);
   layout(
-    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="world-settings">Mundo e estrelas</button><button data-action="mission-library">Roteiros de missões</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
+    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável · versão ' + esc(state.me.version || 'anterior') + '</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="world-settings">Mundo e estrelas</button><button data-action="mission-library">Roteiros de missões</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
       '<div class="panel calendar-panel"><div class="row between"><h2>' +
       esc(fmt(first, { month: "long", year: "numeric" })) +
       '</h2><div class="row calendar-controls"><button data-action="monthprev">← Mês anterior</button><button data-action="monthtoday">Hoje</button><button data-action="monthnext">Próximo mês →</button></div></div><div class="month">' +
@@ -765,7 +765,7 @@ function renderMissionProgress(title) {
   state.missionTitle=title;
   layout('<div class="row between"><div><div class="eyebrow">Passos para a vida real</div><h1>' + esc(title) + '</h1><p>' + esc(fmt(m.date)) + '</p></div><button data-action="' + (state.view.startsWith('parent')?'calendar':'mission-back') + '">← Agenda</button></div>' +
     '<section class="panel"><h2>' + esc(m.icon) + ' ' + esc(m.name) + '</h2><p>' + m.confirmed + ' de ' + m.total + ' etapas confirmadas' + (state.view.startsWith('parent')?' · versão ' + m.revision:'') + '</p><progress value="' + m.confirmed + '" max="' + m.total + '" aria-label="Etapas confirmadas"></progress>' +
-    '<p>Veja o combinado e faça fora da tela. Confirme uma etapa apenas depois de realizá-la. Você pode pedir ajuda ao responsável e voltar mais tarde.</p><p class="sub">Confirmar etapas não conclui o compromisso. A conclusão da atividade continua separada na agenda.</p><ol class="guided-steps">' +
+    '<p>Veja o combinado e faça fora da tela. Confirme uma etapa apenas depois de realizá-la. Você pode pedir ajuda ao responsável e voltar mais tarde.</p><p class="sub">Confirmar ou desfazer passos não altera estrelas. A conclusão do compromisso é separada e pode ser corrigida na agenda. Para revogar estrelas, use Mundo e estrelas.</p><ol class="guided-steps">' +
     m.steps.map(s => '<li class="guided-step"><span class="tag">' + PHASES[s.phase] + '</span><h3>' + esc(s.icon) + ' ' + esc(s.title) + '</h3><p>' + esc(s.instruction) + '</p>' + (s.hint?'<details><summary>Ver dica</summary><p>' + esc(s.hint) + '</p></details>':'') +
       '<button data-action="mission-confirm" data-step="' + esc(s.id) + '" aria-pressed="' + s.done + '">' + (s.done?'Desfazer confirmação':'Fiz esta etapa') + '</button></li>').join('') + '</ol></section>');
 }
@@ -804,10 +804,10 @@ async function worldSettings() {
   state.view='parent-world-settings';
   state.worldConfig=await api('/api/world/config');
   const config=state.worldConfig;
-  layout('<div class="row between"><h1>Mundo e estrelas</h1><button data-action="calendar">← Calendário</button></div><p>Estrelas reconhecem esforço e prática. Cuidados essenciais continuam independentes de recompensas. Saldo atual: '+config.world.stars+' estrelas.</p><form id="worldSettingsForm" class="panel"><div class="form-grid">'+
+  layout('<div class="row between"><h1>Mundo e estrelas</h1><button data-action="calendar">← Calendário</button></div><p>Estrelas reconhecem esforço e prática. Cuidados essenciais continuam independentes de recompensas. Saldo atual: '+config.world.stars+' estrelas.</p><details><summary>Ajustar recompensas e preços</summary><form id="worldSettingsForm" class="panel"><div class="form-grid">'+
     [['learn','Aprender (por ocorrência)'],['memory','Cada minigame (por ocorrência)'],['real','Esforço em Fazer (rotinas elegíveis)'],['daily_limit','Máximo de estrelas por dia']].map(([key,label])=>'<div><label for="reward-'+key+'">'+label+'</label><input id="reward-'+key+'" type="number" min="0" max="'+(key==='daily_limit'?100:10)+'" required value="'+config.settings[key]+'"></div>').join('')+
-    '</div><p>Zero desativa a concessão. Repetir, editar ou desfazer não gera estrelas extras. Fazer só recompensa roteiros originais de preparação/organização elegíveis; medicação e higiene essencial ficam excluídas.</p>'+config.world.catalog.map(i=>'<fieldset><legend>'+esc(i.name)+'</legend><label><input type="checkbox" id="available-'+i.id+'" '+(i.available?'checked':'')+'>Disponível na oficina</label><label for="price-'+i.id+'">Preço em estrelas</label><input type="number" id="price-'+i.id+'" min="0" max="100" required value="'+i.price+'"><span>'+(i.owned?'Já adquirido':'Ainda não adquirido')+'</span></fieldset>').join('')+
-    '<button type="submit" class="primary">Salvar combinados</button></form><section class="panel"><h2>Descobertas recentes</h2><ul>'+config.history.map(h=>'<li>'+esc(h.label)+' · '+(h.delta>0?'+':'')+h.delta+' estrelas</li>').join('')+'</ul></section>');
+    '</div><p>Zero desativa a concessão. Repetir, editar ou desfazer não gera estrelas extras. Fazer só recompensa roteiros originais de preparação/organização elegíveis; medicação e higiene essencial ficam excluídas.</p>'+config.world.catalog.map(i=>'<fieldset><legend>'+esc(i.name)+'</legend><label><input type="checkbox" id="available-'+i.id+'" '+(i.available?'checked':'')+'>Disponível na oficina</label><label for="price-'+i.id+'">Preço em estrelas</label><input type="number" id="price-'+i.id+'" min="0" max="100" required value="'+i.price+'"><span>'+(i.removed?'Adquirido · removido':i.owned?'Já adquirido':'Ainda não adquirido')+'</span></fieldset>').join('')+
+    '<button type="submit" class="primary">Salvar combinados</button></form></details><section class="panel"><h2>Itens adquiridos</h2><p>Remover oculta o item e seus acessórios sem devolver estrelas. Reativar não cobra novamente.</p>'+config.inventory.map(i=>'<p>'+esc(config.world.catalog.find(c=>c.id===i.item_id).name)+' · '+(i.active?'Ativo':'Removido')+' <button data-action="parent-inventory" data-item="'+i.item_id+'" data-active="'+!i.active+'">'+(i.active?'Remover':'Reativar')+'</button></p>').join('')+'</section><section class="panel"><h2>Histórico de estrelas e conquistas</h2><p>Revogar preserva o registro e impede novo crédito pela mesma atividade, data e modalidade. Saldo negativo bloqueia compras até recompor; nenhum item é retirado automaticamente. Passos e conclusão são corrigidos separadamente no calendário.</p>'+ (config.history.length?'<ul>'+config.history.map(h=>'<li><p>'+esc(h.created)+' (UTC) · '+esc(h.label)+' · '+(h.delta>0?'+':'')+h.delta+' estrelas'+(h.context.activity?' · '+esc(h.context.activity)+' · '+esc(h.context.date)+' · '+esc(({learn:'Aprender',order:'Trilha da memória',bag:'O que vai na bolsa?',real:'Fazer'})[h.context.mode] || h.context.mode):'')+(h.context.reason?' · Motivo: '+esc(h.context.reason):'')+' · '+(h.context.item_state || (h.revoked?'Revogada':h.id.startsWith('award:')?'Registrada':'Ajuste registrado'))+'</p>'+(h.id.startsWith('award:')&&h.delta>0&&!h.revoked?'<button data-action="parent-revoke" data-credit="'+esc(h.id)+'">Revogar esta concessão</button>':'')+'</li>').join('')+'</ul>':'<p>Nenhum registro.</p>')+'</section>');
 }
 async function settings() {
   state.view = "parent-settings";
@@ -829,6 +829,16 @@ async function action(e) {
   await safe(async () => {
     if (a==='world-home') {state.childSurface='world';await child();}
     else if (a==='world-settings') await worldSettings();
+    else if (a==='parent-revoke') {
+      const h=state.worldConfig.history.find(h=>h.id===b.dataset.credit);
+      const reason=prompt('Motivo da revogação (opcional):','');
+      if (reason===null || !confirm('Revogar '+h.delta+' estrela(s) de '+(h.context.activity || h.label)+'? O histórico será preservado. Se o saldo ficar negativo, novas compras ficam bloqueadas até recompor.')) return;
+      await api('/api/world/revoke','POST',{id:h.id,reason});await worldSettings();
+    } else if (a==='parent-inventory') {
+      const active=b.dataset.active==='true';
+      if (!confirm((active?'Reativar':'Remover')+' este item? Sem estorno e sem nova cobrança. O responsável pode reativar depois.')) return;
+      await api('/api/world/inventory','PUT',{item_id:b.dataset.item,active});await worldSettings();
+    }
     else if (a.startsWith('world-')) await DaviWorld.action(a,b);
     else if (a.startsWith('game-')) { await DaviGame.action(a,b); }
     else if (a.startsWith('mission-')) { await missionAction(a,b); }
@@ -856,7 +866,7 @@ async function action(e) {
       if (b.dataset.done === "true")
         await api("/api/events/" + id + "/done?date=" + day, "DELETE");
       else await api("/api/events/" + id + "/done", "POST", { date: day });
-      await child();
+      if (state.view.startsWith('parent')) await parentMonth(); else await child();
       $("status").textContent =
         b.dataset.done === "true"
           ? "Conclusão desfeita."
