@@ -1,6 +1,38 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0d1529"><title>Aventuras do Davi · Minha Agenda</title><link rel="stylesheet" href="/app.css" defer></head>
-<body><header><a href="#" id="brand">🧱 Aventuras do Davi</a><nav aria-label="Áreas do aplicativo"><button id="childTab" class="active">🎮 Minha agenda</button><button id="parentTab">🔒 Responsável</button></nav></header>
-<main><div id="alert" role="alert" hidden></div><section id="content" aria-live="polite"><p>Carregando agenda...</p></section></main>
-<footer>Um passo de cada vez 💛 · Agenda local · Florianópolis / SC</footer><script src="/app.js" defer></script></body></html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#173A7A" />
+    <title>Aventuras do Davi · Meu dia de aventura</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Pular para o conteúdo</a>
+    <header>
+      <a href="/" id="brand"
+        ><span class="brand-cube" aria-hidden="true">✦</span
+        ><span>Aventuras <small>DO DAVI</small></span></a
+      >
+      <nav aria-label="Áreas do aplicativo">
+        <button id="childTab" class="active" aria-pressed="true">
+          ⚑ Minha aventura</button
+        ><button id="parentTab" aria-pressed="false">♧ Responsável</button>
+      </nav>
+    </header>
+    <main>
+      <div id="alert" role="alert" hidden></div>
+      <div id="status" class="sr-only" role="status"></div>
+      <section id="content" tabindex="-1">
+        <p>Preparando sua aventura…</p>
+      </section>
+    </main>
+    <footer>
+      <span class="footer-mark" aria-hidden="true">✦</span> Um passo de cada
+      vez. Uma conquista de cada vez.<span class="local-note"
+        >Agenda local · Sem pressa para explorar</span
+      >
+    </footer>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
