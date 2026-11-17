@@ -19,15 +19,16 @@ from urllib.parse import urlsplit, parse_qs
 from lan_security import Config, AuthStore
 import missions
 import world
+import schedule_window as timing
 
 ROOT = Path(__file__).resolve().parent
-APP_VERSION = '0.6D-1'
+APP_VERSION = '0.7A-1'
 DATA = Path(os.environ.get("DAVI_DATA_DIR", ROOT / "dados")).resolve()
 DB = DATA / "agenda.sqlite3"
 CONFIG = Config()
 HOST, PORT = CONFIG.host, CONFIG.port
 AUTH = AuthStore(DATA)
-TZ = dt.timezone(dt.timedelta(hours=-3), "America/Sao_Paulo")
+TZ = timing.TZ
 LOCK = RLock()
 MAX_BODY = 100_000
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -35,7 +36,7 @@ TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 WEEKDAYS = {0, 1, 2, 3, 4, 5, 6}
 
 def today():
-    return dt.datetime.now(TZ).date()
+    return timing.now().astimezone(TZ).date()
 
 def parse_date(s):
     if not isinstance(s, str) or not DATE.fullmatch(s):
@@ -64,7 +65,7 @@ def initialize():
         from contextlib import closing
         from maintenance import readonly, backup
         with closing(readonly(DB)) as existing:
-            pending = missions.needs_migration(existing) or world.needs_migration(existing)
+            pending = missions.needs_migration(existing) or world.needs_migration(existing) or timing.needs_migration(existing)
         if pending:
             backup(DB, DATA / 'antes-v06', keep=14)
     AUTH.initialize()
@@ -90,6 +91,7 @@ def initialize():
         c.execute("INSERT OR IGNORE INTO settings VALUES('name','Davi')")
         missions.initialize(c)
         world.initialize(c)
+        timing.initialize(c)
 
 def set_setting(k, v):
     with LOCK, db() as c:
@@ -194,6 +196,9 @@ def occurrences(start, end):
         links = {(r['event_id'],r['date']):r['template_id'] for r in c.execute('SELECT * FROM event_missions')}
         runs = {(r['event_id'],r['date']) for r in c.execute('''SELECT r.event_id,r.date FROM mission_runs r
             JOIN mission_event_keys k ON k.identity=r.event_key WHERE r.date BETWEEN ? AND ?''', (start.isoformat(),end.isoformat()))}
+    instant=timing.now()
+    with db() as c:
+        for item in result: item['window']=timing.window(c,item,item['date'],instant)
     for item in result:
         key=(item['id'],item['date'])
         item['has_mission'] = key in runs or bool(links.get(key, links.get((item['id'],''))))
@@ -302,7 +307,7 @@ class Handler(BaseHTTPRequestHandler):
                 info={"parent":bool(session and session['role']=='parent'),
                       "authorized":bool(session), "configured":bool(get_setting("password")),
                       "simple_lan":CONFIG.auto_child,
-                      "today":today().isoformat(),"timezone":"America/Sao_Paulo","version":APP_VERSION}
+                      "today":today().isoformat(),"timezone":"America/Sao_Paulo","version":APP_VERSION,"server_now":timing.now().astimezone(TZ).isoformat()}
                 if session: info.update(name=get_setting("name"), csrf=session['csrf'])
                 return self.send(200,info,extra=extra)
             if path.startswith('/api/') and not (self.session() or (
@@ -317,6 +322,9 @@ class Handler(BaseHTTPRequestHandler):
                 start=parse_date(query.get("start",[today().isoformat()])[0])
                 end=parse_date(query.get("end",[start.isoformat()])[0])
                 return self.send(200,{"events":occurrences(start,end)})
+            if path=='/api/schedule/config':
+                if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                with db() as c: return self.send(200,{'after_minutes':timing.tolerance(c)})
             if path.startswith('/api/missions'):
                 if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 with db() as c:
@@ -347,7 +355,9 @@ class Handler(BaseHTTPRequestHandler):
                 with db() as c:
                     event=mission_event(c,int(match.group(1)),date)
                     if date:
-                        return self.send(200,{'mission':missions.occurrence(c,event['id'],date),'title':event['title']})
+                        mission=missions.occurrence(c,event['id'],date)
+                        if mission: mission['window']=timing.window(c,event,date)
+                        return self.send(200,{'mission':mission,'title':event['title']})
                     links=[dict(r) for r in c.execute('SELECT date,template_id FROM event_missions WHERE event_id=? ORDER BY date',(event['id'],))]
                     return self.send(200,{'links':links,'title':event['title']})
             if path=="/api/events":
@@ -389,6 +399,10 @@ class Handler(BaseHTTPRequestHandler):
                 token,age=AUTH.create_session(role)
                 return self.send(200,{"ok":True},extra={"Set-Cookie":self.session_cookie(token,age)})
             if not session: return self.fail("Autorização necessária.",403)
+            if path=='/api/schedule/config' and method=='PUT':
+                if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                with LOCK, db() as c: result=timing.configure(c,body)
+                return self.send(200,result)
             if path.startswith('/api/world'):
                 if path in ('/api/world/config','/api/world/revoke','/api/world/inventory') and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c:
@@ -399,7 +413,13 @@ class Handler(BaseHTTPRequestHandler):
                     elif path=='/api/world/config' and method=='PUT': result=world.configure(c,body)
                     elif path=='/api/world/revoke' and method=='POST': result=world.revoke(c,body)
                     elif path=='/api/world/inventory' and method=='PUT': result=world.inventory_control(c,body)
-                    elif path=='/api/world/real' and method=='POST': result=world.real_reward(c,body,mission_event)
+                    elif path=='/api/world/real' and method=='POST':
+                        event=mission_event(c,body.get('event_id'),body.get('date'))
+                        if self.is_parent() and timing.window(c,event,body['date'])['state']!='open':
+                            result={'delta':0,'stars':world.balance(c),'reason':'correction','message':'Correção do responsável não concede estrelas.'}
+                        else:
+                            timing.require_open(c,event,body['date'])
+                            result=world.real_reward(c,body,mission_event)
                     elif path=='/api/world/practice' and method=='POST': result=world.start(c,body,mission_event)
                     elif (match:=re.fullmatch(r'/api/world/practice/([a-f0-9]{48})/(advance|answer|hint)',path)) and method=='POST':
                         result=world.practice_action(c,match.group(1),match.group(2),body,mission_event)
@@ -429,10 +449,15 @@ class Handler(BaseHTTPRequestHandler):
                 date=body.get('date','') if method!='DELETE' else parse_qs(urlsplit(self.path).query).get('date',[''])[0]
                 with LOCK, db() as c:
                     c.execute('BEGIN IMMEDIATE')
-                    mission_event(c,event_id,date)
+                    event=mission_event(c,event_id,date)
                     if step_id and method=='PUT':
                         if not date: raise ValueError('Informe a data da ocorrência.')
+                        if not self.is_parent(): timing.require_open(c,event,date)
                         result=missions.confirm_step(c,event_id,date,step_id,body,session['role'])
+                        result['window']=timing.window(c,event,date)
+                        if self.is_parent():
+                            timing.correction(c,event_id,date,'step:'+step_id+':'+str(body['done']))
+                            result['correction']='Correção do responsável; estrelas não alteradas.'
                     elif not step_id and method=='PUT':
                         if 'template_id' not in body: raise ValueError('Informe roteiro ou null para nenhum.')
                         missions.assign(c,event_id,date,body['template_id'])
@@ -455,8 +480,11 @@ class Handler(BaseHTTPRequestHandler):
                 id=int(match.group(1));day=parse_date(body.get("date") if method=="POST" else parse_qs(urlsplit(self.path).query).get("date",[""])[0])
                 event=event_by_id(id)
                 if not event or not matches(event,day): return self.fail("Ocorrência não encontrada.",404)
-                with db() as c:
+                with LOCK, db() as c:
+                    c.execute("BEGIN IMMEDIATE")
                     if c.execute("SELECT 1 FROM exceptions WHERE event_id=? AND date=?",(id,day.isoformat())).fetchone():return self.fail("Ocorrência excluída.",404)
+                    if not self.is_parent(): timing.require_open(c,event,day.isoformat())
+                    else: timing.correction(c,id,day.isoformat(),"completion:"+method)
                     if method=="POST":c.execute("INSERT OR IGNORE INTO completions VALUES(?,?,?)",(id,day.isoformat(),dt.datetime.now(TZ).isoformat()))
                     else:c.execute("DELETE FROM completions WHERE event_id=? AND date=?",(id,day.isoformat()))
                 return self.send(200,{"ok":True})

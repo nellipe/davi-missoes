@@ -10,6 +10,8 @@ import server
 class WorldTests(HttpFixture):
     def setUp(self):
         super().setUp();self.parent.login()
+        import datetime as dt, schedule_window
+        self.clock_mock.return_value=dt.datetime(2026,11,17,11,15,tzinfo=schedule_window.TZ)
         code=self.parent.request('/api/devices/code','POST')[1]['code']
         self.child.request('/api/pair','POST',{'code':code});self.child.request('/api/me')
         self.eid=self.parent.request('/api/events','POST',{'title':'Taekwondo sintético','time':'11:00','start_date':'2026-11-17','recurrence':'daily'})[1]['id']
@@ -114,6 +116,8 @@ class WorldTests(HttpFixture):
         with server.db() as c:
             self.assertEqual(c.execute('SELECT COUNT(*) FROM world_ledger WHERE id=?',('revoke:'+credit['id'],)).fetchone()[0],1)
             self.assertEqual(c.execute('SELECT delta FROM world_ledger WHERE id=?',(credit['id'],)).fetchone()[0],2)
+        import datetime as dt, schedule_window
+        self.clock_mock.return_value=dt.datetime(2026,11,18,11,15,tzinfo=schedule_window.TZ)
         self.finish('learn','2026-11-18')
         self.assertEqual(self.child.request('/api/world')[1]['stars'],0)
         self.assertEqual(self.parent.request('/api/world/revoke','POST',{'id':'buy:bridge'})[0],400)
@@ -151,7 +155,7 @@ class WorldTests(HttpFixture):
         events=self.child.request('/api/calendar?start=2026-11-17&end=2026-11-18')[1]['events']
         self.assertFalse(events[0]['done'])
         self.assertFalse(self.parent.request(f'/api/events/{self.eid}/mission?date=2026-11-17')[1]['mission']['steps'][0]['done'])
-        self.assertEqual(self.parent.request('/api/me')[1]['version'],'0.6D-1')
+        self.assertEqual(self.parent.request('/api/me')[1]['version'],'0.7A-1')
 
     def test_upgrade_previous_world_preserves_ledger_inventory_and_legacy_credit(self):
         self.finish()

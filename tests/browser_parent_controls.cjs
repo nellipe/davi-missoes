@@ -16,7 +16,7 @@ async function main() {
   const base=`http://127.0.0.1:${port}`;
   const env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!k.startsWith('DAVI_')));
   Object.assign(env,{DAVI_DATA_DIR:data,DAVI_PORT:String(port),DAVI_HOST:'127.0.0.1'});
-  server=spawn(python,['-c',"import server; server.initialize(); server.set_setting('password',server.hash_password('SyntheticPassword123')); server.main()"],{cwd:root,env,stdio:'ignore',windowsHide:true});
+  server=spawn(python,['-c',"import server, schedule_window, datetime; schedule_window.now=lambda: datetime.datetime(2026,11,17,11,15,tzinfo=schedule_window.TZ); server.initialize(); server.set_setting('password',server.hash_password('SyntheticPassword123')); server.main()"],{cwd:root,env,stdio:'ignore',windowsHide:true});
   const api=await request.newContext({baseURL:base,extraHTTPHeaders:{Origin:base}});
   let ready=false;
   for(let i=0;i<100;i++) {try{if((await api.get('/api/me')).ok()){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,50));}
@@ -79,7 +79,7 @@ async function main() {
   await click('#parentTab');
   await page.locator('#password').fill('SyntheticPassword123');
   await page.locator('#loginForm button').click();await idle();
-  assert.match(await page.locator('#content').innerText(),/versão 0.6D-1/i);
+  assert.match(await page.locator('#content').innerText(),/versão 0.7A-1/i);
   await click('[data-action="world-settings"]');
   for(const width of [1366,360])await capture('responsavel',width);
   page.on('dialog',d=>d.type()==='prompt'?d.accept('Ajuste sintético'):d.accept());

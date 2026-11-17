@@ -1,0 +1,1 @@
+IANA America/Sao_Paulo TZif, tzdata 2025.2 (IANA 2025b). Fallback local para Windows sem base IANA. Dados de fuso são de domínio público. Fonte: https://data.iana.org/time-zones/releases/tzdata2025b.tar.gz . Atualizar quando houver mudança oficial de regras.
