@@ -250,6 +250,11 @@ function categoryTag(e) {
     '<span class="tag category cat-' + c + '">' + CATEGORIES[c] + "</span>"
   );
 }
+function windowLabel(w) {
+  if (!w) return '';
+  const format=value=>new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(value));
+  return (w.state==='upcoming'?'Confirmação abre em ':w.state==='expired'?'Prazo encerrado. Janela: ':'Confirmação disponível: ')+format(w.opens_at)+' até '+format(w.closes_at)+'.';
+}
 function doneButton(e, featured = false) {
   return (
     '<button class="' +
@@ -260,7 +265,7 @@ function doneButton(e, featured = false) {
     esc(e.date) +
     '" data-done="' +
     Boolean(e.done) +
-    '" aria-label="' +
+    '" ' + (e.window && e.window.state!=='open' && !state.view.startsWith('parent')?'disabled ':'') + 'aria-label="' +
     (e.done ? "Desfazer conclusão: " : "Concluir: ") +
     esc(e.title) +
     '">' +
@@ -347,7 +352,7 @@ function eventHtml(e, admin = false, clock = calendarClock()) {
     esc(e.title) +
     "</h3>" +
     (e.notes ? '<p class="sub small">' + esc(e.notes) + "</p>" : "") +
-    categoryTag(e) +
+    categoryTag(e) + (e.window?'<p class="small">'+esc(windowLabel(e.window))+'</p>':'') +
     "</div>" +
     controls +
     "</article>"
@@ -393,7 +398,7 @@ function nextMission(e, hasEvents, earlierCount = 0) {
         : "Uma etapa de cada vez. Peça ajuda se precisar.",
     ) +
     "</p>" +
-    guidedButton(e) + doneButton(e, true) +
+    (e.window?'<p>'+esc(windowLabel(e.window))+'</p>':'') + guidedButton(e) + doneButton(e, true) +
     "</div></div></section>"
   );
 }
@@ -780,7 +785,7 @@ async function missionAction(a,b) {
     const m=state.activeMission, s=m.steps.find(s=>s.id===b.dataset.step);
     state.activeMission=await api('/api/events/' + m.event_id + '/mission/steps/' + encodeURIComponent(s.id),'PUT',{date:m.date,template_id:m.id,revision:m.revision,done:!s.done});
     renderMissionProgress(state.missionTitle);
-    $('status').textContent=s.done?'Confirmação desfeita.':'Etapa confirmada. Volte à atividade fora da tela.';
+    $('status').textContent=state.activeMission.correction || (s.done?'Confirmação desfeita.':'Etapa confirmada. Volte à atividade fora da tela.');
   } else if (a==='mission-inherit') {
     const {id,date}=state.missionEvent;
     await api('/api/events/' + id + '/mission?date=' + date,'DELETE');
@@ -811,13 +816,14 @@ async function worldSettings() {
 }
 async function settings() {
   state.view = "parent-settings";
+  const schedule=await api('/api/schedule/config');
   const devices = state.me.simple_lan
     ? '<p class="sub">Qualquer aparelho da rede doméstica 192.168.2.0/24 pode consultar a agenda e marcar atividades. A área do responsável continua exigindo senha.</p>'
     : '<p class="sub">Cada aparelho infantil precisa de autorização. O código vale por 10 minutos e só pode ser usado uma vez.</p><button data-action="pair-code">Gerar código para aparelho infantil</button><p id="pairResult" role="status"></p><button data-action="revoke-children">Revogar todos os aparelhos infantis</button>';
   layout(
     '<div class="row between"><h1>Preferências</h1><button data-action="calendar">Voltar</button></div><form class="panel" id="settingsForm"><label for="name">Nome do jogador</label><input id="name" maxlength="35" required value="' +
       esc(state.me.name) +
-      '"><button type="submit" class="primary">Salvar</button></form><div class="panel"><h2>Armazenamento local</h2><p>O banco está na pasta <code>dados/agenda.sqlite3</code> junto da aplicação. Os backups consistentes são administrados no computador que hospeda a agenda.</p>' + devices + '</div>',
+      '"><button type="submit" class="primary">Salvar</button></form><form id="scheduleForm" class="panel"><h2>Horário de confirmação</h2><p>A confirmação e o desfazer abrem no horário marcado e fecham após a duração mais a tolerância. O responsável pode corrigir a qualquer hora, sem estrelas automáticas.</p><label for="afterMinutes">Tolerância após a duração (minutos)</label><input id="afterMinutes" type="number" min="0" max="240" required value="'+schedule.after_minutes+'"><button type="submit">Salvar tolerância</button></form><div class="panel"><h2>Armazenamento local</h2><p>O banco está na pasta <code>dados/agenda.sqlite3</code> junto da aplicação. Os backups consistentes são administrados no computador que hospeda a agenda.</p>' + devices + '</div>',
   );
 }
 async function action(e) {
@@ -924,7 +930,9 @@ document.addEventListener("change", (e) => {
 document.addEventListener("submit", (e) => {
   e.preventDefault();
   safe(async () => {
-    if (e.target.id === 'worldSettingsForm') {
+    if (e.target.id === 'scheduleForm') {
+      await api('/api/schedule/config','PUT',{after_minutes:Number($('afterMinutes').value)});await settings();
+    } else if (e.target.id === 'worldSettingsForm') {
       const body=Object.fromEntries(['learn','memory','real','daily_limit'].map(k=>[k,Number($('reward-'+k).value)]));
       body.catalog=state.worldConfig.world.catalog.map(i=>({id:i.id,price:Number($('price-'+i.id).value),available:$('available-'+i.id).checked}));
       await api('/api/world/config','PUT',body);await parentMonth();

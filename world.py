@@ -7,6 +7,7 @@ import re
 import secrets
 import unicodedata
 import missions
+import schedule_window as timing
 
 CATALOG = {
     'bridge': ('Ponte do bosque', 4, 'building', 'Um caminho novo até a ilha do bosque.'),
@@ -253,7 +254,10 @@ def practice_action(c,ident,action,body,validate):
     if not key or key['identity']!=row['event_key']: raise ValueError('Esta atividade foi substituída.')
     mission=json.loads(row['snapshot'])
     grant_key=f"award:{row['event_key']}:{row['date']}:{row['mode']}"
-    if row['completed']: return {'correct':True,'completed':True,'reward':grant(c,grant_key,0,'Treino repetido')}
+    event=validate(c,row['event_id'],row['date'])
+    eligible=timing.window(c,event,row['date'])['state']=='open'
+    no_reward={'delta':0,'stars':balance(c),'reason':'outside_window','message':'Treino livre concluído! Estrelas só são concedidas no horário da atividade.'}
+    if row['completed']: return {'correct':True,'completed':True,'reward':grant(c,grant_key,0,'Treino repetido') if eligible else no_reward}
     if row['mode']=='learn':
         if action!='advance': raise ValueError('Avance um passo de cada vez.')
         step_id=body.get('step_id'); ids=[s['id'] for s in mission['steps']]
@@ -276,7 +280,9 @@ def practice_action(c,ident,action,body,validate):
         cursor=row['cursor']+1; complete=cursor==2
     c.execute('UPDATE practice_sessions SET cursor=?,completed=? WHERE id=?',(cursor,int(complete),ident))
     result={'correct':True,'completed':complete,'cursor':cursor}
-    if complete:
+    if complete and not eligible:
+        result['reward']=no_reward
+    if complete and eligible:
         field='learn' if row['mode']=='learn' else 'memory'
         value=c.execute(f'SELECT {field} FROM world_settings WHERE id=1').fetchone()[0]
         event=validate(c,row['event_id'],row['date'])

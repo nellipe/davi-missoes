@@ -84,14 +84,16 @@ window.DaviGame = (() => {
     const count=Math.min(total,12);
     return `<div class="g-route" role="img" aria-label="Passo ${index+1} de ${total}">${Array.from({length:count},(_,i)=>`<span class="${i<=Math.floor(index/total*count)?'lit':''}" aria-hidden="true">${i<Math.floor(index/total*count)?'✦':'◆'}</span>`).join('<i aria-hidden="true"></i>')}</div>`;
   }
+  const canDo=()=>!g.m.window || g.m.window.state==='open';
+  function timingNote(){return g.m.window ? windowLabel(g.m.window) : '';}
   function hub() {
     scene(`<div class="g-intro"><div class="g-intro-copy"><span class="g-eyebrow">SUA MISSÃO ESTÁ PRONTA</span><h1>${esc(g.title)}</h1><p>Um pouco de imaginação.<br>Uma aventura na vida real.</p><span class="g-date">${esc(host.dateLabel)} · ${g.m.confirmed}/${g.m.total} passos realizados</span></div>
       <div class="g-island" aria-hidden="true"><div class="g-orbit"></div><div class="g-planet"></div>${robot()}<span class="g-float-crystal">✦</span><span class="g-scene-label">PIPO · SEU PARCEIRO DE TREINO</span></div></div>
       <div class="g-select-heading"><h2>Como vamos jogar?</h2><span>ESCOLHA SUA PORTA ↓</span></div><div class="g-portals">
       ${button('<span class="g-portal-icon">◉</span><span><small>01 · DESCOBRIR</small><strong>Aprender</strong><em>Veja, ouça e explore os passos.</em></span><b>↗</b>','learn','g-portal g-learn')}
-      ${button('<span class="g-portal-icon">⚑</span><span><small>02 · MUNDO REAL</small><strong>Fazer</strong><em>Saia da tela. Faça uma coisa por vez.</em></span><b>↗</b>','do','g-portal g-do')}
+      ${button('<span class="g-portal-icon">⚑</span><span><small>02 · MUNDO REAL</small><strong>Fazer</strong><em>Saia da tela. Faça uma coisa por vez.</em></span><b>↗</b>','do','g-portal g-do',canDo()?'':'disabled')}
       ${button('<span class="g-portal-icon">✧</span><span><small>03 · LABORATÓRIO</small><strong>Lembrar</strong><em>Sequências e uma bolsa de ideias!</em></span><b>↗</b>','remember','g-portal g-remember')}</div>
-      <p class="g-footnote">Aprender e Lembrar são treinos. Só em Fazer você confirma o que realizou fora da tela.</p>`,'g-hub');
+      <p class="g-footnote">${esc(timingNote())} ${button('Atualizar horário','refresh-time','g-text')}</p><p class="g-footnote">Aprender e Lembrar são treinos. Estrelas só no horário da atividade. Só em Fazer você confirma o que realizou fora da tela.</p>`,'g-hub');
   }
   function runner() {
     const s=g.m.steps[g.index], real=g.mode==='do';
@@ -100,7 +102,7 @@ window.DaviGame = (() => {
       <section class="g-step-copy" aria-labelledby="gameStepTitle"><span class="g-eyebrow">PASSO ${g.index+1} DE ${g.m.steps.length}</span><h2 id="gameStepTitle" tabindex="-1">${esc(s.title)}</h2><p class="g-instruction">${esc(s.instruction)}</p>
       <div class="g-tools">${button('◖ Ouvir','speak','g-chip')}${button('✧ Uma dica','hint','g-chip')}${button('♡ Preciso de ajuda','help','g-chip')}</div>
       ${g.message?`<div class="g-speech" role="status">${esc(g.message)}</div>`:''}
-      ${real ? `<p class="g-reality">${s.done?'✦ Este passo já foi confirmado. Você pode rever.':'Faça fora da tela e volte quando estiver pronto.'}</p>${button(s.done?'Já fiz · próximo →':'Fiz de verdade! →','confirm','g-primary')}${s.done?button('Desfazer este passo','undo','g-text'):''}` : button(g.index===g.m.steps.length-1?'Descobri a sequência! ✦':'Entendi! Próximo →','next','g-primary')}
+      ${real ? `<p class="g-reality">${s.done?'✦ Este passo já foi confirmado. Você pode rever.':'Faça fora da tela e volte quando estiver pronto.'}</p>${button(s.done?'Já fiz · próximo →':'Fiz de verdade! →','confirm','g-primary',canDo()?'':'disabled')}${s.done?button('Desfazer este passo','undo','g-text',canDo()?'':'disabled'):''}` : button(g.index===g.m.steps.length-1?'Descobri a sequência! ✦':'Entendi! Próximo →','next','g-primary')}
       <div class="g-step-nav">${button('← Voltar','previous','g-quiet',g.index===0?'disabled':'')}${real?button('Ver próximo sem confirmar →','skip','g-quiet'):''}</div></section></div>
       <p class="g-footnote">${real?'Os passos e a conclusão da atividade na agenda continuam separados.':'Explorar a sequência não confirma nenhuma tarefa real.'}</p>`);
   }
@@ -114,7 +116,7 @@ window.DaviGame = (() => {
     stopVoice();g.kind=kind;g.screen=kind;g.message='';g.selected=[];g.reward=null;g.chestOpen=false;
     if(restart || !g.practice) {
       g.server=await host.api('/api/world/practice','POST',{event_id:g.m.event_id,date:g.m.date,mode:kind,size:g.size});
-      g.m=g.server.mission;
+      g.m={...g.server.mission,window:g.m.window};
       g.practice={id:g.server.id,version:1,mode:'remember',challenge:kind,mission_id:g.m.id,revision:g.m.revision,event_id:g.m.event_id,date:g.m.date,rounds:0,hints:0};
     } else g.server=await host.api('/api/world/practice/'+g.server.id);
     g.choices=g.server.choices;
@@ -170,6 +172,7 @@ window.DaviGame = (() => {
   }
   async function action(a,b) {
     const name=a.replace('game-','');g.message='';stopVoice();
+    if(name==='refresh-time'){const data=await host.api(`/api/events/${g.m.event_id}/mission?date=${g.m.date}`);g.m=data.mission;render();return;}
     if(name==='exit') {close();await host.onExit();return;}
     if(name==='sound') {settings.sound=!settings.sound;saveSettings();}
     else if(name==='motion') {settings.motion=!settings.motion;saveSettings();}
@@ -178,7 +181,7 @@ window.DaviGame = (() => {
       g.mode=name;g.screen='runner';g.reward=null;g.chestOpen=false;
       if(name==='learn') {
         g.server=await host.api('/api/world/practice','POST',{event_id:g.m.event_id,date:g.m.date,mode:'learn'});
-        g.m=g.server.mission;
+        g.m={...g.server.mission,window:g.m.window};
         g.practice={id:g.server.id,version:1,mode:'learn',challenge:'sequence',mission_id:g.m.id,revision:g.m.revision,event_id:g.m.event_id,date:g.m.date,rounds:0,hints:0};
       } else g.practice=null;
       g.index=name==='do'?Math.max(0,g.m.steps.findIndex(s=>!s.done)):0;

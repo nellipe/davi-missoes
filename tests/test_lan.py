@@ -49,6 +49,9 @@ class Client:
 
 class HttpFixture(unittest.TestCase):
     def setUp(self):
+        import schedule_window, datetime as dt
+        self.clock=patch.object(schedule_window,'now',return_value=dt.datetime(2026,11,17,8,15,tzinfo=schedule_window.TZ))
+        self.clock_mock=self.clock.start();self.addCleanup(self.clock.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.data = Path(self.temp.name)
         self.old = server.DATA, server.DB, server.AUTH, server.CONFIG
