@@ -132,6 +132,9 @@ function layout(html) {
         action: old.dataset.action,
         event: old.dataset.id,
         date: old.dataset.date,
+        step: old.dataset.step,
+        index: old.dataset.index,
+        template: old.dataset.template,
       }
     : null;
   $("content").innerHTML = html;
@@ -145,7 +148,10 @@ function layout(html) {
         : key.action &&
           el.dataset.action === key.action &&
           el.dataset.id === key.event &&
-          el.dataset.date === key.date,
+          el.dataset.date === key.date &&
+          el.dataset.step === key.step &&
+          el.dataset.index === key.index &&
+          el.dataset.template === key.template,
     );
     (match || $("content")).focus({ preventScroll: true });
   }
@@ -310,7 +316,7 @@ function earlierNotice(count) {
 }
 function eventHtml(e, admin = false, clock = calendarClock()) {
   const controls = admin
-    ? '<div class="row admin-actions"><button data-action="edit" data-id="' +
+    ? '<div class="row admin-actions"><button data-action="mission-link" data-id="' + e.id + '" data-date="' + esc(e.date) + '">Roteiro e progresso</button><button data-action="edit" data-id="' +
       e.id +
       '">Editar série</button><button data-action="skip" data-id="' +
       e.id +
@@ -319,7 +325,7 @@ function eventHtml(e, admin = false, clock = calendarClock()) {
       '">Excluir este dia</button><button class="danger" data-action="delete" data-id="' +
       e.id +
       '">Excluir série</button></div>'
-    : doneButton(e);
+    : '<div class="task-actions">' + guidedButton(e) + doneButton(e) + '</div>';
   return (
     '<article class="task cat-' +
     category(e) +
@@ -383,7 +389,7 @@ function nextMission(e, hasEvents, earlierCount = 0) {
         : "Uma etapa de cada vez. Peça ajuda se precisar.",
     ) +
     "</p>" +
-    doneButton(e, true) +
+    guidedButton(e) + doneButton(e, true) +
     "</div></div></section>"
   );
 }
@@ -542,7 +548,7 @@ async function parentMonth() {
   }
   const selected = dayEvents(state.selected);
   layout(
-    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
+    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="mission-library">Roteiros de missões</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
       '<div class="panel calendar-panel"><div class="row between"><h2>' +
       esc(fmt(first, { month: "long", year: "numeric" })) +
       '</h2><div class="row calendar-controls"><button data-action="monthprev">← Mês anterior</button><button data-action="monthtoday">Hoje</button><button data-action="monthnext">Próximo mês →</button></div></div><div class="month">' +
@@ -673,6 +679,110 @@ async function saveEvent() {
   state.selected = body.start_date;
   await parentMonth();
 }
+const PHASES = {preparation: 'Preparação', main: 'Durante a atividade', return: 'Depois / retorno'};
+function guidedButton(e) {
+  return e.has_mission ? '<button class="primary" data-action="mission-open" data-id="' + e.id + '" data-date="' + esc(e.date) + '">Ver passos da missão</button>' : '';
+}
+async function missionLibrary() {
+  state.view = 'parent-missions';
+  const list = (await api('/api/missions')).templates;
+  const history = (await api('/api/missions/history')).history;
+  layout('<div class="row between"><h1>Roteiros de missões</h1><button data-action="calendar">← Calendário</button></div>' +
+    '<p>Escolha um roteiro para adaptar. Depois, vincule-o a uma atividade no calendário. Nenhum compromisso recebe etapas automaticamente.</p>' +
+    '<button class="primary" data-action="mission-new">Criar roteiro</button><div class="mission-library">' + list.map(t =>
+      '<article class="panel"><h2>' + esc(t.icon) + ' ' + esc(t.name) + '</h2><p>' + t.step_count + ' etapas · versão ' + t.revision + (t.archived ? ' · Arquivado' : '') +
+      '</p><button data-action="mission-edit" data-template="' + esc(t.id) + '">Editar roteiro</button></article>').join('') + '</div>' +
+    '<section class="panel"><h2>Progresso por ocorrência</h2><p>Até 200 execuções recentes. Etapas confirmadas são relatos de execução real; não são pontos de jogo nem conclusão do compromisso.</p>' +
+    (history.length ? '<ul class="mission-history">' + history.map(h => '<li><details><summary><strong>' + esc(h.mission.name) + '</strong> · ' + esc(fmt(h.date)) +
+      ' · atividade #' + h.event_id + ' · versão ' + h.mission.revision + ' · ' + h.confirmed + '/' + h.mission.steps.length + ' etapas confirmadas</summary><ol>' + h.mission.steps.map(s => '<li>' + (s.done?'Confirmada: ':'Pendente: ') + esc(s.title) + ' — ' + esc(s.instruction) + '</li>').join('') + '</ol></details></li>').join('') + '</ul>' : '<p>Nenhuma missão iniciada.</p>') + '</section>');
+}
+async function missionEdit(id) {
+  state.view = 'parent-mission-edit';
+  state.missionDraft = id ? await api('/api/missions/' + encodeURIComponent(id)) : {name:'',icon:'⭐',steps:[{title:'',instruction:'',hint:'',icon:'⭐',phase:'main'}]};
+  renderMissionEditor();
+}
+function renderMissionEditor() {
+  const t = state.missionDraft;
+  layout('<div class="row between"><h1>Editar roteiro</h1><button data-action="mission-library">← Roteiros</button></div>' +
+    '<p>Edições valem para ocorrências ainda não iniciadas. Uma sequência já iniciada mantém a versão e o progresso anteriores.</p>' +
+    '<form id="missionForm" class="panel"><label for="missionName">Nome do roteiro</label><input id="missionName" required maxlength="100" value="' + esc(t.name) +
+    '"><label for="missionIcon">Ícone do roteiro</label><input id="missionIcon" required maxlength="12" value="' + esc(t.icon) + '">' +
+    t.steps.map((s,i) => '<fieldset class="mission-step-editor"><legend>Etapa ' + (i+1) + '</legend><div class="form-grid"><div><label for="ms-title-' + i + '">Título</label><input id="ms-title-' + i + '" required maxlength="100" value="' + esc(s.title) +
+      '"></div><div><label for="ms-icon-' + i + '">Ícone</label><input id="ms-icon-' + i + '" required maxlength="12" value="' + esc(s.icon) + '"></div></div><label for="ms-instruction-' + i + '">Orientação concreta</label><textarea id="ms-instruction-' + i + '" required maxlength="600">' + esc(s.instruction) +
+      '</textarea><label for="ms-hint-' + i + '">Dica opcional</label><textarea id="ms-hint-' + i + '" maxlength="400">' + esc(s.hint) + '</textarea><label for="ms-phase-' + i + '">Fase</label><select id="ms-phase-' + i + '">' + Object.entries(PHASES).map(([k,v]) => '<option value="' + k + '" ' + (s.phase===k?'selected':'') + '>' + v + '</option>').join('') +
+      '</select><div class="actions"><button type="button" data-action="mission-up" data-index="' + i + '" ' + (i===0?'disabled':'') + '>Subir etapa ' + (i+1) + '</button><button type="button" data-action="mission-down" data-index="' + i + '" ' + (i===t.steps.length-1?'disabled':'') + '>Descer etapa ' + (i+1) + '</button><button type="button" data-action="mission-remove" data-index="' + i + '" ' + (t.steps.length===1?'disabled':'') + '>Remover etapa ' + (i+1) + '</button></div></fieldset>').join('') +
+    '<div class="actions"><button type="button" data-action="mission-add" ' + (t.steps.length>=40?'disabled':'') + '>Adicionar etapa</button><button type="submit" class="primary">Salvar roteiro</button></div></form>' +
+    (t.id ? '<button class="danger" data-action="mission-archive">' + (t.archived?'Reativar roteiro':'Arquivar roteiro') + '</button><p class="sub">Arquivar impede novos vínculos e conserva vínculos e histórico existentes.</p>' : ''));
+}
+function readMissionDraft() {
+  const t = state.missionDraft;
+  t.name = $('missionName').value;
+  t.icon = $('missionIcon').value;
+  t.steps = t.steps.map((s,i) => ({...s, ...Object.fromEntries(['title','icon','instruction','hint','phase'].map(k => [k, $('ms-' + k + '-' + i).value]))}));
+}
+async function missionLink(id, date) {
+  state.view = 'parent-mission-link';
+  state.missionEvent = {id,date};
+  const links = await api('/api/events/' + id + '/mission');
+  const list = (await api('/api/missions')).templates;
+  const series = links.links.find(l => !l.date)?.template_id;
+  const override = links.links.find(l => l.date===date);
+  state.missionLinks = {series, override};
+  const occurrence = (await api('/api/events/' + id + '/mission?date=' + date)).mission;
+  layout('<div class="row between"><h1>Roteiro de ' + esc(links.title) + '</h1><button data-action="calendar">← Calendário</button></div><form id="missionLinkForm" class="panel"><label for="missionScope">Aplicar a</label><select id="missionScope"><option value="">Toda a série</option value="' + date + '">Somente ' + esc(fmt(date)) +
+    '</option></select><label for="missionTemplate">Roteiro</label><select id="missionTemplate"><option value="">Sem roteiro</option>' + list.filter(t => !t.archived || t.id===series || t.id===override?.template_id).map(t => '<option value="' + esc(t.id) + '" ' + (t.id===series?'selected':'') + '>' + esc(t.name) + (t.archived?' (arquivado)':'') + '</option>').join('') +
+    '</select><p>Roteiro da série: ' + esc(list.find(t=>t.id===series)?.name || 'Nenhum') + '. Exceção deste dia: ' + esc(override ? list.find(t=>t.id===override.template_id)?.name || 'Sem roteiro' : 'Usa a série') +
+    '.</p><p>Alterar o vínculo não apaga progresso já iniciado. Sem roteiro mantém a agenda e o botão de conclusão habituais.</p><button type="submit" class="primary">Salvar vínculo</button><button type="button" data-action="mission-inherit">Remover exceção deste dia</button></form>' +
+    (occurrence ? '<section class="panel"><h2>Ocorrência de ' + esc(fmt(date)) + '</h2><p>' + esc(occurrence.name) + ' · versão ' + occurrence.revision + ' · ' + occurrence.confirmed + '/' + occurrence.total + ' etapas confirmadas' + (occurrence.started?' · Versão preservada':' · Ainda não iniciada') + '</p><button data-action="mission-open" data-id="' + id + '" data-date="' + date + '">Ver passos e progresso</button></section>' : ''));
+}
+async function openMission(id,date) {
+  const parent = state.view.startsWith('parent');
+  const data = await api('/api/events/' + id + '/mission?date=' + date);
+  if (!data.mission) throw Error('Esta ocorrência não tem roteiro. Volte à agenda.');
+  state.view = parent ? 'parent-mission-progress' : 'child-mission-progress';
+  state.activeMission = data.mission;
+  renderMissionProgress(data.title);
+}
+function renderMissionProgress(title) {
+  const m=state.activeMission;
+  state.missionTitle=title;
+  layout('<div class="row between"><div><div class="eyebrow">Passos para a vida real</div><h1>' + esc(title) + '</h1><p>' + esc(fmt(m.date)) + '</p></div><button data-action="' + (state.view.startsWith('parent')?'calendar':'mission-back') + '">← Agenda</button></div>' +
+    '<section class="panel"><h2>' + esc(m.icon) + ' ' + esc(m.name) + '</h2><p>' + m.confirmed + ' de ' + m.total + ' etapas confirmadas' + (state.view.startsWith('parent')?' · versão ' + m.revision:'') + '</p><progress value="' + m.confirmed + '" max="' + m.total + '" aria-label="Etapas confirmadas"></progress>' +
+    '<p>Veja o combinado e faça fora da tela. Confirme uma etapa apenas depois de realizá-la. Você pode pedir ajuda ao responsável e voltar mais tarde.</p><p class="sub">Confirmar etapas não conclui o compromisso. A conclusão da atividade continua separada na agenda.</p><ol class="guided-steps">' +
+    m.steps.map(s => '<li class="guided-step"><span class="tag">' + PHASES[s.phase] + '</span><h3>' + esc(s.icon) + ' ' + esc(s.title) + '</h3><p>' + esc(s.instruction) + '</p>' + (s.hint?'<details><summary>Ver dica</summary><p>' + esc(s.hint) + '</p></details>':'') +
+      '<button data-action="mission-confirm" data-step="' + esc(s.id) + '" aria-pressed="' + s.done + '">' + (s.done?'Desfazer confirmação':'Fiz esta etapa') + '</button></li>').join('') + '</ol></section>');
+}
+async function missionAction(a,b) {
+  if (a==='mission-library') await missionLibrary();
+  else if (a==='mission-new') await missionEdit(null);
+  else if (a==='mission-edit') await missionEdit(b.dataset.template);
+  else if (a==='mission-link') await missionLink(Number(b.dataset.id),b.dataset.date);
+  else if (a==='mission-open') await openMission(Number(b.dataset.id),b.dataset.date);
+  else if (a==='mission-back') await child();
+  else if (a==='mission-confirm') {
+    const m=state.activeMission, s=m.steps.find(s=>s.id===b.dataset.step);
+    state.activeMission=await api('/api/events/' + m.event_id + '/mission/steps/' + encodeURIComponent(s.id),'PUT',{date:m.date,template_id:m.id,revision:m.revision,done:!s.done});
+    renderMissionProgress(state.missionTitle);
+    $('status').textContent=s.done?'Confirmação desfeita.':'Etapa confirmada. Volte à atividade fora da tela.';
+  } else if (a==='mission-inherit') {
+    const {id,date}=state.missionEvent;
+    await api('/api/events/' + id + '/mission?date=' + date,'DELETE');
+    await missionLink(id,date);
+  } else if (a==='mission-archive') {
+    const t=state.missionDraft;
+    if (!confirm(t.archived?'Reativar este roteiro?':'Arquivar sem apagar vínculos e progresso?')) return;
+    await api('/api/missions/' + t.id + '/archive','PUT',{archived:!t.archived,revision:t.revision});
+    await missionLibrary();
+  } else {
+    readMissionDraft();
+    const t=state.missionDraft, i=Number(b.dataset.index);
+    if (a==='mission-add' && t.steps.length<40) t.steps.push({title:'',instruction:'',hint:'',icon:'⭐',phase:'main'});
+    if (a==='mission-remove' && t.steps.length>1) t.steps.splice(i,1);
+    if (a==='mission-up' && i>0) [t.steps[i-1],t.steps[i]]=[t.steps[i],t.steps[i-1]];
+    if (a==='mission-down' && i<t.steps.length-1) [t.steps[i+1],t.steps[i]]=[t.steps[i],t.steps[i+1]];
+    renderMissionEditor();
+  }
+}
 async function settings() {
   state.view = "parent-settings";
   const devices = state.me.simple_lan
@@ -691,7 +801,8 @@ async function action(e) {
     id = Number(b.dataset.id),
     day = b.dataset.date;
   await safe(async () => {
-    if (a === "pair-code") {
+    if (a.startsWith('mission-')) { await missionAction(a,b); }
+    else if (a === "pair-code") {
       const result = await api('/api/devices/code', 'POST', {});
       $('pairResult').textContent = 'Código: ' + result.code + ' · válido por 10 minutos. Digite no aparelho infantil.';
     } else if (a === "revoke-children") {
@@ -758,6 +869,10 @@ async function action(e) {
 document.addEventListener("click", action);
 document.addEventListener("change", (e) => {
   if (e.target.id === "recurrence") toggleWeekly();
+  if (e.target.id === 'missionScope') {
+    const {series,override}=state.missionLinks;
+    $('missionTemplate').value=(e.target.value ? (override ? override.template_id : series) : series) || '';
+  }
   if (e.target.id === "childDate")
     safe(async () => {
       if (e.target.value) {
@@ -769,7 +884,16 @@ document.addEventListener("change", (e) => {
 document.addEventListener("submit", (e) => {
   e.preventDefault();
   safe(async () => {
-    if (e.target.id === 'pairForm') {
+    if (e.target.id === 'missionForm') {
+      readMissionDraft();
+      const t=state.missionDraft;
+      await api('/api/missions' + (t.id?'/' + t.id:''),t.id?'PUT':'POST',t);
+      await missionLibrary();
+    } else if (e.target.id === 'missionLinkForm') {
+      const {id,date}=state.missionEvent;
+      await api('/api/events/' + id + '/mission','PUT',{date:$('missionScope').value,template_id:$('missionTemplate').value || null});
+      await missionLink(id,date);
+    } else if (e.target.id === 'pairForm') {
       await api('/api/pair', 'POST', {code: $('pairCode').value.trim()});
       await child();
     } else if (e.target.id === "eventForm") await saveEvent();

@@ -1,0 +1,741 @@
+[
+  {
+    "id": "banheiro",
+    "name": "Operação Banheiro",
+    "icon": "🚽",
+    "steps": [
+      {
+        "id": "banheiro-1",
+        "icon": "🚪",
+        "title": "Entre no banheiro",
+        "instruction": "Abra a porta, entre e feche para ter privacidade.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banheiro-2",
+        "icon": "🚽",
+        "title": "Prepare o vaso",
+        "instruction": "Levante ou abaixe a tampa e o assento conforme precisar.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banheiro-3",
+        "icon": "🧍",
+        "title": "Use o banheiro",
+        "instruction": "Sente-se ou fique em pé, de acordo com o que vai fazer.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banheiro-4",
+        "icon": "🧻",
+        "title": "Faça a higiene",
+        "instruction": "Use papel higiênico e confira se ficou limpo.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banheiro-5",
+        "icon": "👖",
+        "title": "Arrume a roupa",
+        "instruction": "Vista e ajeite a roupa com calma.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banheiro-6",
+        "icon": "💧",
+        "title": "Dê descarga",
+        "instruction": "Acione a descarga e confira.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banheiro-7",
+        "icon": "🧼",
+        "title": "Lave as mãos",
+        "instruction": "Use água e sabonete, esfregando bem.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banheiro-8",
+        "icon": "👐",
+        "title": "Seque as mãos",
+        "instruction": "Seque as mãos, veja se ficou tudo bem e saia.",
+        "hint": "",
+        "phase": "main"
+      }
+    ]
+  },
+  {
+    "id": "dentes",
+    "name": "Poder do Sorriso",
+    "icon": "🪥",
+    "steps": [
+      {
+        "id": "dentes-1",
+        "icon": "🪥",
+        "title": "Pegue a escova",
+        "instruction": "Encontre sua escova de dentes.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "dentes-2",
+        "icon": "🧴",
+        "title": "Ponha a pasta",
+        "instruction": "Use a quantidade de pasta combinada com seu responsável.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "dentes-3",
+        "icon": "😁",
+        "title": "Escove os dentes",
+        "instruction": "Escove frente, trás e superfícies de mastigação com cuidado.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "dentes-4",
+        "icon": "👅",
+        "title": "Limpe a língua",
+        "instruction": "Escove a língua delicadamente.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "dentes-5",
+        "icon": "🚰",
+        "title": "Finalize",
+        "instruction": "Cuspa a pasta e enxágue a escova.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "dentes-6",
+        "icon": "🧽",
+        "title": "Guarde tudo",
+        "instruction": "Guarde escova e pasta e deixe a pia organizada.",
+        "hint": "",
+        "phase": "main"
+      }
+    ]
+  },
+  {
+    "id": "banho",
+    "name": "Missão Banho",
+    "icon": "🚿",
+    "steps": [
+      {
+        "id": "banho-1",
+        "icon": "👕",
+        "title": "Separe o necessário",
+        "instruction": "Pegue toalha e roupa limpa.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banho-2",
+        "icon": "🚪",
+        "title": "Tenha privacidade",
+        "instruction": "Entre no banheiro e feche a porta.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banho-3",
+        "icon": "🌡️",
+        "title": "Confira a água",
+        "instruction": "Peça ajuda se precisar ajustar a temperatura.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banho-4",
+        "icon": "🚿",
+        "title": "Molhe o corpo",
+        "instruction": "Molhe o corpo com cuidado.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banho-5",
+        "icon": "🧼",
+        "title": "Use o sabonete",
+        "instruction": "Lave o corpo e as áreas que precisam de higiene.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banho-6",
+        "icon": "💦",
+        "title": "Enxágue",
+        "instruction": "Retire o sabonete completamente.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banho-7",
+        "icon": "🧻",
+        "title": "Seque-se",
+        "instruction": "Desligue a água e seque bem o corpo.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "banho-8",
+        "icon": "👕",
+        "title": "Vista a roupa",
+        "instruction": "Vista a roupa limpa e guarde o que usou.",
+        "hint": "",
+        "phase": "main"
+      }
+    ]
+  },
+  {
+    "id": "mochila",
+    "name": "Inventário da Mochila",
+    "icon": "🎒",
+    "steps": [
+      {
+        "id": "mochila-1",
+        "icon": "📅",
+        "title": "Veja o dia de amanhã",
+        "instruction": "Confira com seu responsável as matérias.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "mochila-2",
+        "icon": "📚",
+        "title": "Separe os livros",
+        "instruction": "Coloque os materiais indicados.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "mochila-3",
+        "icon": "📓",
+        "title": "Confira os cadernos",
+        "instruction": "Veja se os cadernos estão na mochila.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "mochila-4",
+        "icon": "✏️",
+        "title": "Prepare o estojo",
+        "instruction": "Confira lápis, borracha e outros itens.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "mochila-5",
+        "icon": "📄",
+        "title": "Veja os recados",
+        "instruction": "Confira tarefas e avisos da escola.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "mochila-6",
+        "icon": "🎒",
+        "title": "Feche e guarde",
+        "instruction": "Feche a mochila e deixe no lugar combinado.",
+        "hint": "",
+        "phase": "main"
+      }
+    ]
+  },
+  {
+    "id": "quarto",
+    "name": "Base Organizada",
+    "icon": "🛏️",
+    "steps": [
+      {
+        "id": "quarto-1",
+        "icon": "🛏️",
+        "title": "Arrume a cama",
+        "instruction": "Estique a coberta e ajeite o travesseiro.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "quarto-2",
+        "icon": "👕",
+        "title": "Junte as roupas",
+        "instruction": "Coloque a roupa suja no cesto.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "quarto-3",
+        "icon": "🧸",
+        "title": "Guarde os brinquedos",
+        "instruction": "Cada brinquedo volta ao seu lugar.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "quarto-4",
+        "icon": "📚",
+        "title": "Organize os objetos",
+        "instruction": "Guarde livros e materiais da mesa.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "quarto-5",
+        "icon": "👀",
+        "title": "Olhe o quarto",
+        "instruction": "Confira se o caminho está livre e tudo seguro.",
+        "hint": "",
+        "phase": "main"
+      }
+    ]
+  },
+  {
+    "id": "dormir",
+    "name": "Portal do Descanso",
+    "icon": "🌙",
+    "steps": [
+      {
+        "id": "dormir-1",
+        "icon": "🎮",
+        "title": "Encerre a brincadeira",
+        "instruction": "Salve o jogo e desligue a tela no horário combinado.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "dormir-2",
+        "icon": "🎒",
+        "title": "Prepare o amanhã",
+        "instruction": "Confira mochila e roupa.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "dormir-3",
+        "icon": "🚿",
+        "title": "Faça a higiene",
+        "instruction": "Vá ao banheiro e escove os dentes.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "dormir-4",
+        "icon": "👕",
+        "title": "Coloque o pijama",
+        "instruction": "Vista uma roupa confortável para dormir.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "dormir-5",
+        "icon": "📖",
+        "title": "Hora de desacelerar",
+        "instruction": "Escolha uma história ou atividade tranquila.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "dormir-6",
+        "icon": "💤",
+        "title": "Deite-se",
+        "instruction": "Apague a luz combinada e descanse.",
+        "hint": "",
+        "phase": "main"
+      }
+    ]
+  },
+  {
+    "id": "acordar",
+    "name": "Start do Dia",
+    "icon": "🌞",
+    "steps": [
+      {
+        "id": "acordar-1",
+        "icon": "⏰",
+        "title": "Acorde",
+        "instruction": "Levante-se e abra os olhos para um novo dia.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "acordar-2",
+        "icon": "🚽",
+        "title": "Vá ao banheiro",
+        "instruction": "Use o banheiro se precisar.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "acordar-3",
+        "icon": "🛏️",
+        "title": "Arrume a cama",
+        "instruction": "Deixe coberta e travesseiro no lugar.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "acordar-4",
+        "icon": "👕",
+        "title": "Vista-se",
+        "instruction": "Coloque a roupa separada.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "acordar-5",
+        "icon": "🍎",
+        "title": "Tome café",
+        "instruction": "Sente e faça sua refeição.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "acordar-6",
+        "icon": "🪥",
+        "title": "Escove os dentes",
+        "instruction": "Faça a higiene antes de sair.",
+        "hint": "",
+        "phase": "main"
+      }
+    ]
+  },
+  {
+    "id": "alimentacao",
+    "name": "Missão Refeição",
+    "icon": "🍽️",
+    "steps": [
+      {
+        "id": "alimentacao-1",
+        "icon": "🧼",
+        "title": "Lave as mãos",
+        "instruction": "Lave as mãos antes de comer.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "alimentacao-2",
+        "icon": "🍽️",
+        "title": "Prepare seu lugar",
+        "instruction": "Coloque o que precisa na mesa.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "alimentacao-3",
+        "icon": "🪑",
+        "title": "Sente-se",
+        "instruction": "Sente em um lugar seguro.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "alimentacao-4",
+        "icon": "🥗",
+        "title": "Faça sua refeição",
+        "instruction": "Coma no seu ritmo e use os talheres.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "alimentacao-5",
+        "icon": "🧽",
+        "title": "Organize a mesa",
+        "instruction": "Leve seus itens ao lugar combinado.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "alimentacao-6",
+        "icon": "👐",
+        "title": "Finalize",
+        "instruction": "Limpe as mãos e confira seu espaço.",
+        "hint": "",
+        "phase": "main"
+      }
+    ]
+  },
+  {
+    "id": "sair",
+    "name": "Pronto para Sair",
+    "icon": "🚀",
+    "steps": [
+      {
+        "id": "sair-1",
+        "icon": "👕",
+        "title": "Confira a roupa",
+        "instruction": "Veja se está vestido para o passeio.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "sair-2",
+        "icon": "👟",
+        "title": "Calce os sapatos",
+        "instruction": "Calce e ajuste os sapatos.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "sair-3",
+        "icon": "🎒",
+        "title": "Pegue seus itens",
+        "instruction": "Confira mochila ou objetos necessários.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "sair-4",
+        "icon": "🚰",
+        "title": "Veja a garrafinha",
+        "instruction": "Pegue água se for necessário.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "sair-5",
+        "icon": "👋",
+        "title": "Avise o responsável",
+        "instruction": "Diga que está pronto.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "sair-6",
+        "icon": "🚪",
+        "title": "Saia acompanhado",
+        "instruction": "Saia com o adulto responsável.",
+        "hint": "",
+        "phase": "main"
+      }
+    ]
+  },
+  {
+    "id": "brincar",
+    "name": "Fim da Partida",
+    "icon": "🧱",
+    "steps": [
+      {
+        "id": "brincar-1",
+        "icon": "⏰",
+        "title": "Veja o combinado",
+        "instruction": "Confira se chegou a hora de encerrar.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "brincar-2",
+        "icon": "🎮",
+        "title": "Salve o progresso",
+        "instruction": "Salve o jogo, se houver essa opção.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "brincar-3",
+        "icon": "🔌",
+        "title": "Desligue com cuidado",
+        "instruction": "Desligue o dispositivo corretamente.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "brincar-4",
+        "icon": "🧸",
+        "title": "Guarde os objetos",
+        "instruction": "Coloque controles, peças ou brinquedos no lugar.",
+        "hint": "",
+        "phase": "main"
+      },
+      {
+        "id": "brincar-5",
+        "icon": "🌟",
+        "title": "Escolha a próxima atividade",
+        "instruction": "Agora é hora da próxima missão!",
+        "hint": "",
+        "phase": "main"
+      }
+    ]
+  },
+  {
+    "id": "taekwondo",
+    "name": "Preparar e voltar do Taekwondo",
+    "icon": "🥋",
+    "steps": [
+      {
+        "id": "taekwondo-1",
+        "phase": "preparation",
+        "icon": "🥋",
+        "title": "Localize o dobok",
+        "instruction": "Encontre o dobok/kimono no lugar combinado.",
+        "hint": ""
+      },
+      {
+        "id": "taekwondo-2",
+        "phase": "preparation",
+        "icon": "👕",
+        "title": "Vista o dobok",
+        "instruction": "Vista a roupa e peça ajuda se precisar.",
+        "hint": ""
+      },
+      {
+        "id": "taekwondo-3",
+        "phase": "preparation",
+        "icon": "🎗️",
+        "title": "Separe a faixa",
+        "instruction": "Pegue a faixa para levar à aula.",
+        "hint": ""
+      },
+      {
+        "id": "taekwondo-4",
+        "phase": "preparation",
+        "icon": "🎒",
+        "title": "Arrume a bolsa",
+        "instruction": "Guarde a faixa e os materiais combinados.",
+        "hint": ""
+      },
+      {
+        "id": "taekwondo-5",
+        "phase": "preparation",
+        "icon": "🚰",
+        "title": "Confira a garrafa",
+        "instruction": "Confira a água com seu responsável.",
+        "hint": ""
+      },
+      {
+        "id": "taekwondo-6",
+        "phase": "preparation",
+        "icon": "🚪",
+        "title": "Saia acompanhado",
+        "instruction": "Confira o horário com o adulto e saia acompanhado.",
+        "hint": ""
+      },
+      {
+        "id": "taekwondo-7",
+        "phase": "return",
+        "icon": "🎒",
+        "title": "Guarde o material",
+        "instruction": "Depois da aula, guarde a bolsa e separe a roupa usada.",
+        "hint": ""
+      }
+    ]
+  },
+  {
+    "id": "escola",
+    "name": "Preparar e voltar da escola",
+    "icon": "🏫",
+    "steps": [
+      {
+        "id": "escola-1",
+        "phase": "preparation",
+        "icon": "📅",
+        "title": "Confira o dia",
+        "instruction": "Veja com o responsável o que precisa levar hoje.",
+        "hint": ""
+      },
+      {
+        "id": "escola-2",
+        "phase": "preparation",
+        "icon": "🎒",
+        "title": "Confira a mochila",
+        "instruction": "Confira estojo, cadernos e recados.",
+        "hint": ""
+      },
+      {
+        "id": "escola-3",
+        "phase": "preparation",
+        "icon": "👟",
+        "title": "Prepare-se para sair",
+        "instruction": "Vista a roupa e calce os sapatos.",
+        "hint": ""
+      },
+      {
+        "id": "escola-4",
+        "phase": "preparation",
+        "icon": "🚪",
+        "title": "Saia acompanhado",
+        "instruction": "Pegue a mochila e saia com o adulto responsável.",
+        "hint": ""
+      },
+      {
+        "id": "escola-5",
+        "phase": "return",
+        "icon": "📄",
+        "title": "Mostre os recados",
+        "instruction": "Ao voltar, mostre os recados ao responsável.",
+        "hint": ""
+      },
+      {
+        "id": "escola-6",
+        "phase": "return",
+        "icon": "🎒",
+        "title": "Guarde a mochila",
+        "instruction": "Guarde os materiais no lugar combinado.",
+        "hint": ""
+      }
+    ]
+  },
+  {
+    "id": "futsal",
+    "name": "Preparar e voltar do futsal",
+    "icon": "⚽",
+    "steps": [
+      {
+        "id": "futsal-1",
+        "phase": "preparation",
+        "icon": "👕",
+        "title": "Separe a roupa",
+        "instruction": "Encontre a roupa combinada para jogar.",
+        "hint": ""
+      },
+      {
+        "id": "futsal-2",
+        "phase": "preparation",
+        "icon": "👟",
+        "title": "Confira o calçado",
+        "instruction": "Separe o calçado adequado com seu responsável.",
+        "hint": ""
+      },
+      {
+        "id": "futsal-3",
+        "phase": "preparation",
+        "icon": "🎒",
+        "title": "Arrume a bolsa",
+        "instruction": "Guarde a roupa e os materiais combinados.",
+        "hint": ""
+      },
+      {
+        "id": "futsal-4",
+        "phase": "preparation",
+        "icon": "🚰",
+        "title": "Confira a água",
+        "instruction": "Confira a garrafinha com o responsável.",
+        "hint": ""
+      },
+      {
+        "id": "futsal-5",
+        "phase": "preparation",
+        "icon": "🚪",
+        "title": "Saia acompanhado",
+        "instruction": "Confira o horário e saia com o adulto responsável.",
+        "hint": ""
+      },
+      {
+        "id": "futsal-6",
+        "phase": "return",
+        "icon": "🎒",
+        "title": "Guarde o material",
+        "instruction": "Ao voltar, guarde a bolsa e separe a roupa usada.",
+        "hint": ""
+      }
+    ]
+  }
+]

@@ -1271,3 +1271,15 @@ code {
 #dailyAgenda {
   scroll-margin-top: 20px;
 }
+.task-actions { display: flex; gap: 10px; flex-wrap: wrap; grid-column: 2 / -1; justify-content: flex-end; }
+.mission-library { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,270px),1fr)); gap: 16px; margin: 20px 0; }
+.mission-library .panel { margin: 0; }
+.mission-step-editor { min-width: 0; margin: 20px 0; }
+.mission-step-editor textarea { min-height: 80px; }
+.guided-steps { padding-left: 28px; }
+.guided-step { padding: 18px 4px; border-bottom: 1px solid #d5deea; }
+.guided-step p, .mission-history li { overflow-wrap: anywhere; }
+.guided-step button { margin-top: 12px; }
+.guided-step button[aria-pressed="true"] { background: #e1f3e9; color: #174c35; }
+.mission-history li { padding: 10px 0; }
+@media (max-width:680px) { .task-actions { grid-column: 1 / -1; grid-row: 3; } }
