@@ -10,13 +10,13 @@ from xml.sax.saxutils import escape
 from lan_security import Config
 
 
-def generate(output, address, hostname='davi.home.arpa', port=443, app_port=8765):
+def generate(output, address, hostname='aventuras.davi.costa', port=443, app_port=8765):
     root = Path(__file__).resolve().parent
     output = Path(output).resolve()
     if output.exists():
         raise ValueError('Destino já existe; preserve configuração e CA. Escolha pasta nova.')
-    if not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.home\.arpa', hostname):
-        raise ValueError('Use um hostname simples em .home.arpa.')
+    if hostname != 'aventuras.davi.costa' and not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.home\.arpa', hostname):
+        raise ValueError('Use aventuras.davi.costa ou hostname simples em .home.arpa.')
     ip = ipaddress.ip_address(address)
     network = ipaddress.ip_network('192.168.2.0/24')
     if ip not in network or ip in (network.network_address, network.broadcast_address):
@@ -24,10 +24,14 @@ def generate(output, address, hostname='davi.home.arpa', port=443, app_port=8765
     if not 1 <= port <= 65535 or not 1024 <= app_port <= 65535 or port == app_port:
         raise ValueError('Portas inválidas ou iguais.')
     suffix = '' if port == 443 else f':{port}'
-    origins = [f'https://{hostname}{suffix}', f'https://{address}{suffix}']
+    definitive = hostname == 'aventuras.davi.costa'
+    if definitive and (address != '192.168.2.10' or port != 443 or app_port != 8765):
+        raise ValueError('V0.5 exige 192.168.2.10, HTTPS 443 e backend 8765.')
+    origins = [f'https://{hostname}{suffix}']
     config = {'DAVI_HOST': '127.0.0.1', 'DAVI_PORT': str(app_port),
               'DAVI_DATA_DIR': str(root / 'dados'), 'DAVI_LAN_CIDR': str(network),
-              'DAVI_ORIGINS': ','.join(origins), 'DAVI_PROXY_KEY': secrets.token_urlsafe(48)}
+              'DAVI_ORIGINS': ','.join(origins), 'DAVI_PROXY_KEY': secrets.token_urlsafe(48),
+              'DAVI_LAN_SIMPLE': '0', 'DAVI_CHILD_AUTO': '1' if definitive else '0'}
     Config(config)
     output.mkdir(parents=True)
     for name in ('logs', 'caddy-data', 'bin'):
@@ -38,6 +42,9 @@ def generate(output, address, hostname='davi.home.arpa', port=443, app_port=8765
     admin off
     auto_https disable_redirects
     skip_install_trust
+    storage file_system {{
+        root "{(output / 'caddy-data').as_posix()}"
+    }}
     servers {{
         protocols h1 h2
     }}
@@ -82,7 +89,7 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--address', required=True)
-    p.add_argument('--hostname', default='davi.home.arpa')
+    p.add_argument('--hostname', default='aventuras.davi.costa')
     p.add_argument('--port', type=int, default=443)
     p.add_argument('--app-port', type=int, default=8765)
     a = p.parse_args()

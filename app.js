@@ -676,7 +676,7 @@ async function saveEvent() {
 async function settings() {
   state.view = "parent-settings";
   const devices = state.me.simple_lan
-    ? '<p class="sub">No modo LAN simples, qualquer aparelho da rede 192.168.2.0/24 pode consultar a agenda e marcar atividades. A área do responsável continua exigindo senha.</p>'
+    ? '<p class="sub">Qualquer aparelho da rede doméstica 192.168.2.0/24 pode consultar a agenda e marcar atividades. A área do responsável continua exigindo senha.</p>'
     : '<p class="sub">Cada aparelho infantil precisa de autorização. O código vale por 10 minutos e só pode ser usado uma vez.</p><button data-action="pair-code">Gerar código para aparelho infantil</button><p id="pairResult" role="status"></p><button data-action="revoke-children">Revogar todos os aparelhos infantis</button>';
   layout(
     '<div class="row between"><h1>Preferências</h1><button data-action="calendar">Voltar</button></div><form class="panel" id="settingsForm"><label for="name">Nome do jogador</label><input id="name" maxlength="35" required value="' +

@@ -1,6 +1,6 @@
 # Publicação interna v0.4 — preparação para revisão
 
-> Referência histórica do plano HTTPS. Para a publicação doméstica atual, use o [modo LAN simples](lan-simples.md). Esse modo não executa os scripts de instalação, certificados, serviços ou permissões descritos abaixo.
+> Referência histórica do plano HTTPS. Para a publicação definitiva, use o [procedimento V0.5](publicacao-v05.md), que substitui este plano e o HTTP provisório. Os scripts atuais seguem a configuração V0.5.
 
 **Não implantado.** Nenhum serviço Windows, regra de firewall, DNS do roteador ou certificado de confiança foi instalado. A implantação exige autorização expressa do responsável e execução assistida dos passos abaixo. Não há GitHub Actions, Docker, VPS ou serviço pago.
 

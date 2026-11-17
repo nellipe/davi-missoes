@@ -208,7 +208,7 @@ def event_by_id(id):
     with db() as c: return c.execute("SELECT * FROM events WHERE id=?", (id,)).fetchone()
 
 class Handler(BaseHTTPRequestHandler):
-    server_version="DaviLocal/0.4"
+    server_version="DaviLocal/0.5"
     def setup(self):
         super().setup()
         self.connection.settimeout(15)
@@ -241,7 +241,7 @@ class Handler(BaseHTTPRequestHandler):
         return token.value if token else ""
     def session(self):
         session=AUTH.session(self.session_token())
-        if session and session['role']=='lan-child' and not CONFIG.simple_lan:
+        if session and session['role']=='lan-child' and not CONFIG.auto_child:
             return None
         return session
     def is_parent(self):
@@ -264,19 +264,19 @@ class Handler(BaseHTTPRequestHandler):
             if path=="/api/me":
                 session=self.session()
                 extra={}
-                if CONFIG.simple_lan and not session:
+                if CONFIG.auto_child and not session:
                     # Sessão automática mantém CSRF sem pareamento ou senha infantil.
                     token,age=AUTH.create_session('lan-child')
                     session=AUTH.session(token)
                     extra['Set-Cookie']=self.session_cookie(token,age)
                 info={"parent":bool(session and session['role']=='parent'),
                       "authorized":bool(session), "configured":bool(get_setting("password")),
-                      "simple_lan":CONFIG.simple_lan,
+                      "simple_lan":CONFIG.auto_child,
                       "today":today().isoformat(),"timezone":"America/Sao_Paulo"}
                 if session: info.update(name=get_setting("name"), csrf=session['csrf'])
                 return self.send(200,info,extra=extra)
             if path.startswith('/api/') and not (self.session() or (
-                    CONFIG.simple_lan and path in ('/api/calendar','/api/holidays'))):
+                    CONFIG.auto_child and path in ('/api/calendar','/api/holidays'))):
                 return self.fail("Autorize este dispositivo com o responsável.",403)
             if path=="/api/holidays":
                 year=int(parse_qs(url.query).get("year",[str(today().year)])[0])

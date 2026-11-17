@@ -123,7 +123,7 @@ function Restore-DaviAcl {
 function Set-DaviPermissions {
     param([Parameter(Mandatory)][string]$ProjectRoot, [Parameter(Mandatory)][string]$PublicationRoot,
           [Parameter(Mandatory)][string]$SnapshotPath, [Parameter(Mandatory)][string]$MaintenanceSid,
-          [scriptblock]$AfterApply)
+          [scriptblock]$AfterApply, [string[]]$OnlyPaths)
     $roots = Raizes $ProjectRoot $PublicationRoot
     $sid = Conta-Manutencao $MaintenanceSid
     $snapshotFile = Caminho-Completo $SnapshotPath
@@ -152,6 +152,19 @@ function Set-DaviPermissions {
         if (!(Dentro $item.FullName $roots.Data) -and !(Dentro $item.FullName $roots.Publication)) { Conferir-LeituraServico $item.FullName }
     }
     $records = @($items | ForEach-Object { [pscustomobject]@{ Path=$_.FullName; Directory=[bool]$_.PSIsContainer; Sddl=(Sddl $_.FullName) } })
+    if ($OnlyPaths) {
+        $OnlyPaths = @($OnlyPaths | ForEach-Object { Caminho-Completo $_ })
+        foreach ($target in $OnlyPaths) {
+            if ($target -notin $records.Path) { throw 'Alvo fora do escopo de permissões.' }
+        }
+        # Inclui descendentes no rollback: ACEs de pasta propagam e cobrem arquivos futuros.
+        $records = @($records | Where-Object {
+            $recordPath = $_.Path
+            $selected = $recordPath -in @($roots.Project,$roots.Data,$roots.Publication)
+            foreach ($target in $OnlyPaths) { if (Dentro $recordPath $target) { $selected = $true } }
+            $selected
+        })
+    }
     $trustedOwners = @($sid,'S-1-5-32-544','S-1-5-18','S-1-5-19',[Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
     foreach ($record in $records) {
         if ((Dentro $record.Path $roots.Data) -or (Dentro $record.Path $roots.Publication)) {
@@ -180,8 +193,14 @@ function Set-DaviPermissions {
     try {
         $count = 0
         foreach ($record in ($verified.Records | Sort-Object { $_.Path.Length },Path)) {
+            if ($OnlyPaths -and $record.Path -notin $OnlyPaths) { continue }
             $acl = Get-Acl -LiteralPath $record.Path
-            if ((Dentro $record.Path $roots.Data) -or (Dentro $record.Path $roots.Publication)) {
+            if ($OnlyPaths) {
+                $writeNeeded = (Dentro $record.Path $roots.Data) -or (Dentro $record.Path (Join-Path $roots.Publication 'logs')) -or (Dentro $record.Path (Join-Path $roots.Publication 'caddy-data'))
+                $rights = if ($writeNeeded) { 'Modify' } else { 'ReadAndExecute' }
+                # Preserva ACEs, proprietário e herança; pasta cobre arquivos futuros.
+                Regra $acl 'S-1-5-19' $rights ($record.Directory -and $record.Path -ne $roots.Project)
+            } elseif ((Dentro $record.Path $roots.Data) -or (Dentro $record.Path $roots.Publication)) {
                 $newAcl = if ($record.Directory) { New-Object Security.AccessControl.DirectorySecurity } else { New-Object Security.AccessControl.FileSecurity }
                 $newAcl.SetAccessRuleProtection($true,$false)
                 Regra $newAcl 'S-1-5-32-544' 'FullControl' $record.Directory

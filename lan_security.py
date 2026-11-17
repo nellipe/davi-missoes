@@ -17,6 +17,10 @@ class Config:
         if mode not in ('0', '1'):
             raise ValueError('DAVI_LAN_SIMPLE deve ser 0 ou 1.')
         self.simple_lan = mode == '1'
+        automatic = e.get('DAVI_CHILD_AUTO', '0')
+        if automatic not in ('0', '1'):
+            raise ValueError('DAVI_CHILD_AUTO deve ser 0 ou 1.')
+        self.auto_child = self.simple_lan or automatic == '1'
         self.host = e.get('DAVI_HOST', '192.168.2.10' if self.simple_lan else '127.0.0.1')
         self.port = int(e.get('DAVI_PORT', '8765'))
         if not 1 <= self.port <= 65535:
@@ -50,9 +54,9 @@ class Config:
                 try:
                     valid_host = ipaddress.ip_address(u.hostname) in self.network
                 except ValueError:
-                    valid_host = u.hostname.endswith('.home.arpa')
+                    valid_host = u.hostname.endswith('.home.arpa') or u.hostname == 'aventuras.davi.costa'
                 if u.scheme != 'https' or not valid_host:
-                    raise ValueError('Publicação exige HTTPS e hostname .home.arpa ou IP da LAN.')
+                    raise ValueError('Publicação exige HTTPS e hostname interno autorizado ou IP da LAN.')
             elif u.scheme != 'http' or u.hostname not in ('127.0.0.1', 'localhost') or u.port != self.port:
                 raise ValueError('Sem proxy, somente HTTP loopback é permitido.')
         if not ip.is_loopback and not self.proxy_key:
@@ -60,6 +64,10 @@ class Config:
         if self.proxy_key and len(self.proxy_key) < 43:
             raise ValueError('Chave do proxy deve ter pelo menos 43 caracteres aleatórios.')
         self.secure = bool(self.proxy_key)
+        if automatic == '1' and (not self.secure or self.host != '127.0.0.1'
+                or self.network != ipaddress.ip_network('192.168.2.0/24')
+                or self.origins != {'https://aventuras.davi.costa'}):
+            raise ValueError('Acesso infantil HTTPS automático exige proxy loopback e origem/rede definitivas.')
         self.hosts = {urlsplit(o).netloc for o in self.origins}
 
     def client(self, handler):
@@ -80,7 +88,8 @@ class Config:
                 client = ipaddress.ip_address(handler.headers.get('X-Davi-Client', ''))
             except ValueError:
                 return None
-            return str(client) if client in self.network else None
+            return str(client) if client in self.network and client not in (
+                self.network.network_address, self.network.broadcast_address) else None
         return str(peer) if peer.is_loopback else None
 
 

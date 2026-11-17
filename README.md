@@ -2,13 +2,21 @@
 
 Projeto familiar para acompanhar os compromissos do Davi e desenvolver autonomia nas rotinas diárias. Visual inspirado em jogos de aventuras em blocos, com identidade original (sem afiliação ao Roblox).
 
-## Publicação simples na rede doméstica
+## Publicação definitiva V0.5
+
+Endereço da família: **https://aventuras.davi.costa**, exclusivamente na rede **192.168.2.0/24**. Caddy termina o HTTPS com certificado interno; os serviços Windows `DaviApp` e `DaviProxy` iniciam automaticamente. O backend fica em `127.0.0.1:8765` e somente o HTTPS TCP 443 recebe conexões da rede.
+
+O acesso infantil é automático, sem pareamento ou senha. Cadastro, edição, exclusão e preferências continuam protegidos pela senha administrativa existente. Agenda, conclusões e bancos SQLite são preservados.
+
+Siga o [procedimento Windows V0.5](docs/publicacao-v05.md) para instalar, confiar no certificado nos aparelhos, atualizar, diagnosticar e desinstalar. A instalação depende da aprovação da PR e de execução explícita no Windows. Nenhum serviço, firewall, ACL do projeto ou certificado confiável foi instalado durante o desenvolvimento.
+
+## Publicação HTTP anterior (referência)
 
 No Windows com IP **192.168.2.10**, dê dois cliques em **`Iniciar-Davi-LAN.bat`** e mantenha a janela aberta. Nos aparelhos da rede **192.168.2.0/24**, acesse **http://192.168.2.10:8765**. Encerre com **Ctrl+C**.
 
 Esse modo é habilitado explicitamente pelo inicializador, usa Python diretamente e preserva `dados/agenda.sqlite3` e a senha existente. Qualquer aparelho da sub-rede pode consultar a agenda e marcar/desmarcar atividades, sem código de autorização. As alterações administrativas continuam exigindo a senha do responsável.
 
-Veja o [guia LAN simples](docs/lan-simples.md) para o comando de firewall restrito à rede privada, execução manual e testes. Não instala Caddy, WinSW, certificados ou serviços, nem altera permissões NTFS. O firewall é documentado e não é aplicado pelo inicializador. Não encaminhe portas no roteador. O [plano HTTPS v0.4](docs/publicacao-lan-v04.md) permanece somente como referência histórica; seus scripts não fazem parte deste procedimento.
+O [guia LAN simples](docs/lan-simples.md) e o [plano HTTPS v0.4](docs/publicacao-lan-v04.md) são referências históricas. Para V0.5, use somente o procedimento acima e encerre o inicializador HTTP. Não encaminhe portas no roteador.
 
 ## Redesign v0.3 preservado
 

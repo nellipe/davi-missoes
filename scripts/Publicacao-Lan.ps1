@@ -1,27 +1,28 @@
 ﻿[CmdletBinding(SupportsShouldProcess, ConfirmImpact='High')]
 param(
-    [Parameter(Mandatory)][ValidateSet('Diagnostico','Preparar','Permissoes','RestaurarPermissoes','Instalar','Status','Iniciar','Reiniciar','Parar','Desinstalar','FirewallAdicionar','FirewallRemover')][string]$Acao,
+    [Parameter(Mandatory)][ValidateSet('Diagnostico','Preparar','Permissoes','PermissoesMinimas','RestaurarPermissoes','Instalar','Status','Iniciar','Reiniciar','Parar','Desinstalar','FirewallAdicionar','FirewallRemover')][string]$Acao,
     [string]$Pasta = (Join-Path (Split-Path $PSScriptRoot) 'publicacao'),
     [string]$Endereco = '192.168.2.10',
     [string]$InterfaceAlias = 'Ethernet 5',
     [string]$GatewayEsperado = '192.168.2.1',
     [ValidateSet('Private','Public')][string]$PerfilEsperado = 'Private',
-    [string]$Hostname = 'davi.home.arpa',
+    [string]$Hostname = 'aventuras.davi.costa',
     [ValidateRange(1,65535)][int]$Porta = 443,
     [string]$Python = 'C:\Program Files\Python313\python.exe',
-    [string]$WinSW,
-    [string]$Caddy,
+    [string]$WinSW = 'D:\davi-ferramentas\WinSW.NET461.exe',
+    [string]$Caddy = 'D:\davi-ferramentas\caddy\caddy.exe',
     [string]$WinSWHash,
     [string]$CaddyHash,
     [string]$SidManutencao,
     [string]$BackupAcl,
+    [string[]]$AlvosPermissao,
     [switch]$Aprovado
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $projeto = Split-Path $PSScriptRoot
 $Pasta = [IO.Path]::GetFullPath($Pasta)
-$regra = 'Davi-LAN-HTTPS-v04'
+$regra = 'Davi-LAN-HTTPS-v05'
 function Executar-Nativo([string]$Exe, [string[]]$Argumentos) {
     & $Exe @Argumentos
     if ($LASTEXITCODE -ne 0) { throw "Comando falhou: $Exe" }
@@ -64,8 +65,17 @@ function Ler-Rede {
 }
 function Adicionar-RegraFirewall {
     $rede = Ler-Rede
-    if (Get-NetFirewallRule -Name $regra -ErrorAction SilentlyContinue) { throw 'Regra já existe. Revise antes de substituir.' }
-    New-NetFirewallRule -Name $regra -DisplayName 'Davi HTTPS somente LAN domestica' -Direction Inbound -Action Allow -Enabled True -Protocol TCP -LocalPort $rede.port -LocalAddress $rede.address -RemoteAddress $rede.subnet -Profile Any -Program (Join-Path $Pasta 'bin/caddy.exe') -EdgeTraversalPolicy Block
+    foreach ($nome in @($regra,"$regra-Block")) {
+        if (Get-NetFirewallRule -Name $nome -ErrorAction SilentlyContinue) { throw 'Regra já existe. Revise antes de substituir.' }
+    }
+    try {
+        # Bloqueio explícito prevalece sobre eventuais permissões amplas preexistentes.
+        New-NetFirewallRule -Name "$regra-Block" -DisplayName 'Davi HTTPS bloquear fora da LAN' -Direction Inbound -Action Block -Enabled True -Protocol TCP -LocalPort $rede.port -LocalAddress $rede.address -RemoteAddress @('0.0.0.0-192.168.1.255','192.168.3.0-255.255.255.255') -Profile Any -Program (Join-Path $Pasta 'bin/caddy.exe') -EdgeTraversalPolicy Block
+        New-NetFirewallRule -Name $regra -DisplayName 'Davi HTTPS somente LAN domestica' -Direction Inbound -Action Allow -Enabled True -Protocol TCP -LocalPort $rede.port -LocalAddress $rede.address -RemoteAddress $rede.subnet -Profile Any -Program (Join-Path $Pasta 'bin/caddy.exe') -EdgeTraversalPolicy Block
+    } catch {
+        Remove-NetFirewallRule -Name $regra,"$regra-Block" -ErrorAction SilentlyContinue
+        throw
+    }
 }
 function Operar-Servico([string]$Nome, [string]$Comando) {
     Executar-Nativo (Join-Path $Pasta "$Nome.exe") @($Comando)
@@ -91,23 +101,34 @@ if ($Acao -eq 'Diagnostico') {
     Get-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 | Select-Object InterfaceAlias,IPAddress
     Get-NetTCPConnection -State Listen | Where-Object LocalPort -in @($Porta,8765) | Select-Object LocalAddress,LocalPort
     Get-Service -Name DaviApp,DaviProxy -ErrorAction SilentlyContinue | Select-Object Name,Status,StartType
+    Resolve-DnsName -Name $Hostname -Type A -ErrorAction Continue | Select-Object Name,IPAddress
+    Get-NetFirewallProfile | Select-Object Name,Enabled,DefaultInboundAction
+    Get-NetFirewallRule -Name $regra,"$regra-Block" -ErrorAction SilentlyContinue | Get-NetFirewallAddressFilter
+    Write-Output "Raiz TLS existente: $(Test-Path -LiteralPath (Join-Path $Pasta 'caddy-data/pki/authorities/local/root.crt'))"
     Write-Output "Banco existente: $(Test-Path -LiteralPath (Join-Path $projeto 'dados/agenda.sqlite3'))"
     return
 }
 if ($Acao -eq 'Preparar') {
+    if (!$PSCmdlet.ShouldProcess($Pasta, $Acao)) { return }
     if (!$Endereco) { throw 'Informe -Endereco com o IP reservado do computador.' }
     Executar-Nativo $Python @((Join-Path $projeto 'prepare_lan.py'),'--output',$Pasta,'--address',$Endereco,'--hostname',$Hostname,'--port',"$Porta")
     return
 }
 if ($Acao -eq 'Status') {
     Get-Service -Name DaviApp,DaviProxy -ErrorAction SilentlyContinue | Select-Object Name,Status,StartType
-    Get-NetFirewallRule -Name $regra -ErrorAction SilentlyContinue | Select-Object Name,Enabled,Profile
+    Get-NetFirewallRule -Name $regra,"$regra-Block" -ErrorAction SilentlyContinue | Select-Object Name,Enabled,Profile
     return
 }
 if (!$Aprovado) { throw 'Alteração bloqueada. A autorização expressa é indicada por -Aprovado; use -WhatIf para revisar.' }
 if (!$PSCmdlet.ShouldProcess($Pasta, $Acao)) { return }
 Exigir-Admin
 switch ($Acao) {
+    'PermissoesMinimas' {
+        Exigir-ServicosParados
+        if (!$SidManutencao -or !$BackupAcl -or !$AlvosPermissao) { throw 'Informe -SidManutencao, -BackupAcl novo e -AlvosPermissao com acesso comprovadamente negado.' }
+        Import-Module (Join-Path $PSScriptRoot 'Acl-Lan.psm1') -Force
+        Set-DaviPermissions -ProjectRoot $projeto -PublicationRoot $Pasta -SnapshotPath $BackupAcl -MaintenanceSid $SidManutencao -OnlyPaths $AlvosPermissao
+    }
     'Permissoes' {
         Exigir-ServicosParados
         if (!$SidManutencao -or !$BackupAcl) { throw 'Informe -SidManutencao da conta local responsável e -BackupAcl em diretório novo.' }
@@ -134,10 +155,18 @@ switch ($Acao) {
         # Adaptar valida sintaxe sem iniciar listener ou instalar confiança TLS.
         Executar-Nativo (Join-Path $Pasta 'bin/caddy.exe') @('adapt','--config',(Join-Path $Pasta 'Caddyfile'),'--adapter','caddyfile')
         Operar-Servico 'DaviApp' 'install'
-        Operar-Servico 'DaviProxy' 'install'
+        try { Operar-Servico 'DaviProxy' 'install' }
+        catch {
+            Operar-Servico 'DaviApp' 'uninstall'
+            throw
+        }
         Write-Output 'Instalados com início automático. Não iniciados; confira permissões e firewall antes de Iniciar.'
     }
-    'Iniciar' { Operar-Servico 'DaviApp' 'start'; Operar-Servico 'DaviProxy' 'start' }
+    'Iniciar' {
+        Operar-Servico 'DaviApp' 'start'
+        try { Operar-Servico 'DaviProxy' 'start' }
+        catch { Operar-Servico 'DaviApp' 'stopwait'; throw }
+    }
     'Reiniciar' { Reiniciar-Servicos }
     'Parar' { Parar-Servicos }
     'Desinstalar' {
@@ -148,5 +177,5 @@ switch ($Acao) {
         Write-Output 'Serviços removidos. Banco, backups, configuração e CA preservados. Firewall tem reversão separada.'
     }
     'FirewallAdicionar' { Adicionar-RegraFirewall }
-    'FirewallRemover' { Remove-NetFirewallRule -Name $regra }
+    'FirewallRemover' { Remove-NetFirewallRule -Name $regra,"$regra-Block" -ErrorAction SilentlyContinue }
 }
