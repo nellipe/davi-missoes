@@ -71,6 +71,13 @@ class CalendarTests(unittest.TestCase):
         self.assertEqual([r["date"] for r in rows],["2026-11-16","2026-11-18"])
         self.assertTrue(rows[0]["done"])
         self.assertFalse(rows[1]["done"])
+    def test_database_connection_is_released(self):
+        # No Windows, unlink falha com WinError 32 se alguma conexão continuar aberta.
+        with server.db() as connection:
+            self.assertIsNotNone(connection.execute("SELECT COUNT(*) FROM events").fetchone())
+        server.DB.unlink()
+        self.assertFalse(server.DB.exists())
+
     def test_password_hash(self):
         encoded=server.hash_password("UmaSenhaSegura123")
         self.assertTrue(server.verify_password("UmaSenhaSegura123",encoded))
