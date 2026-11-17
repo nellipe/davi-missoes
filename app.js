@@ -450,7 +450,8 @@ function renderChild() {
             .join("") +
           "</ol>"
         : '<p class="sub">Quando houver atividades, elas aparecerão aqui em ordem de horário.</p>') +
-      '</section><p class="sub small">Se o combinado mudar, converse com seu responsável. Você pode pedir ajuda.</p><button data-action="forget">Sair deste aparelho</button>',
+      '</section><p class="sub small">Se o combinado mudar, converse com seu responsável. Você pode pedir ajuda.</p>' +
+      (state.me.simple_lan ? '' : '<button data-action="forget">Sair deste aparelho</button>'),
   );
 }
 async function parentEntry() {
@@ -674,10 +675,13 @@ async function saveEvent() {
 }
 async function settings() {
   state.view = "parent-settings";
+  const devices = state.me.simple_lan
+    ? '<p class="sub">No modo LAN simples, qualquer aparelho da rede 192.168.2.0/24 pode consultar a agenda e marcar atividades. A área do responsável continua exigindo senha.</p>'
+    : '<p class="sub">Cada aparelho infantil precisa de autorização. O código vale por 10 minutos e só pode ser usado uma vez.</p><button data-action="pair-code">Gerar código para aparelho infantil</button><p id="pairResult" role="status"></p><button data-action="revoke-children">Revogar todos os aparelhos infantis</button>';
   layout(
     '<div class="row between"><h1>Preferências</h1><button data-action="calendar">Voltar</button></div><form class="panel" id="settingsForm"><label for="name">Nome do jogador</label><input id="name" maxlength="35" required value="' +
       esc(state.me.name) +
-      '"><button type="submit" class="primary">Salvar</button></form><div class="panel"><h2>Armazenamento local</h2><p>O banco está na pasta <code>dados/agenda.sqlite3</code> junto da aplicação. Os backups consistentes são administrados no computador que hospeda a agenda.</p><p class="sub">Cada aparelho infantil precisa de autorização. O código vale por 10 minutos e só pode ser usado uma vez.</p><button data-action="pair-code">Gerar código para aparelho infantil</button><p id="pairResult" role="status"></p><button data-action="revoke-children">Revogar todos os aparelhos infantis</button></div>',
+      '"><button type="submit" class="primary">Salvar</button></form><div class="panel"><h2>Armazenamento local</h2><p>O banco está na pasta <code>dados/agenda.sqlite3</code> junto da aplicação. Os backups consistentes são administrados no computador que hospeda a agenda.</p>' + devices + '</div>',
   );
 }
 async function action(e) {

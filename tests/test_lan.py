@@ -47,7 +47,7 @@ class Client:
         self.request('/api/me')
 
 
-class LanTests(unittest.TestCase):
+class HttpFixture(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.data = Path(self.temp.name)
@@ -71,6 +71,8 @@ class LanTests(unittest.TestCase):
         server.DATA, server.DB, server.AUTH, server.CONFIG = self.old
         self.temp.cleanup()
 
+
+class LanTests(HttpFixture):
     def authorize(self):
         self.parent.login()
         status, data, _ = self.parent.request('/api/devices/code', 'POST')

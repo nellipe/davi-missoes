@@ -2,13 +2,13 @@
 
 Projeto familiar para acompanhar os compromissos do Davi e desenvolver autonomia nas rotinas diárias. Visual inspirado em jogos de aventuras em blocos, com identidade original (sem afiliação ao Roblox).
 
-## Versão 0.4 — publicação interna em revisão
+## Publicação simples na rede doméstica
 
-Autenticação obrigatória para consultar a agenda, autorização persistente de aparelhos infantis, HTTPS local com Caddy, preparação de serviços Windows e firewall restrito à rede doméstica. **Nada foi implantado.** Os scripts que alteram Windows exigem aprovação expressa.
+No Windows com IP **192.168.2.10**, dê dois cliques em **`Iniciar-Davi-LAN.bat`** e mantenha a janela aberta. Nos aparelhos da rede **192.168.2.0/24**, acesse **http://192.168.2.10:8765**. Encerre com **Ctrl+C**.
 
-Veja [o guia de publicação v0.4](docs/publicacao-lan-v04.md) para arquitetura, configuração, certificados, serviços, backup, atualização, rollback e limitações dos testes. Esta branch depende da [PR #1 (redesign)](https://github.com/nellipe/davi-missoes/pull/1), que permanece sem merge.
+Esse modo é habilitado explicitamente pelo inicializador, usa Python diretamente e preserva `dados/agenda.sqlite3` e a senha existente. Qualquer aparelho da sub-rede pode consultar a agenda e marcar/desmarcar atividades, sem código de autorização. As alterações administrativas continuam exigindo a senha do responsável.
 
-Ambiente confirmado: `Ethernet 5`, IPv4 `192.168.2.10`, gateway `192.168.2.1`, perfil `Private`, rede `192.168.2.0/24`. Scripts e guia preparados para esses valores, sem aplicar configurações reais. DNS, certificados, firewall e serviços aguardam aprovação de instalação.
+Veja o [guia LAN simples](docs/lan-simples.md) para o comando de firewall restrito à rede privada, execução manual e testes. Não instala Caddy, WinSW, certificados ou serviços, nem altera permissões NTFS. O firewall é documentado e não é aplicado pelo inicializador. Não encaminhe portas no roteador. O [plano HTTPS v0.4](docs/publicacao-lan-v04.md) permanece somente como referência histórica; seus scripts não fazem parte deste procedimento.
 
 ## Redesign v0.3 preservado
 
@@ -22,7 +22,7 @@ Detalhes de design, resultados e capturas com dados sintéticos: [Redesign v0.3]
 
 ## Agenda local preservada
 
-Depois da autorização do aparelho, a aplicação abre na **área do Davi** com agenda do dia: horário, compromissos ordenados, marcação de conclusão e navegação entre datas.
+A aplicação abre na **área do Davi** com agenda do dia: horário, compromissos ordenados, marcação de conclusão e navegação entre datas. No modo LAN simples, a entrada é automática; nos demais modos, permanece a autorização do aparelho.
 
 A **área do responsável** exige senha existente ou criada offline pelo responsável e inclui:
 - Calendário mensal com atividades, datas selecionáveis e feriados destacados;
@@ -33,7 +33,7 @@ A **área do responsável** exige senha existente ou criada offline pelo respons
 - Edição do nome exibido na área infantil;
 - Registros de tarefas feitas por data e atividade.
 
-**Dados locais:** SQLite criado em `dados/agenda.sqlite3`. Não usa serviços externos, API de feriados ou conta na nuvem. O padrão continua sendo `127.0.0.1`. A publicação LAN é configurada separadamente, com HTTPS e autorização por aparelho.
+**Dados locais:** SQLite em `dados/agenda.sqlite3`. Não usa serviços externos, API de feriados ou conta na nuvem. O padrão continua sendo `127.0.0.1`; o modo LAN simples exige `DAVI_LAN_SIMPLE=1`.
 
 ## Windows — instalar e executar
 
@@ -78,10 +78,10 @@ Legislação de referência:
 
 ## Segurança e dados
 
-- Toda consulta da agenda e conclusão exige sessão autorizada. Um aparelho novo recebe apenas a tela de entrada.
-- O responsável usa senha com hash PBKDF2-SHA256 e sessão de até oito horas. A criança usa código temporário gerado pelo responsável e sessão de até 90 dias. Logout revoga no servidor; as preferências permitem revogar todos os aparelhos infantis.
+- No modo LAN simples, a agenda é acessível à sub-rede autorizada e o navegador recebe uma sessão infantil automática com token CSRF. Essa sessão não dá acesso administrativo e deixa de ser aceita quando o modo é desativado.
+- O responsável usa a senha existente com hash PBKDF2-SHA256 e sessão de até oito horas. Fora do modo LAN simples, permanece o código temporário gerado pelo responsável e a sessão infantil de até 90 dias. Logout revoga a sessão no servidor.
 - Cookies HttpOnly/SameSite=Strict; Secure na publicação HTTPS. Proteção de Origin/Host/CSRF e limitação de tentativas persistente.
-- Não abra a porta do Python no firewall. Publique apenas o proxy HTTPS restrito à LAN conforme o guia, sem encaminhamento de portas no roteador.
+- No modo LAN simples, permita somente TCP 8765 para `192.168.2.0/24` no perfil privado e IP local `192.168.2.10`, conforme o guia. Não encaminhe portas no roteador. HTTP não cifra o tráfego; esse modo pressupõe confiança na rede doméstica.
 - Backups consistentes, rotação, integridade e restauração ficam em `maintenance.py`. O banco, backups, configuração privada e CA não são versionados.
 - O acesso físico ao computador e a dispositivos autorizados exige cuidado. Sem recuperação automática por e-mail; guarde a senha do responsável.
 
@@ -136,6 +136,7 @@ app.css              # Estilos
 app.js               # Painel infantil e responsável
 Iniciar-Davi.bat     # Inicializador Windows
 Iniciar-Davi.ps1     # Inicializador alternativo PowerShell
+Iniciar-Davi-LAN.bat # Inicializador LAN explícito, sem instalação
 tests/               # Testes das regras do calendário
 index.html           # Jogo original da versão 0.1
 docs/                # Design e roteiros das 10 missões
