@@ -115,6 +115,30 @@ try {
     if ($restored.Result -ne 'RestoredAndVerified') { throw 'Rollback não foi verificado.' }
     Assert-Original
     # Falha após alterações reais: o callback não substitui Set-Acl/Get-Acl.
+    $minimalSnapshot = Join-Path $taskRoot 'snapshots/minimal/snapshot.acl.json'
+    $minimalTargets = @((Join-Path $data 'agenda.sqlite3'),$deniedFile)
+    $null = Set-DaviPermissions -ProjectRoot $project -PublicationRoot $publication -SnapshotPath $minimalSnapshot -MaintenanceSid $sid -OnlyPaths $minimalTargets
+    foreach ($pair in $script:before.GetEnumerator()) {
+        if ($pair.Key -notin $minimalTargets -and (Descriptor $pair.Key) -ne $pair.Value) { throw 'Permissão mínima alterou alvo não selecionado.' }
+    }
+    $minimalAcl = Get-Acl -LiteralPath $deniedFile
+    if (!($minimalAcl.Access | Where-Object AccessControlType -eq 'Deny')) { throw 'Permissão mínima apagou ACE Deny preexistente.' }
+    Assert-Rights (Join-Path $data 'agenda.sqlite3') 'S-1-5-19' 'Modify'
+    $null = Restore-DaviAcl $project $publication $minimalSnapshot
+    Assert-Original
+    $logs = Join-Path $publication 'logs'
+    $folderSnapshot = Join-Path $taskRoot 'snapshots/minimal-folder/snapshot.acl.json'
+    $null = Set-DaviPermissions -ProjectRoot $project -PublicationRoot $publication -SnapshotPath $folderSnapshot -MaintenanceSid $sid -OnlyPaths @($logs)
+    Assert-Rights (Join-Path $logs 'synthetic.log') 'S-1-5-19' 'Modify'
+    foreach ($pair in $script:before.GetEnumerator()) {
+        if ($pair.Key -ne $logs -and !$pair.Key.StartsWith($logs + '\') -and (Descriptor $pair.Key) -ne $pair.Value) { throw 'Permissão de pasta alterou outra subárvore.' }
+    }
+    $futureLog = Join-Path $logs 'future-synthetic.log'
+    [IO.File]::WriteAllText($futureLog,'future synthetic log')
+    Assert-Rights $futureLog 'S-1-5-19' 'Modify'
+    Remove-Item -LiteralPath $futureLog
+    $null = Restore-DaviAcl $project $publication $folderSnapshot
+    Assert-Original
     $partialSnapshot = Join-Path $taskRoot 'snapshots/partial/snapshot.acl.json'
     $failed = $false
     try {

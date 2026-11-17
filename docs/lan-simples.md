@@ -1,5 +1,7 @@
 # Aventuras do Davi na LAN
 
+> Referência histórica do HTTP provisório. A publicação definitiva usa o [procedimento HTTPS V0.5](publicacao-v05.md). Não execute este inicializador junto dos serviços.
+
 O modo LAN simples publica HTTP diretamente em **http://192.168.2.10:8765**, somente para clientes da rede **192.168.2.0/24**. Exige Windows com esse IPv4 e Python 3.10+. Não usa proxy, DNS, certificados, serviços Windows ou alterações de permissões NTFS.
 
 ## Iniciar e encerrar

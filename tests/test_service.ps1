@@ -27,20 +27,38 @@ if (!$bloqueado) { throw 'A operação sem aprovação não foi bloqueada.' }
 & $scriptPath -Acao Instalar -Pasta $Pasta -Aprovado -WhatIf
 & $scriptPath -Acao Permissoes -Pasta $Pasta -Aprovado -WhatIf
 & $scriptPath -Acao RestaurarPermissoes -Pasta $Pasta -Aprovado -WhatIf
+& $scriptPath -Acao PermissoesMinimas -Pasta $Pasta -Aprovado -WhatIf
+& $scriptPath -Acao Preparar -Pasta $Pasta -WhatIf
 if ($script:chamadas.Count -ne 3) { throw 'WhatIf executou mutações.' }
 # Valida os argumentos reais da regra, substituindo somente as APIs Windows.
 function Get-NetFirewallRule { [CmdletBinding()]param([string]$Name) }
 function New-NetFirewallRule {
     param($Name,$DisplayName,$Direction,$Action,$Enabled,$Protocol,$LocalPort,$LocalAddress,$RemoteAddress,$Profile,$Program,$EdgeTraversalPolicy)
     $script:regraCapturada = $PSBoundParameters
+    $script:regrasCapturadas.Add($PSBoundParameters)
+    if ($script:falharRegra -and $Action -eq 'Allow') { throw 'SYNTHETIC FIREWALL FAILURE' }
 }
-$regra = 'Davi-LAN-HTTPS-v04'
+$script:regrasCapturadas = New-Object 'System.Collections.Generic.List[object]'
+$script:falharRegra = $false
+function Remove-NetFirewallRule {
+    [CmdletBinding()]param([string[]]$Name)
+    $script:removidas = $Name
+}
+$regra = 'Davi-LAN-HTTPS-v05'
 $script:redeTeste = [pscustomobject]@{ address='192.168.2.10';port=8443;subnet='192.168.2.0/24' }
 function Get-Content { [CmdletBinding()]param($LiteralPath,[switch]$Raw) return ($script:redeTeste | ConvertTo-Json) }
 Adicionar-RegraFirewall
+if ($script:regrasCapturadas.Count -ne 2) { throw 'Faltou bloqueio explícito fora da LAN.' }
+$block = $script:regrasCapturadas[0]
+if ($block.Action -ne 'Block' -or ($block.RemoteAddress -join ',') -ne '0.0.0.0-192.168.1.255,192.168.3.0-255.255.255.255') { throw 'Bloqueio externo incorreto.' }
 foreach ($par in @{ RemoteAddress='192.168.2.0/24'; LocalAddress='192.168.2.10'; LocalPort=8443; Profile='Any'; Protocol='TCP'; EdgeTraversalPolicy='Block'; Direction='Inbound'; Action='Allow' }.GetEnumerator()) {
     if ($script:regraCapturada[$par.Key] -ne $par.Value) { throw "Regra incorreta: $($par.Key)" }
 }
+$script:falharRegra = $true
+$failed = $false
+try { Adicionar-RegraFirewall } catch { $failed = $_.Exception.Message -match 'SYNTHETIC FIREWALL FAILURE' }
+if (!$failed -or ($script:removidas -join ',') -ne "$regra,$regra-Block") { throw 'Falha parcial do firewall não reverteu suas regras.' }
+$script:falharRegra = $false
 $script:redeTeste.subnet = '0.0.0.0/0'
 $redeBloqueada = $false
 try { Adicionar-RegraFirewall } catch { $redeBloqueada = $true }
