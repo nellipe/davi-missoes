@@ -2,7 +2,10 @@
 param(
     [Parameter(Mandatory)][ValidateSet('Diagnostico','Preparar','Permissoes','Instalar','Status','Iniciar','Reiniciar','Parar','Desinstalar','FirewallAdicionar','FirewallRemover')][string]$Acao,
     [string]$Pasta = (Join-Path (Split-Path $PSScriptRoot) 'publicacao'),
-    [string]$Endereco,
+    [string]$Endereco = '192.168.2.10',
+    [string]$InterfaceAlias = 'Ethernet 5',
+    [string]$GatewayEsperado = '192.168.2.1',
+    [ValidateSet('Private','Public')][string]$PerfilEsperado = 'Private',
     [string]$Hostname = 'davi.home.arpa',
     [ValidateRange(1,65535)][int]$Porta = 443,
     [string]$Python = 'C:\Program Files\Python313\python.exe',
@@ -29,6 +32,21 @@ function Exigir-Admin {
 function Conferir-Binario([string]$Arquivo, [string]$HashEsperado) {
     if ($HashEsperado -notmatch '^[a-fA-F0-9]{64}$' -or (Get-FileHash -LiteralPath $Arquivo -Algorithm SHA256).Hash -ne $HashEsperado) {
         throw 'Hash ausente ou diferente. Confira o SHA256 obtido da distribuição oficial.'
+    }
+}
+function Conferir-AmbienteRede {
+    # Somente leitura. Divergência exige revisão, nunca reconfiguração automática.
+    $ips = @(Get-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 -ErrorAction SilentlyContinue)
+    $rotas = @(Get-NetRoute -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue)
+    $perfis = @(Get-NetConnectionProfile -InterfaceAlias $InterfaceAlias -ErrorAction SilentlyContinue)
+    [pscustomobject]@{
+        Interface = $InterfaceAlias
+        IPv4Esperado = $Endereco
+        GatewayEsperado = $GatewayEsperado
+        PerfilEsperado = $PerfilEsperado
+        IPConfere = (@($ips | ForEach-Object { $_.IPAddress }) -contains $Endereco)
+        GatewayConfere = (@($rotas | ForEach-Object { $_.NextHop }) -contains $GatewayEsperado)
+        PerfilConfere = (@($perfis | ForEach-Object { [string]$_.NetworkCategory }) -contains $PerfilEsperado)
     }
 }
 function Ler-Rede {
@@ -62,8 +80,9 @@ if ($Acao -eq 'Diagnostico') {
     Executar-Nativo $Python @('--version')
     Executar-Nativo $Python @('-c', 'import sqlite3,ssl; print("SQLite e TLS disponiveis")')
     Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' -Name Release -ErrorAction SilentlyContinue | Select-Object Release
-    Get-NetConnectionProfile | Select-Object InterfaceAlias,NetworkCategory
-    Get-NetIPAddress -AddressFamily IPv4 | Select-Object InterfaceAlias,IPAddress
+    Conferir-AmbienteRede
+    Get-NetConnectionProfile -InterfaceAlias $InterfaceAlias | Select-Object InterfaceAlias,NetworkCategory
+    Get-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 | Select-Object InterfaceAlias,IPAddress
     Get-NetTCPConnection -State Listen | Where-Object LocalPort -in @($Porta,8765) | Select-Object LocalAddress,LocalPort
     Get-Service -Name DaviApp,DaviProxy -ErrorAction SilentlyContinue | Select-Object Name,Status,StartType
     Write-Output "Banco existente: $(Test-Path -LiteralPath (Join-Path $projeto 'dados/agenda.sqlite3'))"

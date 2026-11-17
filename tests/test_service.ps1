@@ -6,7 +6,7 @@ $errors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$tokens, [ref]$errors)
 if ($errors.Count) { throw ($errors | Out-String) }
 $functions = $ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] }, $true)
-foreach ($name in @('Operar-Servico','Reiniciar-Servicos','Ler-Rede','Adicionar-RegraFirewall')) {
+foreach ($name in @('Operar-Servico','Reiniciar-Servicos','Ler-Rede','Adicionar-RegraFirewall','Conferir-AmbienteRede')) {
     $definition = $functions | Where-Object Name -eq $name
     Invoke-Expression $definition.Extent.Text
 }
@@ -43,4 +43,34 @@ $script:redeTeste.subnet = '0.0.0.0/0'
 $redeBloqueada = $false
 try { Adicionar-RegraFirewall } catch { $redeBloqueada = $true }
 if (!$redeBloqueada) { throw 'Sub-rede pública foi aceita.' }
-Write-Output 'PASS: sintaxe PowerShell, reinício simulado, bloqueio sem aprovação e WhatIf sem mutações, firewall restrito em qualquer perfil e rede pública rejeitada.'
+# Dados de rede inteiramente simulados; não consulta nem altera a interface real.
+$InterfaceAlias = 'Ethernet 5'
+$Endereco = '192.168.2.10'
+$GatewayEsperado = '192.168.2.1'
+$PerfilEsperado = 'Private'
+$script:perfilTeste = 'Private'
+$script:ipTeste = '192.168.2.10'
+$script:gatewayTeste = '192.168.2.1'
+function Get-NetIPAddress {
+    [CmdletBinding()]param($InterfaceAlias,$AddressFamily)
+    if ($InterfaceAlias -ne 'Ethernet 5' -or $AddressFamily -ne 'IPv4') { throw 'Consulta de interface incorreta.' }
+    [pscustomobject]@{ IPAddress=$script:ipTeste }
+}
+function Get-NetRoute {
+    [CmdletBinding()]param($InterfaceAlias,$AddressFamily,$DestinationPrefix)
+    if ($InterfaceAlias -ne 'Ethernet 5' -or $DestinationPrefix -ne '0.0.0.0/0') { throw 'Consulta de rota incorreta.' }
+    [pscustomobject]@{ NextHop=$script:gatewayTeste }
+}
+function Get-NetConnectionProfile {
+    [CmdletBinding()]param($InterfaceAlias)
+    if ($InterfaceAlias -ne 'Ethernet 5') { throw 'Consulta de perfil incorreta.' }
+    [pscustomobject]@{ NetworkCategory=$script:perfilTeste }
+}
+$ambiente = Conferir-AmbienteRede
+if (!$ambiente.IPConfere -or !$ambiente.GatewayConfere -or !$ambiente.PerfilConfere) { throw 'Ambiente confirmado não reconhecido.' }
+$script:perfilTeste = 'Public'
+$script:ipTeste = '192.168.2.11'
+$script:gatewayTeste = '192.168.2.254'
+$ambiente = Conferir-AmbienteRede
+if ($ambiente.IPConfere -or $ambiente.GatewayConfere -or $ambiente.PerfilConfere) { throw 'Divergência de rede não identificada.' }
+Write-Output 'PASS: sintaxe PowerShell, reinício simulado, bloqueio sem aprovação e WhatIf sem mutações, firewall restrito em qualquer perfil e rede pública rejeitada e diagnóstico do ambiente confirmado/divergente com rede simulada.'

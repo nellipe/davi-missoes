@@ -2,6 +2,25 @@
 
 **Não implantado.** Nenhum serviço Windows, regra de firewall, DNS do roteador ou certificado de confiança foi instalado. A implantação exige autorização expressa do responsável e execução assistida dos passos abaixo. Não há GitHub Actions, Docker, VPS ou serviço pago.
 
+## Ambiente confirmado pelo responsável
+
+| Item | Valor informado |
+| --- | --- |
+| Windows / Python | Python 3.13.5 |
+| Projeto | `D:\davi-missoes` |
+| Interface | `Ethernet 5` |
+| IPv4 do computador | `192.168.2.10` |
+| Gateway | `192.168.2.1` |
+| Perfil Windows | `Private` |
+| Rede autorizada | `192.168.2.0/24` |
+| Proxy planejado | HTTPS TCP 443 em `192.168.2.10` |
+| Backend planejado | HTTP em `127.0.0.1:8765`, acessível somente pelo proxy autenticado |
+| Endereços planejados | `https://davi.home.arpa` e `https://192.168.2.10` |
+
+Os dados acima foram confirmados pelo responsável; não representam um diagnóstico executado nesta etapa. A confirmação da infraestrutura **não autoriza instalar ou iniciar** a publicação. Nesta atualização, foram alterados apenas scripts versionados, documentação e testes simulados; nenhuma configuração real foi gerada ou modificada e nenhum SQLite foi aberto pela aplicação.
+
+O script usa esses valores como referência para seu diagnóstico somente leitura, com parâmetros substituíveis. O diagnóstico compara endereço, gateway e perfil da interface e informa divergências sem corrigir nada. O endereço permanece explícito no comando de preparação recomendado. O hostname é uma proposta: registro DNS, reserva DHCP e confiança da CA ainda precisam de verificação e aprovação. Não se presume que o DNS esteja configurado.
+
 ## Dependência e preservação dos dados
 
 Branch `feat/publicacao-lan-v04`, criada a partir de `origin/feat/redesign-aventura-v03` no commit `b5068d9cbb4d6928ac72f2d530e29001c6d87c0a`, após inspecionar o repositório e a [PR #1](https://github.com/nellipe/davi-missoes/pull/1). A nova PR tem a branch do redesign como base. A PR #1 permanece aberta, aguardando aprovação, sem merge. Depois da aprovação e merge do redesign, revisar o diff e mudar a base da v0.4 para `main` antes de considerar seu merge.
@@ -33,7 +52,7 @@ Sem configuração de publicação, `python server.py` continua em HTTP `127.0.0
 
 - Windows, Python 3.13 instalado para todos os usuários, em caminho acessível pela conta de serviço. Testado com Python 3.13.5. A aplicação usa apenas a biblioteca padrão.
 - Caddy Windows amd64, distribuição oficial; integração TLS validada com **2.11.9**. WinSW **2.12.0**, variante `WinSW.NET461.exe` executada no **.NET Framework 4.8** atualizado do Windows, para hospedar os processos no SCM. Evitar a variante antiga com runtime .NET Core 3.1 embutido. O instalador não baixa nem executa binários durante o desenvolvimento.
-- IP IPv4 do PC reservado no DHCP do MikroTik e pertencente a `192.168.2.0/24`. `192.168.2.10` nos exemplos é ilustrativo: verificar disponibilidade antes de escolher.
+- IP IPv4 confirmado: `192.168.2.10`, na interface `Ethernet 5`. Confirmar a reserva DHCP correspondente no MikroTik antes da instalação, sem alterar o endereço atual nesta etapa.
 - Energia, disco com espaço para backups e computador acordado. Serviço automático não impede suspensão ou desligamento.
 - Administrador Windows somente para instalar/desinstalar serviços, ajustar ACLs e firewall. Navegação e conta de serviço não precisam ser administradores.
 - Downloads e instalação de dependências de teste exigem internet; o funcionamento diário não depende de internet.
@@ -56,10 +75,10 @@ Baixar os binários de [Caddy Releases](https://github.com/caddyserver/caddy/rel
 
 ### Diagnóstico e preparação, sem modificar serviços ou firewall
 
-Na pasta `D:\davi-missoes`, em PowerShell:
+Comandos para execução futura, após aprovação da preparação local. **Não executados contra o ambiente real nesta etapa.** Na pasta `D:\davi-missoes`, em PowerShell:
 
 ```powershell
-.\scripts\Publicacao-Lan.ps1 -Acao Diagnostico
+.\scripts\Publicacao-Lan.ps1 -Acao Diagnostico -InterfaceAlias "Ethernet 5" -Endereco 192.168.2.10 -GatewayEsperado 192.168.2.1 -PerfilEsperado Private
 .\scripts\Publicacao-Lan.ps1 -Acao Preparar -Endereco 192.168.2.10 -Hostname davi.home.arpa
 ```
 
@@ -102,7 +121,7 @@ Mutações exigem Origin exata; POST/PUT exigem JSON. Sessões autenticadas exig
 
 ## Rede, DNS e Deco
 
-1. Identificar IP, gateway, DNS e perfil Windows no diagnóstico. Reservar o IP escolhido para o MAC do PC no DHCP do MikroTik. Não assumir que o roteador usa `.1` ou que o DNS local já está ativo.
+1. Usar os valores confirmados: `Ethernet 5`, `192.168.2.10`, gateway `192.168.2.1`, perfil `Private`. Antes da implantação, reconferir no diagnóstico somente leitura e verificar a reserva DHCP para o MAC dessa interface no MikroTik. O gateway confirmado não comprova que o serviço DNS esteja habilitado; verificar isso separadamente.
 2. Confirmar Deco M4 em modo ponto de acesso. Usar a rede doméstica, não rede de visitantes com isolamento. Se clientes não alcançam o PC, investigar isolamento de clientes, VLAN e roteamento antes de ampliar permissões.
 3. Após autorização de rede, criar registro DNS estático no MikroTik. Exemplo a revisar no RouterOS, **não executado nesta entrega**:
 
@@ -111,7 +130,7 @@ Mutações exigem Origin exata; POST/PUT exigem JSON. Sessões autenticadas exig
 ```
 
 4. Verificar se os clientes recebem o MikroTik como DNS via DHCP. Se o roteador precisar responder DNS, revisar `allow-remote-requests` e as regras existentes para UDP/TCP 53: permitir apenas LAN e bloquear WAN. Não ativar resolução recursiva acessível pela internet. A [documentação DNS do MikroTik](https://manual.mikrotik.com/docs/network-management/dns/) explica o registro estático e o alcance dessa opção.
-5. Testar `nslookup davi.home.arpa <IP-LAN-do-MikroTik>`, depois `nslookup davi.home.arpa` em cada cliente. DNS privado/DoH no aparelho pode ignorar DNS local: configurar exceção ou usar o IP HTTPS autorizado. Não desligar validação TLS para resolver DNS.
+5. Testar `nslookup davi.home.arpa 192.168.2.1`, depois `nslookup davi.home.arpa` em cada cliente. DNS privado/DoH no aparelho pode ignorar DNS local: configurar exceção ou usar o IP HTTPS autorizado. Não desligar validação TLS para resolver DNS.
 
 O gerador prepara **https://davi.home.arpa** e **https://192.168.2.10**. Ambos recebem certificado interno válido para o respectivo nome/IP. As sessões são independentes entre hostname e IP; prefira um endereço estável. Alterar IP requer revisar DHCP, DNS, Caddyfile, origens e regra de firewall. Não adicionar port forwarding, DMZ, UPnP ou abertura WAN no MikroTik. Não registrar domínio externo.
 
@@ -174,7 +193,7 @@ Parar/desinstalar ignora serviços já parados/ausentes. Desinstalação remove 
 
 ## Firewall Windows
 
-Regra única `Davi-LAN-HTTPS-v04`: entrada TCP, porta lida do `network.json`, endereço local específico, `RemoteAddress=192.168.2.0/24`, executável `publicacao/bin/caddy.exe` e `EdgeTraversalPolicy=Block`. `Profile=Any` permite funcionamento tanto com perfil Windows Público quanto Privado, mantendo restrição por endereço e origem. O script não muda o perfil, não desliga firewall e não abre a porta do backend.
+Regra única `Davi-LAN-HTTPS-v04`: entrada TCP, porta lida do `network.json`, endereço local específico, `RemoteAddress=192.168.2.0/24`, executável `publicacao/bin/caddy.exe` e `EdgeTraversalPolicy=Block`. `Profile=Any` mantém funcionamento tanto com perfil Windows Público quanto Privado, mantendo restrição por endereço e origem. O perfil confirmado é `Private`; o script não o altera. A abrangência de perfis não amplia a sub-rede ou o endereço local da regra. O script não muda o perfil, não desliga firewall e não abre a porta do backend.
 
 A ação exige `-Aprovado`, confirmação e administrador; oferece `-WhatIf`. Recusa ampliar a sub-rede pelo arquivo gerado. Reversão remove somente a regra nomeada. Revisar regras anteriores amplas para Python/Caddy e confirmar bloqueio padrão de entrada: a nova regra restrita não neutraliza regras permissivas preexistentes. Não modificar essas regras automaticamente. A validação do proxy e da aplicação continua restringindo rede e autorização mesmo diante de uma regra ampla.
 
@@ -242,7 +261,7 @@ Em Windows/Python 3.13.5, em 17/11/2026, exclusivamente com dados sintéticos:
 | --- | --- |
 | Calendário anterior + segurança, CRUD, feriados, recorrências, concluir/desfazer, backup/restauração, rotação e reinício real do processo | `tests/test_calendar.py` e `tests/test_lan.py` (21 testes) |
 | Caddy 2.11.9 real, adaptação do Caddyfile original, HTTPS em loopback, CA não confiável rejeitada, CA explícita aceita, cookie Secure, login e logout | `tests/test_tls.py` (1 teste; total Python: 22 aprovados) |
-| Sintaxe PowerShell, ordem de reinício proxy/app, bloqueio sem aprovação e WhatIf sem mutações | `tests/test_service.ps1` |
+| Sintaxe PowerShell, ordem de reinício proxy/app, bloqueio sem aprovação, WhatIf sem mutações e diagnóstico da Ethernet 5 com dados simulados corretos/divergentes | `tests/test_service.ps1` |
 | Regressões visuais de categoria, horário, datas e progresso | `tests/test_visual.cjs`: 9 testes |
 | Fluxos completos do redesign + dispositivo novo, autorização infantil persistente, isolamento e logout | `tests/browser_redesign.cjs`: 8 grupos |
 | Responsável e criança em 360, 390, 768, 1366 e 1920 px | [10 capturas e relatório](evidencias-v04/validation.json), sem overflow, sobreposição ou erros JS |

@@ -5,17 +5,82 @@
   "node": "24.19.0",
   "caddy": "2.11.9",
   "data": "synthetic temporary SQLite only",
-  "python_suite": {"command": "python -m unittest discover -s tests -v", "tests": 22, "passed": 22, "skipped": 0, "tls_environment_enabled": true},
-  "visual_unit_suite": {"command": "node --test tests/test_visual.cjs", "passed": 9},
-  "browser_suite": {"command": "node tests/browser_redesign.cjs", "flow_groups": 8, "captures": 10, "existing_layout_axe_scans": 10, "pairing_axe_scans": 1, "violations": 0, "report": "validation.json"},
+  "python_suite": {
+    "command": "python -m unittest discover -s tests -v",
+    "tests": 22,
+    "passed": 22,
+    "skipped": 0,
+    "tls_environment_enabled": true
+  },
+  "visual_unit_suite": {
+    "command": "node --test tests/test_visual.cjs",
+    "passed": 9
+  },
+  "browser_suite": {
+    "command": "node tests/browser_redesign.cjs",
+    "flow_groups": 8,
+    "captures": 10,
+    "existing_layout_axe_scans": 10,
+    "pairing_axe_scans": 1,
+    "violations": 0,
+    "report": "validation.json"
+  },
   "powershell_suite": {
     "command": "powershell -NoProfile -File tests/test_service.ps1",
     "result": "passed",
-    "checks": ["AST syntax", "proxy stopwait then app restart then proxy start with substituted executor", "mutation without approval blocked", "WhatIf exits without mutation", "firewall arguments scoped to explicit local address, configured proxy port, domestic subnet and any Windows profile using substituted cmdlets", "public subnet rejected"]
+    "checks": [
+      "AST syntax",
+      "proxy stopwait then app restart then proxy start with substituted executor",
+      "mutation without approval blocked",
+      "WhatIf exits without mutation",
+      "firewall arguments scoped to explicit local address, configured proxy port, domestic subnet and any Windows profile using substituted cmdlets",
+      "public subnet rejected"
+    ]
   },
-  "tls": {"real_caddy": true, "listener": "loopback only", "lan_source": "simulated", "untrusted_ca_rejected": true, "explicit_ca_and_hostname_verification": true, "os_trust_store_modified": false},
-  "restart": {"real_application_process_cycles": 2, "child_session_persisted": true, "windows_scm": "simulated only", "windows_reboot": "not performed"},
-  "personal_database": {"used_by_application_or_tests": false, "sha256_before_after_equal": true},
-  "system_changes": {"services_installed": false, "firewall_applied": false, "router_modified": false, "deployment_performed": false},
-  "pending_authorized_acceptance": ["Windows SCM installation and reboot", "Android and iPhone physical devices", "MikroTik DNS and Deco connectivity", "Windows public/private network profile and off-subnet physical access"]
+  "tls": {
+    "real_caddy": true,
+    "listener": "loopback only",
+    "lan_source": "simulated",
+    "untrusted_ca_rejected": true,
+    "explicit_ca_and_hostname_verification": true,
+    "os_trust_store_modified": false
+  },
+  "restart": {
+    "real_application_process_cycles": 2,
+    "child_session_persisted": true,
+    "windows_scm": "simulated only",
+    "windows_reboot": "not performed"
+  },
+  "personal_database": {
+    "used_by_application_or_tests": false,
+    "sha256_before_after_equal": true
+  },
+  "system_changes": {
+    "services_installed": false,
+    "firewall_applied": false,
+    "router_modified": false,
+    "deployment_performed": false
+  },
+  "pending_authorized_acceptance": [
+    "Windows SCM installation and reboot",
+    "Android and iPhone physical devices",
+    "MikroTik DNS and Deco connectivity",
+    "Windows public/private network profile and off-subnet physical access"
+  ],
+  "confirmed_environment_followup": {
+    "source": "environment confirmed by responsible user; not probed against live installation",
+    "interface": "Ethernet 5",
+    "address": "192.168.2.10",
+    "gateway": "192.168.2.1",
+    "windows_profile": "Private",
+    "authorized_subnet": "192.168.2.0/24",
+    "validation": "PowerShell syntax and simulated diagnostics passed for matching and divergent IP, gateway and network profile",
+    "live_preparation_run": false,
+    "live_network_diagnostic_run": false,
+    "runtime_configuration_modified": false,
+    "sqlite_modified": false,
+    "services_installed": false,
+    "firewall_applied": false,
+    "dns_modified": false
+  }
 }

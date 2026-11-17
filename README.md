@@ -8,6 +8,8 @@ Autenticação obrigatória para consultar a agenda, autorização persistente d
 
 Veja [o guia de publicação v0.4](docs/publicacao-lan-v04.md) para arquitetura, configuração, certificados, serviços, backup, atualização, rollback e limitações dos testes. Esta branch depende da [PR #1 (redesign)](https://github.com/nellipe/davi-missoes/pull/1), que permanece sem merge.
 
+Ambiente confirmado: `Ethernet 5`, IPv4 `192.168.2.10`, gateway `192.168.2.1`, perfil `Private`, rede `192.168.2.0/24`. Scripts e guia preparados para esses valores, sem aplicar configurações reais. DNS, certificados, firewall e serviços aguardam aprovação de instalação.
+
 ## Redesign v0.3 preservado
 
 Identidade original com fundo claro, azul profundo, amarelo solar, mascote geométrico feito em CSS e botões com sombras táteis. Fontes, ícones e ilustrações são locais; nenhuma dependência de internet foi adicionada à aplicação.
