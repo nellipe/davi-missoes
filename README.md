@@ -93,7 +93,11 @@ Legislação de referência:
 - Backups consistentes, rotação, integridade e restauração ficam em `maintenance.py`. O banco, backups, configuração privada e CA não são versionados.
 - O acesso físico ao computador e a dispositivos autorizados exige cuidado. Sem recuperação automática por e-mail; guarde a senha do responsável.
 
-## Missões jogáveis — Etapas A e B
+## Mundo de aventuras — Etapas A, B e C
+
+A tela inicial infantil agora é a **Ilha das ideias**: caminhe com setas/WASD, botões de direção ou toque no chão. Visite os pontos de interesse, entre nas missões e use estrelas para construir a ponte, a casa na árvore e o portal. A oficina mostra preço e prévia; o guarda-roupa permite equipar chapéu/capa, escolher uma cor e vestir o Pipo. Saldo, construções e personagem persistem no servidor e aparecem nos outros aparelhos LAN. O calendário clássico continua disponível na ilha.
+
+Aprender, os minigames e o esforço em Fazer podem conceder estrelas, com validação no servidor, crédito único e limite diário. Medicação e higiene essencial não recebem prêmio de realização; cuidados e acesso às missões nunca dependem de estrelas. O responsável ajusta preços, disponibilidade e valores em **Mundo e estrelas**. Veja o [guia curto da Etapa C](docs/etapa-c.md).
 
 No painel do responsável, **Roteiros de missões** permite criar, editar, adicionar/remover e reordenar etapas com orientação, dica e fase de preparação/execução/retorno. Em uma atividade do calendário, **Roteiro e progresso** vincula a sequência à série ou somente à data escolhida. Nenhuma atividade recebe roteiro automaticamente.
 
@@ -107,7 +111,7 @@ Os dez roteiros originais foram importados para uma biblioteca editável, com mo
 
 A versão anterior, com 10 roteiros (banheiro, escovação, banho, mochila, quarto, sono, manhã, alimentação, sair, encerrar jogo), permanece em **`index.html`**. Você pode abri-la isoladamente no navegador. Os roteiros e design estão em `docs/PRODUTO-E-MISSOES.md`.
 
-O protótipo isolado mantém seus modos e armazenamento próprios; ele não é servido pelo calendário e seu progresso local não é importado. O aplicativo atual já integra roteiros, executor e dois minigames. Mundo persistente, economia, avatar personalizável, baús e inventário continuam para a Etapa C da [Issue #5](https://github.com/nellipe/davi-missoes/issues/5).
+O protótipo isolado mantém seus modos e armazenamento próprios; ele não é servido pelo calendário e seu progresso local não é importado. O aplicativo atual integra os roteiros, os jogos e o mundo persistente das etapas A/B/C da [Issue #5](https://github.com/nellipe/davi-missoes/issues/5).
 
 ## Testes da interface (opcionais, desenvolvimento)
 
@@ -140,7 +144,7 @@ O script inicia seu próprio servidor na porta 18876, com `DAVI_DATA_DIR` em dir
 ## Próximas etapas sugeridas
 
 1. Revisar e cadastrar os compromissos reais e os dias sem aula do Davi.
-2. Evoluir para a Etapa C da Issue #5, com mundo e recompensas persistentes.
+2. Homologar e polir a experiência com a família, conforme Etapa D da Issue #5.
 3. Alertas visuais/sonoros próximos da hora e lembretes configuráveis.
 4. Ilustrações originais, avatar e mapas de progressão.
 5. API com autenticação forte multiusuário e banco de servidor quando o produto estiver validado.

@@ -1,5 +1,7 @@
 # Etapa B — uma base para brincar e fazer
 
+> Referência da entrega B. A [Etapa C](etapa-c.md) já integra validação de prática no servidor, estrelas e mundo persistente.
+
 Implementa a [Issue #7](https://github.com/nellipe/davi-missoes/issues/7). No calendário infantil, escolha **Entrar na missão** de um compromisso que tenha roteiro vinculado pelo responsável.
 
 - **Aprender:** explorar uma etapa por tela; ouvir em PT-BR quando a voz estiver disponível, voltar, pedir dica ou chamar o responsável. Não confirma execução.

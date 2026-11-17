@@ -1,0 +1,86 @@
+.world-view main { max-width:1440px; padding:8px 24px 28px; }
+.world-view > footer { display:none; }
+.world-shell { color:#2c4b50; border:1px solid #c0d5ce; border-radius:26px; overflow:hidden; background:#f7f5e9; box-shadow:0 10px 0 #c5d8d6,0 24px 50px #28576e15; }
+.w-hud { display:flex; gap:24px; padding:22px 28px; align-items:center; background:#fbf9ed; border-bottom:1px solid #c5ded9; }
+.w-hud h1 { font-size:1.8rem; margin:5px 0 0; letter-spacing:-.045em; color:#2d5054; }
+.w-kicker { font-size:.64rem; font-weight:850; letter-spacing:.15em; color:#53716c; }
+.w-wallet { margin-left:auto; display:grid; grid-template-columns:35px auto; grid-template-rows:auto auto; column-gap:10px; padding:10px 21px; background:#fff0ba; border:1px solid #e3ce8d; border-radius:18px; box-shadow:0 3px 0 #e4d3a0; }
+.w-wallet > span { grid-row:1/3; font-size:36px; color:#92732c; align-self:center; }
+.w-wallet strong { font-size:1.5rem; line-height:1; color:#594d2c; }
+.w-wallet small { font-size:.66rem; color:#715f32; margin-top:5px; }
+.w-hud-tools { display:flex; gap:9px; }
+.w-button { min-height:46px; padding:12px 17px; border:1px solid #b9cfc5; border-radius:12px; background:#f7f8ed; color:#325954; font-size:.85rem; font-weight:750; box-shadow:0 3px 0 #c6d7c8; }
+.w-button:hover { background:#e3f0df; border-color:#7fa693; }
+.world-view :focus-visible { outline:3px solid #345ec0; outline-offset:3px; }
+.w-stage { position:relative; height:550px; overflow:hidden; background:#b8e0e6; }
+.w-map { display:block; width:100%; height:100%; touch-action:manipulation; }
+.w-map:focus { outline:3px solid #6d95b0; outline-offset:-4px; }
+.w-water { animation:w-water-drift 12s ease-in-out infinite alternate; }
+.w-unbuilt { opacity:.24; }
+.w-built { animation:w-appear .5s ease-out; transform-box:fill-box; transform-origin:center bottom; }
+.w-sign { width:126px; min-height:54px; padding:8px 5px; border:2px solid #a8916b; border-radius:11px; background:#fff0cf; color:#594a3a; font-size:14px; font-weight:800; box-shadow:0 4px 0 #a59071; line-height:1.2; }
+.w-sign:hover { background:#fff8e5; border-color:#817858; }
+.w-sign.w-mission-sign { background:#f3dc91; border-color:#b39650; }
+.w-map-label { position:absolute; top:28px; left:30px; color:#477178; font-size:.62rem; letter-spacing:.15em; font-weight:850; pointer-events:none; }
+.w-compass { position:absolute; top:25px; right:24px; color:#557f85; font-size:35px; text-align:center; pointer-events:none; }
+.w-compass small { display:block; font-size:.57rem; font-weight:800; margin-top:-8px; }
+.w-dpad { position:absolute; bottom:20px; left:22px; width:141px; display:grid; grid-template-columns:repeat(3,43px); grid-template-rows:43px 43px; gap:4px; }
+.w-dpad button { min-height:43px; min-width:43px; padding:5px; background:#fcfaf0dd; color:#446b6e; border:1px solid #84b1b5; box-shadow:0 3px 0 #80a9aa; border-radius:10px; font-size:1.2rem; touch-action:none; user-select:none; }
+.w-dpad button:nth-child(1) { grid-column:2; }.w-dpad button:nth-child(2) { grid-column:1;grid-row:2; }.w-dpad button:nth-child(3) { grid-column:2;grid-row:2; }.w-dpad button:nth-child(4) { grid-column:3;grid-row:2; }
+.w-map-tip { position:absolute; right:22px; bottom:24px; font-size:.68rem; color:#406a70; background:#eef9f3dc; border:1px solid #a6c6c2; padding:10px 14px; border-radius:30px; pointer-events:none; }
+.w-dock { display:flex; align-items:center; gap:18px; padding:12px 28px; border-top:1px solid #b7d3cc; }
+.w-pipo { width:70px; height:85px; flex-shrink:0; }
+.w-pipo > svg { width:100%; height:100%; }
+.w-pipo-copy { flex:1; }
+.w-pipo-copy strong { color:#3c625d; font-size:.8rem; }
+.w-pipo-copy p { color:#4c6964; font-size:.83rem; margin:5px 0 0; line-height:1.5; }
+.w-mission-button { text-align:left; color:#3a4e48; background:#f5df9a; border-color:#cfb96e; box-shadow:0 4px 0 #c9b56e; max-width:330px; }
+.w-mission-button span { display:block; font-size:.68rem; margin-top:6px; }
+.w-dialog { width:min(720px,calc(100% - 32px)); max-height:calc(100dvh - 36px); padding:25px 30px 30px; border:1px solid #c5d3b7; border-radius:24px; color:#36534f; background:#fbf8e9; box-shadow:0 16px 60px #20434970; }
+.w-dialog::backdrop { background:#243e4c89; backdrop-filter:blur(4px); }
+.w-dialog h2 { color:#35564f; font-size:2rem; letter-spacing:-.04em; margin:12px 0 16px; }
+.w-dialog p { color:#53685e; line-height:1.6; font-size:.9rem; }
+.w-dialog-top { display:flex; justify-content:flex-end; margin-bottom:4px; }
+.w-shop-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:22px; }
+.w-product { min-width:0; display:flex; flex-direction:column; align-items:center; padding:13px 10px; border:1px solid #c4d5b9; border-radius:16px; color:#405b4c; background:#edf1df; box-shadow:0 4px 0 #c8d2b8; }
+.w-product:hover { background:#e2edcf; }
+.w-product > svg { height:105px; width:100%; }
+.w-product strong { font-size:.85rem; margin:5px 0; }
+.w-product > span { font-size:.75rem; color:#596645; }
+.w-item-preview { margin:8px auto; height:220px; max-width:300px; border-radius:50%; background:radial-gradient(#e1eac7,transparent 70%); }
+.w-item-preview > svg, .w-house-art > svg { width:100%; height:100%; }
+.w-price { font-weight:850; color:#756139!important; }
+.w-buy { background:#f3d58c; border-color:#c6ae70; color:#5b4e31; }
+.w-character-preview { width:230px; height:215px; margin:auto; border-radius:50%; background:radial-gradient(#e0e9cc,transparent 70%); }
+.w-character-preview svg { width:100%; height:100%; }
+.w-color-options { display:flex; justify-content:center; gap:9px; margin:16px 0 24px; }
+.w-color-options button[aria-pressed="true"] { outline:3px solid #547b69; outline-offset:3px; }
+.w-color-mint { background:#bbdec9; }.w-color-sun { background:#eed7a4; }.w-color-sky { background:#c2deeb; }
+.w-accessories { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+.w-accessories button[aria-pressed="true"] { background:#d9e9c6; }
+.w-mission-list { display:grid; gap:12px; margin:22px 0; }
+.w-mission-list button { display:grid; grid-template-columns:35px 1fr; text-align:left; gap:4px 10px; }
+.w-mission-list button > span { grid-row:1/3; align-self:center; font-size:25px; }.w-mission-list small { font-size:.72rem; }
+.w-house-art { height:260px; }
+.g-reward-chest { max-width:380px; margin:18px auto; display:flex; flex-direction:column; align-items:center; gap:12px; padding:19px; border:1px solid #d1b66e; border-radius:18px; background:#384564; color:#ffe5a4; }
+.g-reward-chest > span { font-size:40px; color:#ffdb85; }.g-reward-chest small { font-size:.73rem; color:#ede4ca; }.g-reward-chest.opened { animation:g-enter .3s ease-out; }
+.g-chest-art { width:100px; height:78px; }.g-chest-lid { transform-origin:20px 38px; transition:transform .3s; }.opened .g-chest-lid { transform:rotate(-16deg) translateY(-5px); }
+@keyframes w-water-drift { to { opacity:.5; } }@keyframes w-appear { from { opacity:.4; transform:scale(.9); } to { opacity:1; transform:scale(1); } }
+.w-still *, .w-still *::before { animation:none!important; transition:none!important; }
+@media (prefers-reduced-motion:reduce) { .world-shell *, .g-reward-chest { animation:none!important; transition:none!important; } }
+@media (max-width:680px) {
+  .world-view > header { display:flex; flex-direction:row; padding:12px 14px; align-items:center; gap:8px; }
+  .world-view #brand > span:last-child { display:none; }.world-view #brand { margin:0; }.world-view .brand-cube { width:36px; height:36px; font-size:22px; }
+  .world-view > header nav { flex:1; justify-content:flex-end; width:auto; }.world-view > header nav button { min-height:42px; font-size:.66rem; padding:8px 10px; }
+  .world-view main { padding:4px 10px 24px; }.world-shell { border-radius:20px; }
+  .w-hud { padding:16px 15px; gap:10px; flex-wrap:wrap; }.w-hud h1 { font-size:1.55rem; }.w-kicker { font-size:.5rem; }
+  .w-wallet { padding:8px 13px; column-gap:6px; grid-template-columns:26px auto; }.w-wallet > span { font-size:26px; }.w-wallet strong { font-size:1.3rem; }
+  .w-hud-tools { width:100%; justify-content:space-between; }.w-hud-tools button { min-height:42px; font-size:.72rem; padding:9px 12px; }
+  .w-stage { height:490px; }.w-map-label { top:17px; left:15px; font-size:.48rem; }.w-compass { right:15px; top:16px; font-size:29px; }
+  .w-dpad { left:12px; bottom:15px; }.w-map-tip { right:10px; bottom:16px; font-size:.57rem; max-width:155px; line-height:1.5; padding:8px; text-align:center; }
+  .w-dock { padding:12px 14px; gap:10px; flex-wrap:wrap; }.w-pipo { width:48px; height:64px; }.w-pipo-copy strong { font-size:.7rem; }.w-pipo-copy p { font-size:.72rem; }
+  .w-mission-button { width:100%; max-width:none; margin-top:5px; font-size:.82rem; }
+  .w-dialog { padding:18px; width:calc(100% - 22px); border-radius:19px; }.w-dialog h2 { font-size:1.7rem; }.w-dialog p { font-size:.84rem; }
+  .w-shop-grid { grid-template-columns:1fr 1fr; gap:11px; }.w-product { padding:9px; }.w-product strong { font-size:.75rem; }.w-product > svg { height:90px; }
+  .w-character-preview { height:190px; }.w-accessories { flex-direction:column; }.w-color-options { gap:8px; }.w-color-options button { padding:11px; font-size:.8rem; }
+}

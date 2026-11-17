@@ -114,6 +114,7 @@ async function safe(fn) {
 }
 function nav() {
   if (state.view !== 'child-game' && typeof DaviGame !== 'undefined') DaviGame.close();
+  if (state.view !== 'child-world' && typeof DaviWorld !== 'undefined') DaviWorld.close();
   const parent = state.view.startsWith("parent");
   for (const [id, active] of [
     ["childTab", !parent],
@@ -407,6 +408,12 @@ async function child() {
   state.view = "child";
   state.date = state.date || state.me.today;
   await fetchCalendar(state.date, state.date);
+  if (state.childSurface!=='calendar' && typeof DaviWorld!=='undefined') {
+    state.view='child-world';
+    await DaviWorld.open({layout,api,missions:dayEvents(state.date),dateLabel:fmt(state.date),onMission:openMission,
+      onCalendar:async()=>{state.childSurface='calendar';await child();}});
+    return;
+  }
   renderChild();
 }
 function renderChild() {
@@ -417,7 +424,7 @@ function renderChild() {
     plan = dayPlan(es, clock),
     pct = es.length ? Math.round((done / es.length) * 100) : 0;
   layout(
-    '<div class="hero"><div class="hero-copy"><div class="eyebrow">Seu dia, uma grande aventura</div><h1>Olá, ' +
+    '<button data-action="world-home">← Meu mundo</button><div class="hero"><div class="hero-copy"><div class="eyebrow">Seu dia, uma grande aventura</div><h1>Olá, ' +
       esc(state.me.name) +
       '!</h1><p>Vamos dar um passo de cada vez?</p><div class="date-label">🗓 ' +
       esc(fmt(state.date)) +
@@ -551,7 +558,7 @@ async function parentMonth() {
   }
   const selected = dayEvents(state.selected);
   layout(
-    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="mission-library">Roteiros de missões</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
+    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="world-settings">Mundo e estrelas</button><button data-action="mission-library">Roteiros de missões</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
       '<div class="panel calendar-panel"><div class="row between"><h2>' +
       esc(fmt(first, { month: "long", year: "numeric" })) +
       '</h2><div class="row calendar-controls"><button data-action="monthprev">← Mês anterior</button><button data-action="monthtoday">Hoje</button><button data-action="monthnext">Próximo mês →</button></div></div><div class="month">' +
@@ -744,8 +751,9 @@ async function openMission(id,date) {
   if (!data.mission) throw Error('Esta ocorrência não tem roteiro. Volte à agenda.');
   if (!parent) {
     state.view='child-game';
-    DaviGame.open({mission:data.mission,title:data.title,dateLabel:fmt(date),layout,api,onExit:child,
-      onPractice:session=>{state.practiceSessions=[...(state.practiceSessions || []),session].slice(-10);}});
+    DaviGame.open({mission:data.mission,title:data.title,dateLabel:fmt(date),layout,api,
+      onPractice:session=>{state.practiceSessions=[...(state.practiceSessions || []),session].slice(-10);},
+      onExit:async()=>{state.childSurface='world';await child();}});
     return;
   }
   state.view = parent ? 'parent-mission-progress' : 'child-mission-progress';
@@ -792,6 +800,15 @@ async function missionAction(a,b) {
     renderMissionEditor();
   }
 }
+async function worldSettings() {
+  state.view='parent-world-settings';
+  state.worldConfig=await api('/api/world/config');
+  const config=state.worldConfig;
+  layout('<div class="row between"><h1>Mundo e estrelas</h1><button data-action="calendar">← Calendário</button></div><p>Estrelas reconhecem esforço e prática. Cuidados essenciais continuam independentes de recompensas. Saldo atual: '+config.world.stars+' estrelas.</p><form id="worldSettingsForm" class="panel"><div class="form-grid">'+
+    [['learn','Aprender (por ocorrência)'],['memory','Cada minigame (por ocorrência)'],['real','Esforço em Fazer (rotinas elegíveis)'],['daily_limit','Máximo de estrelas por dia']].map(([key,label])=>'<div><label for="reward-'+key+'">'+label+'</label><input id="reward-'+key+'" type="number" min="0" max="'+(key==='daily_limit'?100:10)+'" required value="'+config.settings[key]+'"></div>').join('')+
+    '</div><p>Zero desativa a concessão. Repetir, editar ou desfazer não gera estrelas extras. Fazer só recompensa roteiros originais de preparação/organização elegíveis; medicação e higiene essencial ficam excluídas.</p>'+config.world.catalog.map(i=>'<fieldset><legend>'+esc(i.name)+'</legend><label><input type="checkbox" id="available-'+i.id+'" '+(i.available?'checked':'')+'>Disponível na oficina</label><label for="price-'+i.id+'">Preço em estrelas</label><input type="number" id="price-'+i.id+'" min="0" max="100" required value="'+i.price+'"><span>'+(i.owned?'Já adquirido':'Ainda não adquirido')+'</span></fieldset>').join('')+
+    '<button type="submit" class="primary">Salvar combinados</button></form><section class="panel"><h2>Descobertas recentes</h2><ul>'+config.history.map(h=>'<li>'+esc(h.label)+' · '+(h.delta>0?'+':'')+h.delta+' estrelas</li>').join('')+'</ul></section>');
+}
 async function settings() {
   state.view = "parent-settings";
   const devices = state.me.simple_lan
@@ -810,7 +827,10 @@ async function action(e) {
     id = Number(b.dataset.id),
     day = b.dataset.date;
   await safe(async () => {
-    if (a.startsWith('game-')) { await DaviGame.action(a,b); }
+    if (a==='world-home') {state.childSurface='world';await child();}
+    else if (a==='world-settings') await worldSettings();
+    else if (a.startsWith('world-')) await DaviWorld.action(a,b);
+    else if (a.startsWith('game-')) { await DaviGame.action(a,b); }
     else if (a.startsWith('mission-')) { await missionAction(a,b); }
     else if (a === "pair-code") {
       const result = await api('/api/devices/code', 'POST', {});
@@ -894,7 +914,11 @@ document.addEventListener("change", (e) => {
 document.addEventListener("submit", (e) => {
   e.preventDefault();
   safe(async () => {
-    if (e.target.id === 'missionForm') {
+    if (e.target.id === 'worldSettingsForm') {
+      const body=Object.fromEntries(['learn','memory','real','daily_limit'].map(k=>[k,Number($('reward-'+k).value)]));
+      body.catalog=state.worldConfig.world.catalog.map(i=>({id:i.id,price:Number($('price-'+i.id).value),available:$('available-'+i.id).checked}));
+      await api('/api/world/config','PUT',body);await parentMonth();
+    } else if (e.target.id === 'missionForm') {
       readMissionDraft();
       const t=state.missionDraft;
       await api('/api/missions' + (t.id?'/' + t.id:''),t.id?'PUT':'POST',t);
