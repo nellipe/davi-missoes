@@ -2,7 +2,13 @@
 
 Projeto familiar para acompanhar os compromissos do Davi e desenvolver autonomia nas rotinas diárias. Visual inspirado em jogos de aventuras em blocos, com identidade original (sem afiliação ao Roblox).
 
-## Versão 0.3 — aventura em blocos
+## Versão 0.4 — publicação interna em revisão
+
+Autenticação obrigatória para consultar a agenda, autorização persistente de aparelhos infantis, HTTPS local com Caddy, preparação de serviços Windows e firewall restrito à rede doméstica. **Nada foi implantado.** Os scripts que alteram Windows exigem aprovação expressa.
+
+Veja [o guia de publicação v0.4](docs/publicacao-lan-v04.md) para arquitetura, configuração, certificados, serviços, backup, atualização, rollback e limitações dos testes. Esta branch depende da [PR #1 (redesign)](https://github.com/nellipe/davi-missoes/pull/1), que permanece sem merge.
+
+## Redesign v0.3 preservado
 
 Identidade original com fundo claro, azul profundo, amarelo solar, mascote geométrico feito em CSS e botões com sombras táteis. Fontes, ícones e ilustrações são locais; nenhuma dependência de internet foi adicionada à aplicação.
 
@@ -14,9 +20,9 @@ Detalhes de design, resultados e capturas com dados sintéticos: [Redesign v0.3]
 
 ## Agenda local preservada
 
-A nova aplicação abre numa **área do Davi** com agenda do dia: horário, compromissos ordenados, marcação de conclusão e navegação entre datas.
+Depois da autorização do aparelho, a aplicação abre na **área do Davi** com agenda do dia: horário, compromissos ordenados, marcação de conclusão e navegação entre datas.
 
-A **área do responsável** exige senha cadastrada no primeiro acesso e inclui:
+A **área do responsável** exige senha existente ou criada offline pelo responsável e inclui:
 - Calendário mensal com atividades, datas selecionáveis e feriados destacados;
 - Cadastro de atividades com horário, duração, ícone e descrição;
 - Recorrência **única, diária, segunda a sexta, dias selecionados da semana ou mensal**;
@@ -25,7 +31,7 @@ A **área do responsável** exige senha cadastrada no primeiro acesso e inclui:
 - Edição do nome exibido na área infantil;
 - Registros de tarefas feitas por data e atividade.
 
-**Dados locais:** SQLite criado em `dados/agenda.sqlite3`. Não usa serviços externos, API de feriados ou conta na nuvem. A interface só está disponível em `127.0.0.1` (no próprio computador).
+**Dados locais:** SQLite criado em `dados/agenda.sqlite3`. Não usa serviços externos, API de feriados ou conta na nuvem. O padrão continua sendo `127.0.0.1`. A publicação LAN é configurada separadamente, com HTTPS e autorização por aparelho.
 
 ## Windows — instalar e executar
 
@@ -34,7 +40,7 @@ Validado no Windows com **Python 3.13.5**. Requer **Python 3.10 ou superior** e 
 1. No GitHub, faça **Code → Download ZIP** e extraia; ou rode `git pull` se já clonou.
 2. Abra a pasta extraída e dê dois cliques em **`Iniciar-Davi.bat`**.
 3. Com a janela do servidor aberta, vá para **http://127.0.0.1:8765** no navegador.
-4. Clique em **Responsável** e defina uma senha com pelo menos 10 caracteres.
+4. Se ainda não existe senha, pare o servidor e execute `python maintenance.py init-parent --database dados/agenda.sqlite3`; digite a senha de pelo menos 10 caracteres sem eco. Esse comando exige banco existente e não substitui senha cadastrada. Inicie novamente. Em instalação existente, mantenha a senha atual.
 5. Entre na área do responsável, clique em **Cadastrar atividade** e comece a montar a agenda.
 6. Clique em **Minha aventura** para ver o painel do Davi.
 7. Para encerrar o servidor, pressione **Ctrl+C** na janela aberta.
@@ -42,7 +48,7 @@ Validado no Windows com **Python 3.13.5**. Requer **Python 3.10 ou superior** e 
 Alternativa pelo PowerShell:
 
 ```powershell
-cd C:\davi-missoes
+cd D:\davi-missoes
 py -3 server.py
 # Em outra janela/navegador: http://127.0.0.1:8765
 ```
@@ -70,14 +76,12 @@ Legislação de referência:
 
 ## Segurança e dados
 
-- O administrador tem senha armazenada como hash PBKDF2-SHA256 com salt; a sessão é mantida em cookie HttpOnly/SameSite=Strict, por até oito horas em memória.
-- A interface do Davi **não exige autenticação nesta versão**; permite visualizar compromissos e marcar como feitos, apenas no próprio computador.
-- A senha protege a *edição da agenda* pela interface/API; o programa e o banco permanecem acessíveis a quem tiver acesso ao sistema de arquivos do computador.
-- A configuração inicial de senha é feita pela primeira pessoa que abrir a aplicação local; faça isso como responsável.
-- **Não abra a porta 8765 no firewall e não coloque esse servidor na internet.** Ainda não existe autenticação de criança, multiusuário nem acesso remoto seguro.
-- Para backup, encerre o programa e copie `dados/agenda.sqlite3` para uma pasta protegida; este arquivo contém agenda e hash da senha.
-- Se perder a senha, **não há recuperação automática** na v0.3; guarde-a em um gerenciador de senhas.
-- Os testes foram executados no Windows com Python 3.13.5 e Chromium automatizado. A revisão familiar e a avaliação com leitor de tela continuam recomendadas.
+- Toda consulta da agenda e conclusão exige sessão autorizada. Um aparelho novo recebe apenas a tela de entrada.
+- O responsável usa senha com hash PBKDF2-SHA256 e sessão de até oito horas. A criança usa código temporário gerado pelo responsável e sessão de até 90 dias. Logout revoga no servidor; as preferências permitem revogar todos os aparelhos infantis.
+- Cookies HttpOnly/SameSite=Strict; Secure na publicação HTTPS. Proteção de Origin/Host/CSRF e limitação de tentativas persistente.
+- Não abra a porta do Python no firewall. Publique apenas o proxy HTTPS restrito à LAN conforme o guia, sem encaminhamento de portas no roteador.
+- Backups consistentes, rotação, integridade e restauração ficam em `maintenance.py`. O banco, backups, configuração privada e CA não são versionados.
+- O acesso físico ao computador e a dispositivos autorizados exige cuidado. Sem recuperação automática por e-mail; guarde a senha do responsável.
 
 ## Missões lúdicas da v0.1
 
@@ -103,7 +107,7 @@ $env:NODE_PATH = Join-Path $validationTools 'node_modules'
 node tests/browser_redesign.cjs
 ```
 
-O script inicia seu próprio servidor na porta 18876, com `DAVI_DATA_DIR` em diretório temporário e **somente dados sintéticos**. Ele não inicia o servidor no banco pessoal. Ao terminar, encerra o servidor temporário, remove esse banco de teste e atualiza as capturas e o relatório em `docs/evidencias-v03/`. Se não houver launcher `py`, defina `$env:PYTHON` com o caminho do interpretador Python instalado. Para os testes Python e execução local, o equivalente é `python -m unittest discover -s tests -v` e `python server.py`.
+O script inicia seu próprio servidor na porta 18876, com `DAVI_DATA_DIR` em diretório temporário e **somente dados sintéticos**. Ele não inicia o servidor no banco pessoal. Ao terminar, encerra o servidor temporário, remove esse banco de teste e atualiza as capturas e o relatório em `docs/evidencias-v04/`. Se não houver launcher `py`, defina `$env:PYTHON` com o caminho do interpretador Python instalado. Para os testes Python e execução local, o equivalente é `python -m unittest discover -s tests -v` e `python server.py`.
 
 ## Limitações da v0.3
 

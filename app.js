@@ -75,7 +75,7 @@ async function api(path, method = "GET", body) {
   const r = await fetch(path, {
     method,
     credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(state.me?.csrf ? { "X-CSRF-Token": state.me.csrf } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   let j;
@@ -388,6 +388,13 @@ function nextMission(e, hasEvents, earlierCount = 0) {
   );
 }
 async function child() {
+  state.me = await api('/api/me');
+  if (!state.me.authorized) {
+    state.events = [];
+    state.view = 'child-locked';
+    layout('<section class="panel auth-panel"><h1>Vamos preparar sua aventura?</h1><p>Peça ao responsável para autorizar este aparelho. Ele gera um código nas preferências e ajuda você a digitá-lo aqui.</p><form id="pairForm"><label for="pairCode">Código de autorização</label><input id="pairCode" autocomplete="off" autocapitalize="none" spellcheck="false" required><button class="primary" type="submit">Autorizar aparelho</button></form><p>Ainda não há agenda disponível neste aparelho.</p></section>');
+    return;
+  }
   state.view = "child";
   state.date = state.date || state.me.today;
   await fetchCalendar(state.date, state.date);
@@ -443,7 +450,7 @@ function renderChild() {
             .join("") +
           "</ol>"
         : '<p class="sub">Quando houver atividades, elas aparecerão aqui em ordem de horário.</p>') +
-      '</section><p class="sub small">Se o combinado mudar, converse com seu responsável. Você pode pedir ajuda.</p>',
+      '</section><p class="sub small">Se o combinado mudar, converse com seu responsável. Você pode pedir ajuda.</p><button data-action="forget">Sair deste aparelho</button>',
   );
 }
 async function parentEntry() {
@@ -451,9 +458,7 @@ async function parentEntry() {
   state.me = info;
   if (!info.configured) {
     state.view = "parent-login";
-    layout(
-      '<div class="panel auth-panel"><div class="eyebrow">Primeiro acesso</div><h1>Configurar responsável</h1><p>Crie uma senha de pelo menos 10 caracteres. A senha protege a edição da agenda neste computador.</p><form id="setupForm"><label for="password">Nova senha</label><input id="password" type="password" minlength="10" autocomplete="new-password" required><label for="repeat">Repetir senha</label><input id="repeat" type="password" minlength="10" autocomplete="new-password" required><div class="actions"><button type="submit" class="primary">Criar acesso</button></div></form><p class="sub small">Sem recuperação por e-mail nesta fase. Guarde a senha. Banco somente no computador local.</p></div>',
-    );
+    layout('<section class="panel auth-panel"><h1>Preparação do responsável</h1><p>O responsável precisa concluir a configuração inicial no computador que hospeda a agenda. Consulte o guia de publicação. Depois, atualize esta página.</p></section>');
     return;
   }
   if (!info.parent) {
@@ -672,7 +677,7 @@ async function settings() {
   layout(
     '<div class="row between"><h1>Preferências</h1><button data-action="calendar">Voltar</button></div><form class="panel" id="settingsForm"><label for="name">Nome do jogador</label><input id="name" maxlength="35" required value="' +
       esc(state.me.name) +
-      '"><button type="submit" class="primary">Salvar</button></form><div class="panel"><h2>Armazenamento local</h2><p>O banco está na pasta <code>dados/agenda.sqlite3</code> junto da aplicação. Para backup, feche o servidor e copie esse arquivo para um lugar seguro.</p><p class="sub">O acesso da criança está liberado somente neste computador; o modo responsável exige senha. Não exponha a porta na rede.</p></div>',
+      '"><button type="submit" class="primary">Salvar</button></form><div class="panel"><h2>Armazenamento local</h2><p>O banco está na pasta <code>dados/agenda.sqlite3</code> junto da aplicação. Os backups consistentes são administrados no computador que hospeda a agenda.</p><p class="sub">Cada aparelho infantil precisa de autorização. O código vale por 10 minutos e só pode ser usado uma vez.</p><button data-action="pair-code">Gerar código para aparelho infantil</button><p id="pairResult" role="status"></p><button data-action="revoke-children">Revogar todos os aparelhos infantis</button></div>',
   );
 }
 async function action(e) {
@@ -682,7 +687,18 @@ async function action(e) {
     id = Number(b.dataset.id),
     day = b.dataset.date;
   await safe(async () => {
-    if (a === "childprev") {
+    if (a === "pair-code") {
+      const result = await api('/api/devices/code', 'POST', {});
+      $('pairResult').textContent = 'Código: ' + result.code + ' · válido por 10 minutos. Digite no aparelho infantil.';
+    } else if (a === "revoke-children") {
+      if (confirm('Revogar todos os aparelhos infantis?')) {
+        await api('/api/devices/revoke', 'POST', {});
+        $('pairResult').textContent = 'Aparelhos revogados.';
+      }
+    } else if (a === "forget") {
+      await api('/api/logout', 'POST', {});
+      await child();
+    } else if (a === "childprev") {
       state.date = add(state.date, -1);
       await child();
     } else if (a === "childnext") {
@@ -720,6 +736,7 @@ async function action(e) {
     else if (a === "settings") await settings();
     else if (a === "logout") {
       await api("/api/logout", "POST", {});
+      state.events = [];
       await parentEntry();
     } else if (a === "delete") {
       if (confirm("Excluir esta atividade e TODAS as próximas repetições?")) {
@@ -748,13 +765,11 @@ document.addEventListener("change", (e) => {
 document.addEventListener("submit", (e) => {
   e.preventDefault();
   safe(async () => {
-    if (e.target.id === "eventForm") await saveEvent();
-    else if (e.target.id === "setupForm") {
-      const pw = $("password").value;
-      if (pw !== $("repeat").value) throw Error("As senhas não coincidem.");
-      await api("/api/setup", "POST", { password: pw });
-      await parentEntry();
-    } else if (e.target.id === "loginForm") {
+    if (e.target.id === 'pairForm') {
+      await api('/api/pair', 'POST', {code: $('pairCode').value.trim()});
+      await child();
+    } else if (e.target.id === "eventForm") await saveEvent();
+    else if (e.target.id === "loginForm") {
       await api("/api/login", "POST", { password: $("password").value });
       await parentEntry();
     } else if (e.target.id === "settingsForm") {

@@ -17,8 +17,11 @@ class CalendarTests(unittest.TestCase):
         self.old_data=server.DATA
         server.DATA=Path(self.temp.name)
         server.DB=server.DATA/"test.sqlite3"
+        self.old_auth=server.AUTH
+        server.AUTH=server.AuthStore(server.DATA)
         server.initialize()
     def tearDown(self):
+        server.AUTH=self.old_auth
         server.DB=self.old_db
         server.DATA=self.old_data
         self.temp.cleanup()
@@ -83,6 +86,12 @@ class CalendarTests(unittest.TestCase):
         self.assertTrue(server.verify_password("UmaSenhaSegura123",encoded))
         self.assertFalse(server.verify_password("OutraSenha",encoded))
         self.assertNotIn("UmaSenhaSegura123",encoded)
+        # Hash legado continua válido sem migração do banco existente.
+        import hashlib
+        salt = bytes.fromhex('ab' * 16)
+        legacy = salt.hex() + '$' + hashlib.pbkdf2_hmac('sha256', b'SyntheticLegacy', salt, 310_000).hex()
+        self.assertTrue(server.verify_password('SyntheticLegacy', legacy))
+        self.assertFalse(server.verify_password('wrong', legacy))
     def test_invalid_recurrence(self):
         with self.assertRaises(ValueError):
             server.validate_event({"title":"Teste","time":"11:00","start_date":"2026-11-17","recurrence":"weekly","weekdays":[]})

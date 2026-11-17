@@ -38,7 +38,7 @@ function app(events = []) {
             ? { events }
             : url.includes("/holidays")
               ? { holidays: {} }
-              : {},
+              : url.includes("/me") ? {authorized:true,name:"Explorador",today:"2026-11-17"} : {},
       };
     },
   });

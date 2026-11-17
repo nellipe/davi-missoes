@@ -14,17 +14,18 @@ from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from threading import RLock
+from threading import RLock, Thread, Event
 from urllib.parse import urlsplit, parse_qs
+from lan_security import Config, AuthStore
 
 ROOT = Path(__file__).resolve().parent
 DATA = Path(os.environ.get("DAVI_DATA_DIR", ROOT / "dados")).resolve()
 DB = DATA / "agenda.sqlite3"
-HOST = "127.0.0.1"
-PORT = int(os.environ.get("DAVI_PORT", "8765"))
+CONFIG = Config()
+HOST, PORT = CONFIG.host, CONFIG.port
+AUTH = AuthStore(DATA)
 TZ = dt.timezone(dt.timedelta(hours=-3), "America/Sao_Paulo")
 LOCK = RLock()
-SESSIONS = {}
 MAX_BODY = 100_000
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
@@ -55,6 +56,7 @@ def db():
 
 def initialize():
     DATA.mkdir(parents=True, exist_ok=True)
+    AUTH.initialize()
     with db() as c:
         c.executescript("""
         CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
@@ -87,13 +89,20 @@ def get_setting(k):
 
 def hash_password(password, salt=None):
     salt = salt or secrets.token_bytes(16)
-    key = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 310_000)
-    return salt.hex() + "$" + key.hex()
+    key = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 600_000)
+    return "pbkdf2_sha256$600000$" + salt.hex() + "$" + key.hex()
 
 def verify_password(password, encoded):
     try:
-        salt_hex, key_hex = encoded.split("$")
-        test = hash_password(password, bytes.fromhex(salt_hex)).split("$")[1]
+        parts = encoded.split("$")
+        if len(parts) == 2:
+            salt_hex, key_hex = parts
+            iterations = 310_000  # Compatibilidade com senhas existentes, sem regravar a agenda.
+        else:
+            algorithm, count, salt_hex, key_hex = parts
+            if algorithm != 'pbkdf2_sha256' or count != '600000': return False
+            iterations = int(count)
+        test = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), bytes.fromhex(salt_hex), iterations).hex()
         return hmac.compare_digest(test, key_hex)
     except (ValueError, AttributeError):
         return False
@@ -199,9 +208,12 @@ def event_by_id(id):
     with db() as c: return c.execute("SELECT * FROM events WHERE id=?", (id,)).fetchone()
 
 class Handler(BaseHTTPRequestHandler):
-    server_version="DaviLocal/0.2"
+    server_version="DaviLocal/0.4"
+    def setup(self):
+        super().setup()
+        self.connection.settimeout(15)
     def log_message(self, fmt, *args):
-        print("[%s] %s"%(self.log_date_time_string(),fmt%args))
+        pass  # Sem URL, IP, cookie, código de autorização ou dados da agenda nos logs.
     def send(self,status=200,body=None,content_type="application/json; charset=utf-8",extra=None):
         raw=json.dumps(body,ensure_ascii=False).encode() if content_type.startswith("application/json") else body
         self.send_response(status)
@@ -218,24 +230,27 @@ class Handler(BaseHTTPRequestHandler):
     def payload(self):
         size=int(self.headers.get("Content-Length","0"))
         if size<0 or size>MAX_BODY: raise ValueError("Tamanho de requisição inválido.")
-        return json.loads(self.rfile.read(size) or b"{}")
-    def cookie_session(self):
+        body = json.loads(self.rfile.read(size) or b"{}")
+        if not isinstance(body, dict): raise ValueError('Objeto JSON obrigatório.')
+        return body
+    def session_token(self):
         cookies=SimpleCookie()
         try: cookies.load(self.headers.get("Cookie",""))
-        except Exception: return None
+        except Exception: return ""
         token=cookies.get("davi_session")
-        if token is None: return None
-        with LOCK:
-            expiry=SESSIONS.get(token.value)
-            if expiry and expiry>dt.datetime.now(dt.timezone.utc):
-                return token.value
-            SESSIONS.pop(token.value,None)
-        return None
-    def is_parent(self): return bool(self.cookie_session())
+        return token.value if token else ""
+    def session(self): return AUTH.session(self.session_token())
+    def is_parent(self):
+        session=self.session()
+        return bool(session and session['role']=='parent')
     def origin_ok(self):
-        origin=self.headers.get("Origin")
-        return not origin or origin==f"http://{HOST}:{PORT}" or origin==f"http://localhost:{PORT}"
+        return self.headers.get("Origin") in CONFIG.origins
+    def request_ok(self):
+        return CONFIG.client(self) is not None
+    def session_cookie(self, token, age):
+        return f"davi_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={age}" + ("; Secure" if CONFIG.secure else "")
     def do_GET(self):
+        if not self.request_ok(): return self.fail("Acesso não autorizado.",403)
         try:
             url=urlsplit(self.path); path=url.path
             if path=="/" or path=="/app.js" or path=="/app.css":
@@ -243,7 +258,14 @@ class Handler(BaseHTTPRequestHandler):
                 kind={"app.html":"text/html; charset=utf-8","app.js":"text/javascript; charset=utf-8","app.css":"text/css; charset=utf-8"}[name]
                 return self.send(200,(ROOT/name).read_bytes(),kind)
             if path=="/api/me":
-                return self.send(200,{"parent":self.is_parent(),"configured":bool(get_setting("password")),"name":get_setting("name"),"today":today().isoformat(),"timezone":"America/Sao_Paulo"})
+                session=self.session()
+                info={"parent":bool(session and session['role']=='parent'),
+                      "authorized":bool(session), "configured":bool(get_setting("password")),
+                      "today":today().isoformat(),"timezone":"America/Sao_Paulo"}
+                if session: info.update(name=get_setting("name"), csrf=session['csrf'])
+                return self.send(200,info)
+            if path.startswith('/api/') and not self.session():
+                return self.fail("Autorize este dispositivo com o responsável.",403)
             if path=="/api/holidays":
                 year=int(parse_qs(url.query).get("year",[str(today().year)])[0])
                 if not 2000<=year<=2100: raise ValueError("Ano fora do intervalo.")
@@ -260,33 +282,46 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200,{"events":result})
             return self.fail("Não encontrado.",404)
         except (ValueError,TypeError,OverflowError) as e: return self.fail(str(e))
-        except Exception as e: print("Erro GET:",repr(e));return self.fail("Erro interno.",500)
+        except Exception: print("Erro interno GET.");return self.fail("Erro interno.",500)
     def do_POST(self): self.mutate("POST")
     def do_PUT(self): self.mutate("PUT")
     def do_DELETE(self): self.mutate("DELETE")
     def mutate(self,method):
-        if not self.origin_ok(): return self.fail("Origem não autorizada.",403)
+        if not self.request_ok() or not self.origin_ok(): return self.fail("Origem não autorizada.",403)
+        if method in ('POST','PUT') and self.headers.get_content_type() != 'application/json':
+            return self.fail("Envie JSON.",415)
+        session=self.session()
+        if session and not secrets.compare_digest(self.headers.get('X-CSRF-Token',''), session['csrf']):
+            return self.fail("Recarregue a página para renovar a sessão.",403)
         try:
             path=urlsplit(self.path).path
             body=self.payload() if method in ("POST","PUT") else {}
-            if path=="/api/setup" and method=="POST":
-                if get_setting("password"): return self.fail("Conta já configurada.",409)
-                pw=body.get("password","")
-                if not isinstance(pw,str) or len(pw)<10 or len(pw)>256: raise ValueError("Senha deve ter de 10 a 256 caracteres.")
-                set_setting("password",hash_password(pw))
-                return self.send(200,{"ok":True})
-            if path=="/api/login" and method=="POST":
-                password=body.get("password","")
-                encoded=get_setting("password")
-                if not encoded or not isinstance(password,str) or not verify_password(password,encoded):
-                    return self.fail("Senha incorreta.",401)
-                token=secrets.token_urlsafe(32)
-                with LOCK: SESSIONS[token]=dt.datetime.now(dt.timezone.utc)+dt.timedelta(hours=8)
-                return self.send(200,{"ok":True},extra={"Set-Cookie":f"davi_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800"})
+            if path in ('/api/login','/api/pair') and method=='POST':
+                if AUTH.limited(CONFIG.client(self)):
+                    return self.fail("Muitas tentativas. Aguarde 15 minutos.",429)
+                if path=='/api/login':
+                    password=body.get('password','')
+                    encoded=get_setting('password')
+                    if not encoded or not isinstance(password,str) or len(password)>256 or not verify_password(password,encoded):
+                        return self.fail("Senha incorreta.",401)
+                    role='parent'
+                else:
+                    code=body.get('code','')
+                    if not isinstance(code,str) or not AUTH.redeem(code):
+                        return self.fail("Código inválido ou expirado.",401)
+                    role='child'
+                AUTH.revoke(self.session_token())
+                token,age=AUTH.create_session(role)
+                return self.send(200,{"ok":True},extra={"Set-Cookie":self.session_cookie(token,age)})
+            if not session: return self.fail("Autorização necessária.",403)
             if path=="/api/logout" and method=="POST":
-                token=self.cookie_session()
-                with LOCK: SESSIONS.pop(token,None)
-                return self.send(200,{"ok":True},extra={"Set-Cookie":"davi_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"})
+                AUTH.revoke(self.session_token())
+                return self.send(200,{"ok":True},extra={"Set-Cookie":self.session_cookie('',0)})
+            if path in ('/api/devices/code','/api/devices/revoke') and method=='POST':
+                if not self.is_parent(): return self.fail("Acesso do responsável necessário.",403)
+                if path.endswith('/code'): return self.send(200,{"code":AUTH.pair_code(),"expires_in":600})
+                AUTH.revoke_children()
+                return self.send(200,{"ok":True})
             match=re.fullmatch(r"/api/events/(\d+)(?:/(skip|done))?",path)
             if match and match.group(2)=="done" and method in ("POST","DELETE"):
                 id=int(match.group(1));day=parse_date(body.get("date") if method=="POST" else parse_qs(urlsplit(self.path).query).get("date",[""])[0])
@@ -328,13 +363,21 @@ class Handler(BaseHTTPRequestHandler):
                         return self.send(200,{"ok":True})
             return self.fail("Rota não encontrada.",404)
         except (ValueError,TypeError,KeyError,json.JSONDecodeError) as e:return self.fail(str(e))
-        except Exception as e:print("Erro escrita:",repr(e));return self.fail("Erro interno.",500)
+        except Exception:print("Erro interno de escrita.");return self.fail("Erro interno.",500)
 
 def main():
     initialize()
-    print("Aventuras do Davi | http://127.0.0.1:%d"%PORT)
-    print("Banco SQLite:",DB)
-    print("Somente este computador pode acessar (127.0.0.1). Ctrl+C para parar.")
-    ThreadingHTTPServer((HOST,PORT),Handler).serve_forever()
+    print("Aventuras do Davi: acesso autenticado; use a origem configurada.", flush=True)
+    stop=Event()
+    if CONFIG.secure:
+        from maintenance import scheduled_backup
+        Thread(target=scheduled_backup, args=(DB, DATA / 'backups', stop), daemon=True).start()
+    httpd=ThreadingHTTPServer((HOST,PORT),Handler)
+    httpd.daemon_threads=True
+    try: httpd.serve_forever()
+    except KeyboardInterrupt: pass
+    finally:
+        stop.set()
+        httpd.server_close()
 
 if __name__=="__main__": main()

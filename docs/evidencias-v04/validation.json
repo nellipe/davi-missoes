@@ -1,0 +1,148 @@
+{
+  "widths": [
+    {
+      "area": "responsavel",
+      "width": 360,
+      "overlaps": [],
+      "viewport": 360,
+      "scroll": 360,
+      "overflow": []
+    },
+    {
+      "area": "responsavel",
+      "width": 390,
+      "overlaps": [],
+      "viewport": 390,
+      "scroll": 390,
+      "overflow": []
+    },
+    {
+      "area": "responsavel",
+      "width": 768,
+      "overlaps": [],
+      "viewport": 768,
+      "scroll": 768,
+      "overflow": []
+    },
+    {
+      "area": "responsavel",
+      "width": 1366,
+      "overlaps": [],
+      "viewport": 1366,
+      "scroll": 1366,
+      "overflow": []
+    },
+    {
+      "area": "responsavel",
+      "width": 1920,
+      "overlaps": [],
+      "viewport": 1920,
+      "scroll": 1920,
+      "overflow": []
+    },
+    {
+      "area": "crianca",
+      "width": 360,
+      "overlaps": [],
+      "viewport": 360,
+      "scroll": 360,
+      "overflow": []
+    },
+    {
+      "area": "crianca",
+      "width": 390,
+      "overlaps": [],
+      "viewport": 390,
+      "scroll": 390,
+      "overflow": []
+    },
+    {
+      "area": "crianca",
+      "width": 768,
+      "overlaps": [],
+      "viewport": 768,
+      "scroll": 768,
+      "overflow": []
+    },
+    {
+      "area": "crianca",
+      "width": 1366,
+      "overlaps": [],
+      "viewport": 1366,
+      "scroll": 1366,
+      "overflow": []
+    },
+    {
+      "area": "crianca",
+      "width": 1920,
+      "overlaps": [],
+      "viewport": 1920,
+      "scroll": 1920,
+      "overflow": []
+    }
+  ],
+  "checks": [
+    "Offline parent bootstrap and login",
+    "Anonymous device blocked, accessible pairing, persistent child authorization, profile isolation and device logout",
+    "UI create, edit weekly series, delete occurrence and delete series",
+    "Holiday labels and selected date",
+    "Next scheduled activity, visible earlier pendencies, explicit completion, undo and keyboard focus; medication remains pending",
+    "Long name (35), title (100), description (800), forms and child layouts at all five widths",
+    "Empty day, all completed, date navigation, logout denies parent API and invalid login",
+    "Skip link and reduced-motion browser preference"
+  ],
+  "accessibility": [
+    {
+      "area": "responsavel",
+      "width": 360,
+      "violations": []
+    },
+    {
+      "area": "responsavel",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "area": "responsavel",
+      "width": 768,
+      "violations": []
+    },
+    {
+      "area": "responsavel",
+      "width": 1366,
+      "violations": []
+    },
+    {
+      "area": "responsavel",
+      "width": 1920,
+      "violations": []
+    },
+    {
+      "area": "crianca",
+      "width": 360,
+      "violations": []
+    },
+    {
+      "area": "crianca",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "area": "crianca",
+      "width": 768,
+      "violations": []
+    },
+    {
+      "area": "crianca",
+      "width": 1366,
+      "violations": []
+    },
+    {
+      "area": "crianca",
+      "width": 1920,
+      "violations": []
+    }
+  ],
+  "errors": [],
+  "result": "passed"
+}
