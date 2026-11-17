@@ -1,0 +1,67 @@
+{
+  "fixture": "Dados inteiramente sintéticos; servidor e navegador em loopback.",
+  "checks": [
+    "Responsável vincula roteiro pelo calendário, edita dica, adiciona/remove e reordena etapas sem perder campos.",
+    "Criança confirma por toque/teclado, foco é preservado, API administrativa retorna 403 e compromisso continua pendente.",
+    "Reabrir preserva progresso. Edição seguinte conserva snapshot iniciado e aparece na próxima ocorrência sem herdar confirmações."
+  ],
+  "captures": [
+    {
+      "area": "vinculo",
+      "width": 360,
+      "geometry": {
+        "width": 360,
+        "scroll": 360,
+        "outside": []
+      },
+      "violations": []
+    },
+    {
+      "area": "editor",
+      "width": 360,
+      "geometry": {
+        "width": 360,
+        "scroll": 360,
+        "outside": []
+      },
+      "violations": []
+    },
+    {
+      "area": "editor",
+      "width": 1366,
+      "geometry": {
+        "width": 1366,
+        "scroll": 1366,
+        "outside": []
+      },
+      "violations": []
+    },
+    {
+      "area": "editor",
+      "width": 1920,
+      "geometry": {
+        "width": 1920,
+        "scroll": 1920,
+        "outside": []
+      },
+      "violations": []
+    },
+    {
+      "area": "passos",
+      "width": 360,
+      "violations": []
+    },
+    {
+      "area": "passos",
+      "width": 1366,
+      "violations": []
+    },
+    {
+      "area": "passos",
+      "width": 1920,
+      "violations": []
+    }
+  ],
+  "errors": [],
+  "result": "passed"
+}

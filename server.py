@@ -17,6 +17,7 @@ from pathlib import Path
 from threading import RLock, Thread, Event
 from urllib.parse import urlsplit, parse_qs
 from lan_security import Config, AuthStore
+import missions
 
 ROOT = Path(__file__).resolve().parent
 DATA = Path(os.environ.get("DAVI_DATA_DIR", ROOT / "dados")).resolve()
@@ -56,6 +57,14 @@ def db():
 
 def initialize():
     DATA.mkdir(parents=True, exist_ok=True)
+    # Antes de qualquer DDL: snapshot SQLite consistente, inclusive WAL, uma vez.
+    if DB.exists():
+        from contextlib import closing
+        from maintenance import readonly, backup
+        with closing(readonly(DB)) as existing:
+            pending = missions.needs_migration(existing)
+        if pending:
+            backup(DB, DATA / 'antes-v06', keep=14)
     AUTH.initialize()
     with db() as c:
         c.executescript("""
@@ -77,6 +86,7 @@ def initialize():
           PRIMARY KEY(event_id,date));
         """)
         c.execute("INSERT OR IGNORE INTO settings VALUES('name','Davi')")
+        missions.initialize(c)
 
 def set_setting(k, v):
     with LOCK, db() as c:
@@ -177,6 +187,13 @@ def occurrences(start, end):
                 obj["done"]=(e["id"],iso) in complete
                 result.append(obj)
         day+=dt.timedelta(days=1)
+    with db() as c:
+        links = {(r['event_id'],r['date']):r['template_id'] for r in c.execute('SELECT * FROM event_missions')}
+        runs = {(r['event_id'],r['date']) for r in c.execute('''SELECT r.event_id,r.date FROM mission_runs r
+            JOIN mission_event_keys k ON k.identity=r.event_key WHERE r.date BETWEEN ? AND ?''', (start.isoformat(),end.isoformat()))}
+    for item in result:
+        key=(item['id'],item['date'])
+        item['has_mission'] = key in runs or bool(links.get(key, links.get((item['id'],''))))
     return sorted(result,key=lambda x:(x["date"],x["time"],x["id"]))
 
 def validate_event(body):
@@ -207,8 +224,18 @@ FIELDS="title,time,duration,icon,notes,start_date,end_date,recurrence,weekdays,s
 def event_by_id(id):
     with db() as c: return c.execute("SELECT * FROM events WHERE id=?", (id,)).fetchone()
 
+def mission_event(c, event_id, date=''):
+    if not isinstance(date,str): raise ValueError('Data inválida.')
+    event=c.execute('SELECT * FROM events WHERE id=?',(event_id,)).fetchone()
+    if not event: raise ValueError('Atividade não encontrada.')
+    if date:
+        day=parse_date(date)
+        if not matches(event,day) or c.execute('SELECT 1 FROM exceptions WHERE event_id=? AND date=?',(event_id,date)).fetchone():
+            raise ValueError('Ocorrência não encontrada ou excluída.')
+    return event
+
 class Handler(BaseHTTPRequestHandler):
-    server_version="DaviLocal/0.5"
+    server_version="DaviLocal/0.6"
     def setup(self):
         super().setup()
         self.connection.settimeout(15)
@@ -287,6 +314,31 @@ class Handler(BaseHTTPRequestHandler):
                 start=parse_date(query.get("start",[today().isoformat()])[0])
                 end=parse_date(query.get("end",[start.isoformat()])[0])
                 return self.send(200,{"events":occurrences(start,end)})
+            if path.startswith('/api/missions'):
+                if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                with db() as c:
+                    if path=='/api/missions': return self.send(200,{'templates':missions.templates(c)})
+                    if path=='/api/missions/history':
+                        rows=[dict(r) for r in c.execute('''SELECT r.id,r.event_id,r.date,r.snapshot,
+                            (SELECT COUNT(*) FROM step_progress p WHERE p.run_id=r.id AND p.done=1) AS confirmed
+                            FROM mission_runs r ORDER BY r.date DESC,r.event_id LIMIT 200''')]
+                        for row in rows:
+                            row['mission']=json.loads(row.pop('snapshot'))
+                            progress={p['step_id']:bool(p['done']) for p in c.execute('SELECT step_id,done FROM step_progress WHERE run_id=?',(row['id'],))}
+                            for step in row['mission']['steps']: step['done']=progress.get(step['id'],False)
+                        return self.send(200,{'history':rows})
+                    match=re.fullmatch(r'/api/missions/([a-zA-Z0-9_-]{1,80})',path)
+                    if match: return self.send(200,missions.template(c,match.group(1)))
+            match=re.fullmatch(r'/api/events/(\d+)/mission',path)
+            if match:
+                date=parse_qs(url.query).get('date',[''])[0]
+                if not date and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                with db() as c:
+                    event=mission_event(c,int(match.group(1)),date)
+                    if date:
+                        return self.send(200,{'mission':missions.occurrence(c,event['id'],date),'title':event['title']})
+                    links=[dict(r) for r in c.execute('SELECT date,template_id FROM event_missions WHERE event_id=? ORDER BY date',(event['id'],))]
+                    return self.send(200,{'links':links,'title':event['title']})
             if path=="/api/events":
                 if not self.is_parent(): return self.fail("Acesso do responsável necessário.",403)
                 with db() as c: result=[dict(x) for x in c.execute("SELECT * FROM events ORDER BY time,id")]
@@ -326,6 +378,43 @@ class Handler(BaseHTTPRequestHandler):
                 token,age=AUTH.create_session(role)
                 return self.send(200,{"ok":True},extra={"Set-Cookie":self.session_cookie(token,age)})
             if not session: return self.fail("Autorização necessária.",403)
+            if path.startswith('/api/missions'):
+                if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                with LOCK, db() as c:
+                    c.execute('BEGIN IMMEDIATE')
+                    if path=='/api/missions' and method=='POST':
+                        # IDs de novos roteiros são gerados no servidor.
+                        body.pop('id',None)
+                        result=missions.save_template(c,body)
+                        status=201
+                    elif (match:=re.fullmatch(r'/api/missions/([a-zA-Z0-9_-]{1,80})(/archive)?',path)) and method=='PUT':
+                        if match.group(2):
+                            missions.archive(c,match.group(1),body.get('archived'),body.get('revision'))
+                            result={'ok':True}
+                        else: result=missions.save_template(c,body,match.group(1))
+                        status=200
+                    else: return self.fail('Rota não encontrada.',404)
+                return self.send(status,result)
+            mission_match=re.fullmatch(r'/api/events/(\d+)/mission(?:/steps/([a-zA-Z0-9_-]{1,80}))?',path)
+            if mission_match:
+                event_id=int(mission_match.group(1)); step_id=mission_match.group(2)
+                if not step_id and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                date=body.get('date','') if method!='DELETE' else parse_qs(urlsplit(self.path).query).get('date',[''])[0]
+                with LOCK, db() as c:
+                    c.execute('BEGIN IMMEDIATE')
+                    mission_event(c,event_id,date)
+                    if step_id and method=='PUT':
+                        if not date: raise ValueError('Informe a data da ocorrência.')
+                        result=missions.confirm_step(c,event_id,date,step_id,body,session['role'])
+                    elif not step_id and method=='PUT':
+                        if 'template_id' not in body: raise ValueError('Informe roteiro ou null para nenhum.')
+                        missions.assign(c,event_id,date,body['template_id'])
+                        result={'ok':True}
+                    elif not step_id and method=='DELETE':
+                        c.execute('DELETE FROM event_missions WHERE event_id=? AND date=?',(event_id,date))
+                        result={'ok':True}
+                    else: return self.fail('Rota não encontrada.',404)
+                return self.send(200,result)
             if path=="/api/logout" and method=="POST":
                 AUTH.revoke(self.session_token())
                 return self.send(200,{"ok":True},extra={"Set-Cookie":self.session_cookie('',0)})
@@ -374,6 +463,7 @@ class Handler(BaseHTTPRequestHandler):
                             c.execute("DELETE FROM completions WHERE event_id=?",(id,))
                         return self.send(200,{"ok":True})
             return self.fail("Rota não encontrada.",404)
+        except missions.Conflict as e:return self.fail(str(e),409)
         except (ValueError,TypeError,KeyError,json.JSONDecodeError) as e:return self.fail(str(e))
         except Exception:print("Erro interno de escrita.");return self.fail("Erro interno.",500)
 

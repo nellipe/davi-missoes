@@ -93,11 +93,19 @@ Legislação de referência:
 - Backups consistentes, rotação, integridade e restauração ficam em `maintenance.py`. O banco, backups, configuração privada e CA não são versionados.
 - O acesso físico ao computador e a dispositivos autorizados exige cuidado. Sem recuperação automática por e-mail; guarde a senha do responsável.
 
-## Missões lúdicas da v0.1
+## Missões no calendário — V0.6 Etapa A
+
+No painel do responsável, **Roteiros de missões** permite criar, editar, adicionar/remover e reordenar etapas com orientação, dica e fase de preparação/execução/retorno. Em uma atividade do calendário, **Roteiro e progresso** vincula a sequência à série ou somente à data escolhida. Nenhuma atividade recebe roteiro automaticamente.
+
+Na agenda infantil, **Ver passos da missão** abre a sequência e permite confirmar/desfazer etapas realizadas fora da tela. O progresso é próprio de cada ocorrência e persiste ao reabrir. Confirmar etapas **não conclui o compromisso**; a confirmação da agenda continua separada. Ocorrências iniciadas guardam uma versão da sequência, enquanto as seguintes recebem as edições do responsável.
+
+Os dez roteiros originais foram importados para uma biblioteca editável, com modelos adicionais de Taekwondo, escola e futsal. A migração é aditiva, idempotente e faz backup antes de alterar uma agenda existente. Veja [arquitetura, API, migração e rollback](docs/v06-etapa-a.md) e [evidências sintéticas](docs/evidencias-v06-a/README.md). A publicação HTTPS V0.5 continua com a configuração existente.
+
+## Protótipo lúdico da v0.1
 
 A versão anterior, com 10 roteiros (banheiro, escovação, banho, mochila, quarto, sono, manhã, alimentação, sair, encerrar jogo), permanece em **`index.html`**. Você pode abri-la isoladamente no navegador. Os roteiros e design estão em `docs/PRODUTO-E-MISSOES.md`.
 
-A **integração entre o calendário e a execução interativa das missões** é uma próxima etapa. Nesta versão, a agenda permite registrar o compromisso e marcá-lo como feito, mas **ainda não abre o passo a passo do jogo dentro do calendário**.
+O protótipo isolado mantém seus modos e armazenamento próprios; ele não é servido pelo calendário e seu progresso local não é importado. A Etapa A integra os roteiros à agenda. O executor com uma etapa por tela, áudio e modos pedagógicos completos pertence à Etapa B da [Issue #5](https://github.com/nellipe/davi-missoes/issues/5); mundo, economia e minigames seguem nas etapas futuras.
 
 ## Testes da interface (opcionais, desenvolvimento)
 
@@ -124,13 +132,13 @@ O script inicia seu próprio servidor na porta 18876, com `DAVI_DATA_DIR` em dir
 - A categoria é inferida pelo título e depois pelo ícone; textos ambíguos podem aparecer em “Outras”. É apenas apresentação.
 - A próxima missão considera data e hora de Florianópolis (`America/Sao_Paulo`), usando o relógio do computador. Um horário anterior permanece pendente até confirmação manual, sem representar atraso ou falha. A duração não indica execução em andamento; não há início automático.
 - A descrição em destaque é resumida a 160 caracteres; o texto completo permanece na agenda.
-- O jogo guiado do `index.html` ainda é independente. Nenhum botão sugere uma integração inexistente.
+- Os modos do protótipo `index.html` continuam independentes; o calendário já integra roteiros e progresso por ocorrência pela Etapa A descrita acima.
 - Os testes automatizados de acessibilidade não substituem avaliação com leitor de tela ou observação de uso pela família. Outros navegadores e toque físico não foram avaliados nesta entrega.
 
 ## Próximas etapas sugeridas
 
 1. Revisar e cadastrar os compromissos reais e os dias sem aula do Davi.
-2. Integrar “Executar missão” à atividade programada.
+2. Evoluir a fundação de missões para a Etapa B da Issue #5, com executor e modos pedagógicos.
 3. Alertas visuais/sonoros próximos da hora e lembretes configuráveis.
 4. Ilustrações originais, avatar e mapas de progressão.
 5. API com autenticação forte multiusuário e banco de servidor quando o produto estiver validado.
