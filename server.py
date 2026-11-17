@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Aventuras do Davi: servidor local, SQLite e sessão de responsável (biblioteca padrão)."""
 import calendar
+from contextlib import contextmanager
 import datetime as dt
 import hashlib
 import hmac
@@ -37,11 +38,20 @@ def parse_date(s):
         raise ValueError("Data inválida.")
     return dt.date.fromisoformat(s)
 
+@contextmanager
 def db():
+    """Transação que também encerra a conexão, inclusive em caso de erro.
+
+    sqlite3.Connection.__exit__ sozinho não fecha o arquivo no Windows.
+    """
     connection = sqlite3.connect(DB, timeout=10)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys=ON")
-    return connection
+    try:
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys=ON")
+        with connection:
+            yield connection
+    finally:
+        connection.close()
 
 def initialize():
     DATA.mkdir(parents=True, exist_ok=True)
