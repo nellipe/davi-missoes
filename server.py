@@ -239,7 +239,11 @@ class Handler(BaseHTTPRequestHandler):
         except Exception: return ""
         token=cookies.get("davi_session")
         return token.value if token else ""
-    def session(self): return AUTH.session(self.session_token())
+    def session(self):
+        session=AUTH.session(self.session_token())
+        if session and session['role']=='lan-child' and not CONFIG.simple_lan:
+            return None
+        return session
     def is_parent(self):
         session=self.session()
         return bool(session and session['role']=='parent')
@@ -259,12 +263,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200,(ROOT/name).read_bytes(),kind)
             if path=="/api/me":
                 session=self.session()
+                extra={}
+                if CONFIG.simple_lan and not session:
+                    # Sessão automática mantém CSRF sem pareamento ou senha infantil.
+                    token,age=AUTH.create_session('lan-child')
+                    session=AUTH.session(token)
+                    extra['Set-Cookie']=self.session_cookie(token,age)
                 info={"parent":bool(session and session['role']=='parent'),
                       "authorized":bool(session), "configured":bool(get_setting("password")),
+                      "simple_lan":CONFIG.simple_lan,
                       "today":today().isoformat(),"timezone":"America/Sao_Paulo"}
                 if session: info.update(name=get_setting("name"), csrf=session['csrf'])
-                return self.send(200,info)
-            if path.startswith('/api/') and not self.session():
+                return self.send(200,info,extra=extra)
+            if path.startswith('/api/') and not (self.session() or (
+                    CONFIG.simple_lan and path in ('/api/calendar','/api/holidays'))):
                 return self.fail("Autorize este dispositivo com o responsável.",403)
             if path=="/api/holidays":
                 year=int(parse_qs(url.query).get("year",[str(today().year)])[0])
@@ -367,7 +379,10 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     initialize()
-    print("Aventuras do Davi: acesso autenticado; use a origem configurada.", flush=True)
+    if CONFIG.simple_lan:
+        print(f"Aventuras do Davi: http://{HOST}:{PORT} (somente 192.168.2.0/24). Ctrl+C para encerrar.", flush=True)
+    else:
+        print("Aventuras do Davi: acesso autenticado; use a origem configurada.", flush=True)
     stop=Event()
     if CONFIG.secure:
         from maintenance import scheduled_backup

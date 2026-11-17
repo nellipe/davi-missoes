@@ -13,10 +13,27 @@ from urllib.parse import urlsplit
 class Config:
     def __init__(self, env=None):
         e = os.environ if env is None else env
-        self.host = e.get('DAVI_HOST', '127.0.0.1')
+        mode = e.get('DAVI_LAN_SIMPLE', '0')
+        if mode not in ('0', '1'):
+            raise ValueError('DAVI_LAN_SIMPLE deve ser 0 ou 1.')
+        self.simple_lan = mode == '1'
+        self.host = e.get('DAVI_HOST', '192.168.2.10' if self.simple_lan else '127.0.0.1')
         self.port = int(e.get('DAVI_PORT', '8765'))
         if not 1 <= self.port <= 65535:
             raise ValueError('Porta inválida.')
+        if self.simple_lan:
+            self.network = ipaddress.ip_network('192.168.2.0/24')
+            origin = f'http://{self.host}:{self.port}'
+            if (self.host != '192.168.2.10'
+                    or e.get('DAVI_LAN_CIDR', str(self.network)) != str(self.network)
+                    or e.get('DAVI_ORIGINS', origin) != origin
+                    or e.get('DAVI_PROXY_KEY')):
+                raise ValueError('LAN simples exige IP 192.168.2.10, rede 192.168.2.0/24 e origem HTTP direta, sem proxy.')
+            self.proxy_key = ''
+            self.secure = False
+            self.origins = {origin}
+            self.hosts = {urlsplit(origin).netloc}
+            return
         self.network = ipaddress.ip_network(e.get('DAVI_LAN_CIDR', '192.168.2.0/24'))
         if self.network.version != 4 or not self.network.subnet_of(ipaddress.ip_network('192.168.0.0/16')):
             raise ValueError('A sub-rede deve pertencer à faixa privada 192.168.0.0/16.')
@@ -49,6 +66,10 @@ class Config:
         if handler.headers.get('Host') not in self.hosts:
             return None
         peer = ipaddress.ip_address(handler.client_address[0])
+        if self.simple_lan:
+            # Somente o IP do socket: cabeçalhos de encaminhamento não concedem acesso.
+            return str(peer) if peer in self.network and peer not in (
+                self.network.network_address, self.network.broadcast_address) else None
         if self.secure:
             # O proxy local sobrescreve os dois cabeçalhos, inclusive vindos do cliente.
             if not (peer.is_loopback or str(peer) == self.host):
@@ -135,5 +156,5 @@ class AuthStore:
 
     def revoke_children(self):
         with self.db() as c:
-            c.execute("DELETE FROM sessions WHERE role='child'")
+            c.execute("DELETE FROM sessions WHERE role IN ('child','lan-child')")
             c.execute('DELETE FROM pairing')
