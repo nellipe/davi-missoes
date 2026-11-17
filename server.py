@@ -19,9 +19,10 @@ from urllib.parse import urlsplit, parse_qs
 from lan_security import Config, AuthStore
 import missions
 import world
+import realms
 
 ROOT = Path(__file__).resolve().parent
-APP_VERSION = '0.6D-1'
+APP_VERSION = '0.7B-1'
 DATA = Path(os.environ.get("DAVI_DATA_DIR", ROOT / "dados")).resolve()
 DB = DATA / "agenda.sqlite3"
 CONFIG = Config()
@@ -64,7 +65,7 @@ def initialize():
         from contextlib import closing
         from maintenance import readonly, backup
         with closing(readonly(DB)) as existing:
-            pending = missions.needs_migration(existing) or world.needs_migration(existing)
+            pending = missions.needs_migration(existing) or world.needs_migration(existing) or realms.needs_migration(existing)
         if pending:
             backup(DB, DATA / 'antes-v06', keep=14)
     AUTH.initialize()
@@ -90,6 +91,7 @@ def initialize():
         c.execute("INSERT OR IGNORE INTO settings VALUES('name','Davi')")
         missions.initialize(c)
         world.initialize(c)
+        realms.initialize(c)
 
 def set_setting(k, v):
     with LOCK, db() as c:
@@ -287,7 +289,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.request_ok(): return self.fail("Acesso não autorizado.",403)
         try:
             url=urlsplit(self.path); path=url.path
-            if path in ('/','/app.js','/app.css','/game.js','/game.css','/world.js','/world.css'):
+            if path in ('/','/app.js','/app.css','/game.js','/game.css','/world.js','/world.css','/world3d.js','/world3d.css','/realm-editor.js','/vendor/three/three.module.min.js','/vendor/three/three.core.min.js'):
                 name='app.html' if path=='/' else path[1:]
                 kind='text/html; charset=utf-8' if name.endswith('.html') else 'text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
                 return self.send(200,(ROOT/name).read_bytes(),kind)
@@ -332,6 +334,9 @@ class Handler(BaseHTTPRequestHandler):
                         return self.send(200,{'history':rows})
                     match=re.fullmatch(r'/api/missions/([a-zA-Z0-9_-]{1,80})',path)
                     if match: return self.send(200,missions.template(c,match.group(1)))
+            if path in ('/api/realms','/api/realms/config'):
+                if path.endswith('/config') and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                with db() as c: return self.send(200,realms.listing(c,path.endswith('/config')))
             if path.startswith('/api/world'):
                 with db() as c:
                     if path=='/api/world': return self.send(200,world.scene(c))
@@ -389,6 +394,16 @@ class Handler(BaseHTTPRequestHandler):
                 token,age=AUTH.create_session(role)
                 return self.send(200,{"ok":True},extra={"Set-Cookie":self.session_cookie(token,age)})
             if not session: return self.fail("Autorização necessária.",403)
+            if path.startswith('/api/realms'):
+                if path=='/api/realms/config' and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                with LOCK, db() as c:
+                    c.execute('BEGIN IMMEDIATE')
+                    if path=='/api/realms/config' and method=='PUT':result=realms.save(c,body)
+                    elif path=='/api/realms/travel' and method=='POST':result=realms.travel(c,body)
+                    elif path=='/api/realms/move' and method=='PUT':result=realms.move(c,body)
+                    elif path=='/api/realms/challenge' and method=='POST':result=realms.complete(c,body)
+                    else:return self.fail('Rota não encontrada.',404)
+                return self.send(200,result)
             if path.startswith('/api/world'):
                 if path in ('/api/world/config','/api/world/revoke','/api/world/inventory') and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c:

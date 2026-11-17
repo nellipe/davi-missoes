@@ -93,9 +93,13 @@ Legislação de referência:
 - Backups consistentes, rotação, integridade e restauração ficam em `maintenance.py`. O banco, backups, configuração privada e CA não são versionados.
 - O acesso físico ao computador e a dispositivos autorizados exige cuidado. Sem recuperação automática por e-mail; guarde a senha do responsável.
 
+## Cinco mundos 3D — V0.7 B
+
+Floresta, nuvens, cidade dos robôs, tesouros e cristais agora usam cenas WebGL locais, com câmera, personagem e Pipo animados. Mundos, posições, descobertas e compras persistem. O responsável cria novos mundos com modelos prontos e vincula atividades/desafios. A ilha 2D continua disponível. Veja o [guia dos mundos 3D](docs/mundos-3d-v07.md) e as [capturas comparativas](docs/evidencias-v07-3d/README.md).
+
 ## Controle do responsável — V0.6D
 
-Revogação individual de estrelas, histórico preservado, remoção/reativação de itens e correções de passos/compromissos no painel protegido. O mundo mostra todas as atividades da data, mesmo sem roteiro. Veja o [guia V0.6D](docs/controle-responsavel-v06d.md). O visual 3D cartoon fica para uma próxima PR.
+Revogação individual de estrelas, histórico preservado, remoção/reativação de itens e correções de passos/compromissos no painel protegido. O mundo mostra todas as atividades da data, mesmo sem roteiro. Veja o [guia V0.6D](docs/controle-responsavel-v06d.md). A evolução 3D está documentada na etapa V0.7 B.
 
 ## Mundo de aventuras — Etapas A, B e C
 
