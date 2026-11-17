@@ -71,6 +71,15 @@ async function main() {
   await page.locator('#password').fill('SyntheticPassword123');await submit('#loginForm');
   await click(`[data-action="mission-link"][data-id="${ids[0]}"]`);
   await page.locator('#missionTemplate').selectOption('taekwondo');await submit('#missionLinkForm');
+  assert.equal(await page.locator('#missionScope').evaluate(s=>s.options.length),2);
+  await page.locator('#missionScope').selectOption('2026-11-17');
+  await page.locator('#missionTemplate').selectOption('futsal');await submit('#missionLinkForm');
+  const missionAt=async date=>(await (await api.get(`/api/events/${ids[0]}/mission?date=${date}`)).json()).mission.id;
+  assert.equal(await missionAt('2026-11-17'),'futsal');
+  assert.equal(await missionAt('2026-11-18'),'taekwondo');
+  await click('[data-action="mission-inherit"]');
+  assert.equal(await missionAt('2026-11-17'),'taekwondo');
+  report.checks.push('Seletor com duas opções: vínculo por data persiste sem alterar a série; remover exceção restaura a série.');
   await capture('vinculo',360);
   await click('[data-action="calendar"]');
   await click('[data-action="mission-library"]');
