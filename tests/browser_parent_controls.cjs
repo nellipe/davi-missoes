@@ -44,6 +44,7 @@ async function main() {
   const context=await browser.newContext({viewport:{width:1366,height:1000},locale:'pt-BR',reducedMotion:'reduce',extraHTTPHeaders:{Origin:base}});
   const code=(await write('/api/devices/code',{})).code;
   await context.request.post(base+'/api/pair',{data:{code}});
+  await context.addInitScript(()=>localStorage.setItem('davi-world-mode','2d'));
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   const idle=()=>page.waitForFunction(()=>document.querySelector('#content')&&!document.querySelector('#content').hasAttribute('aria-busy'));
@@ -79,7 +80,7 @@ async function main() {
   await click('#parentTab');
   await page.locator('#password').fill('SyntheticPassword123');
   await page.locator('#loginForm button').click();await idle();
-  assert.match(await page.locator('#content').innerText(),/versão 0.6D-1/i);
+  assert.match(await page.locator('#content').innerText(),/versão 0.7B-1/i);
   await click('[data-action="world-settings"]');
   for(const width of [1366,360])await capture('responsavel',width);
   page.on('dialog',d=>d.type()==='prompt'?d.accept('Ajuste sintético'):d.accept());

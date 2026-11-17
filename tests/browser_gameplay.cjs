@@ -37,6 +37,7 @@ async function main() {
   const context=await browser.newContext({viewport:{width:1366,height:1000},locale:'pt-BR',reducedMotion:'reduce',extraHTTPHeaders:{Origin:base}});
   const code=(await write('/api/devices/code',{})).code;
   await context.request.post(base+'/api/pair',{data:{code}});
+  await context.addInitScript(()=>localStorage.setItem('davi-world-mode','2d'));
   const page=await context.newPage(), errors=[];
   await page.clock.setFixedTime(new Date('2026-11-17T13:00:00Z'));
   await page.addInitScript(()=>{

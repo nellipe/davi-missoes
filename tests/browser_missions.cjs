@@ -44,6 +44,7 @@ async function main() {
   }
   browser=await chromium.launch();
   const context=await browser.newContext({viewport:{width:1366,height:1000},reducedMotion:'reduce',locale:'pt-BR',extraHTTPHeaders:{Origin:base}});
+  await context.addInitScript(()=>localStorage.setItem('davi-world-mode','2d'));
   const page=await context.newPage();
   await page.clock.setFixedTime(new Date('2026-11-17T13:00:00Z'));
   page.on('pageerror',e=>report.errors.push(e.message));

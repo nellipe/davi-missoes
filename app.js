@@ -2,6 +2,7 @@
 const $ = (id) => document.getElementById(id);
 const state = {
   me: null,
+  worldMode: null,
   view: "child",
   date: "",
   month: "",
@@ -114,6 +115,7 @@ async function safe(fn) {
 }
 function nav() {
   if (state.view !== 'child-game' && typeof DaviGame !== 'undefined') DaviGame.close();
+  if (state.view !== 'child-world' && typeof DaviWorld3D !== 'undefined') DaviWorld3D.close();
   if (state.view !== 'child-world' && typeof DaviWorld !== 'undefined') DaviWorld.close();
   const parent = state.view.startsWith("parent");
   for (const [id, active] of [
@@ -410,6 +412,17 @@ async function child() {
   await fetchCalendar(state.date, state.date);
   if (state.childSurface!=='calendar' && typeof DaviWorld!=='undefined') {
     state.view='child-world';
+    if (!state.worldMode) {try{state.worldMode=localStorage.getItem('davi-world-mode')||'3d';}catch{state.worldMode='3d';}}
+    if (state.worldMode!=='2d') {
+      try {
+        const view=await import('/world3d.js');
+        const ready=await view.open({layout,api,run:safe,missions:dayEvents(state.date),dateLabel:fmt(state.date),onMission:openMission,
+          onCalendar:async()=>{state.childSurface='calendar';await child();},
+          onDate:async offset=>{state.date=offset?add(state.date,offset):state.me.today;await child();await DaviWorld3D.action('r3-activities',{});},
+          onFallback:async()=>{state.worldMode='2d';try{localStorage.setItem('davi-world-mode','2d');}catch{}await child();}});
+        if (ready)return;
+      } catch(e) {if(window.DaviWorld3D)DaviWorld3D.close();console.warn('Modo 2D disponível:',e.message);}
+    }
     await DaviWorld.open({layout,api,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,
       onCalendar:async()=>{state.childSurface='calendar';await child();}});
     return;
@@ -558,7 +571,7 @@ async function parentMonth() {
   }
   const selected = dayEvents(state.selected);
   layout(
-    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável · versão ' + esc(state.me.version || 'anterior') + '</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="world-settings">Mundo e estrelas</button><button data-action="mission-library">Roteiros de missões</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
+    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável · versão ' + esc(state.me.version || 'anterior') + '</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="realm-library">Mundos e desafios</button><button data-action="world-settings">Mundo e estrelas</button><button data-action="mission-library">Roteiros de missões</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
       '<div class="panel calendar-panel"><div class="row between"><h2>' +
       esc(fmt(first, { month: "long", year: "numeric" })) +
       '</h2><div class="row calendar-controls"><button data-action="monthprev">← Mês anterior</button><button data-action="monthtoday">Hoje</button><button data-action="monthnext">Próximo mês →</button></div></div><div class="month">' +
@@ -828,6 +841,10 @@ async function action(e) {
     day = b.dataset.date;
   await safe(async () => {
     if (a==='world-home') {state.childSurface='world';await child();}
+    else if (a==='realm-library') {state.view='parent-realms';await DaviRealmEditor.open({layout,api});}
+    else if (a.startsWith('realm-')) await DaviRealmEditor.action(a,b);
+    else if (a.startsWith('r3-')) await DaviWorld3D.action(a,b);
+    else if (a==='world-3d') {state.worldMode='3d';try{localStorage.setItem('davi-world-mode','3d');}catch{}await child();}
     else if (a==='world-settings') await worldSettings();
     else if (a==='parent-revoke') {
       const h=state.worldConfig.history.find(h=>h.id===b.dataset.credit);
@@ -924,7 +941,8 @@ document.addEventListener("change", (e) => {
 document.addEventListener("submit", (e) => {
   e.preventDefault();
   safe(async () => {
-    if (e.target.id === 'worldSettingsForm') {
+    if (e.target.id === 'realmForm') {await DaviRealmEditor.save();
+    } else if (e.target.id === 'worldSettingsForm') {
       const body=Object.fromEntries(['learn','memory','real','daily_limit'].map(k=>[k,Number($('reward-'+k).value)]));
       body.catalog=state.worldConfig.world.catalog.map(i=>({id:i.id,price:Number($('price-'+i.id).value),available:$('available-'+i.id).checked}));
       await api('/api/world/config','PUT',body);await parentMonth();

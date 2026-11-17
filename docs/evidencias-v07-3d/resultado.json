@@ -1,0 +1,46 @@
+{
+  "synthetic": true,
+  "metrics": [
+    {
+      "world": "Ilhas das Nuvens",
+      "calls": 100,
+      "triangles": 60436
+    },
+    {
+      "world": "Cidade dos Robôs",
+      "calls": 87,
+      "triangles": 24542
+    },
+    {
+      "world": "Ilha dos Tesouros",
+      "calls": 97,
+      "triangles": 30536
+    },
+    {
+      "world": "Montanhas de Cristal",
+      "calls": 103,
+      "triangles": 20428
+    },
+    {
+      "world": "Floresta Encantada",
+      "calls": 81,
+      "triangles": 54814
+    },
+    {
+      "mode": "mobile-360-software-webgl",
+      "fps": 32,
+      "calls": 91,
+      "triangles": 53730
+    }
+  ],
+  "errors": [],
+  "externalRequests": [],
+  "checks": [
+    "Cinco mundos e controles 3D",
+    "Movimento persistente após reload",
+    "Editor cria mundo, atividade vinculada e desafio respondido",
+    "Mundo/progresso preservados em segunda página",
+    "Fallback 2D e perda de contexto WebGL",
+    "Capturas 360/390/1366, axe e sem overflow"
+  ]
+}
