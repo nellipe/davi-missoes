@@ -84,7 +84,7 @@ function Reiniciar-Servicos {
 
 if ($Acao -eq 'Diagnostico') {
     Executar-Nativo $Python @('--version')
-    Executar-Nativo $Python @('-c', 'import sqlite3,ssl; print("SQLite e TLS disponiveis")')
+    Executar-Nativo $Python @('-c', 'import sqlite3,ssl; print(1)')
     Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' -Name Release -ErrorAction SilentlyContinue | Select-Object Release
     Conferir-AmbienteRede
     Get-NetConnectionProfile -InterfaceAlias $InterfaceAlias | Select-Object InterfaceAlias,NetworkCategory
