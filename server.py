@@ -284,9 +284,9 @@ class Handler(BaseHTTPRequestHandler):
         if not self.request_ok(): return self.fail("Acesso não autorizado.",403)
         try:
             url=urlsplit(self.path); path=url.path
-            if path=="/" or path=="/app.js" or path=="/app.css":
-                name={"/":"app.html","/app.js":"app.js","/app.css":"app.css"}[path]
-                kind={"app.html":"text/html; charset=utf-8","app.js":"text/javascript; charset=utf-8","app.css":"text/css; charset=utf-8"}[name]
+            if path in ('/','/app.js','/app.css','/game.js','/game.css'):
+                name={"/":"app.html","/app.js":"app.js","/app.css":"app.css","/game.js":"game.js","/game.css":"game.css"}[path]
+                kind='text/html; charset=utf-8' if name.endswith('.html') else 'text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
                 return self.send(200,(ROOT/name).read_bytes(),kind)
             if path=="/api/me":
                 session=self.session()

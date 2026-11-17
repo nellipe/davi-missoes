@@ -113,6 +113,7 @@ async function safe(fn) {
   }
 }
 function nav() {
+  if (state.view !== 'child-game' && typeof DaviGame !== 'undefined') DaviGame.close();
   const parent = state.view.startsWith("parent");
   for (const [id, active] of [
     ["childTab", !parent],
@@ -135,6 +136,7 @@ function layout(html) {
         step: old.dataset.step,
         index: old.dataset.index,
         template: old.dataset.template,
+        choice: old.dataset.choice,
       }
     : null;
   $("content").innerHTML = html;
@@ -151,7 +153,8 @@ function layout(html) {
           el.dataset.date === key.date &&
           el.dataset.step === key.step &&
           el.dataset.index === key.index &&
-          el.dataset.template === key.template,
+          el.dataset.template === key.template &&
+          el.dataset.choice === key.choice,
     );
     (match || $("content")).focus({ preventScroll: true });
   }
@@ -681,7 +684,7 @@ async function saveEvent() {
 }
 const PHASES = {preparation: 'Preparação', main: 'Durante a atividade', return: 'Depois / retorno'};
 function guidedButton(e) {
-  return e.has_mission ? '<button class="primary" data-action="mission-open" data-id="' + e.id + '" data-date="' + esc(e.date) + '">Ver passos da missão</button>' : '';
+  return e.has_mission ? '<button class="primary" data-action="mission-open" data-id="' + e.id + '" data-date="' + esc(e.date) + '">▶ Entrar na missão</button>' : '';
 }
 async function missionLibrary() {
   state.view = 'parent-missions';
@@ -739,6 +742,12 @@ async function openMission(id,date) {
   const parent = state.view.startsWith('parent');
   const data = await api('/api/events/' + id + '/mission?date=' + date);
   if (!data.mission) throw Error('Esta ocorrência não tem roteiro. Volte à agenda.');
+  if (!parent) {
+    state.view='child-game';
+    DaviGame.open({mission:data.mission,title:data.title,dateLabel:fmt(date),layout,api,onExit:child,
+      onPractice:session=>{state.practiceSessions=[...(state.practiceSessions || []),session].slice(-10);}});
+    return;
+  }
   state.view = parent ? 'parent-mission-progress' : 'child-mission-progress';
   state.activeMission = data.mission;
   renderMissionProgress(data.title);
@@ -801,7 +810,8 @@ async function action(e) {
     id = Number(b.dataset.id),
     day = b.dataset.date;
   await safe(async () => {
-    if (a.startsWith('mission-')) { await missionAction(a,b); }
+    if (a.startsWith('game-')) { await DaviGame.action(a,b); }
+    else if (a.startsWith('mission-')) { await missionAction(a,b); }
     else if (a === "pair-code") {
       const result = await api('/api/devices/code', 'POST', {});
       $('pairResult').textContent = 'Código: ' + result.code + ' · válido por 10 minutos. Digite no aparelho infantil.';
