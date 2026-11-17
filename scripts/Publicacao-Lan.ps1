@@ -1,6 +1,6 @@
 ﻿[CmdletBinding(SupportsShouldProcess, ConfirmImpact='High')]
 param(
-    [Parameter(Mandatory)][ValidateSet('Diagnostico','Preparar','Permissoes','Instalar','Status','Iniciar','Reiniciar','Parar','Desinstalar','FirewallAdicionar','FirewallRemover')][string]$Acao,
+    [Parameter(Mandatory)][ValidateSet('Diagnostico','Preparar','Permissoes','RestaurarPermissoes','Instalar','Status','Iniciar','Reiniciar','Parar','Desinstalar','FirewallAdicionar','FirewallRemover')][string]$Acao,
     [string]$Pasta = (Join-Path (Split-Path $PSScriptRoot) 'publicacao'),
     [string]$Endereco = '192.168.2.10',
     [string]$InterfaceAlias = 'Ethernet 5',
@@ -13,6 +13,8 @@ param(
     [string]$Caddy,
     [string]$WinSWHash,
     [string]$CaddyHash,
+    [string]$SidManutencao,
+    [string]$BackupAcl,
     [switch]$Aprovado
 )
 Set-StrictMode -Version Latest
@@ -28,6 +30,10 @@ function Exigir-Admin {
     $identidade = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($identidade)
     if (!$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Abra PowerShell como administrador.' }
+}
+function Exigir-ServicosParados {
+    $ativos = @(Get-Service -Name DaviApp,DaviProxy -ErrorAction SilentlyContinue | Where-Object Status -ne 'Stopped')
+    if ($ativos.Count) { throw 'Pare os serviços antes de aplicar/restaurar ACLs. Feche também instâncias manuais.' }
 }
 function Conferir-Binario([string]$Arquivo, [string]$HashEsperado) {
     if ($HashEsperado -notmatch '^[a-fA-F0-9]{64}$' -or (Get-FileHash -LiteralPath $Arquivo -Algorithm SHA256).Hash -ne $HashEsperado) {
@@ -103,30 +109,16 @@ if (!$PSCmdlet.ShouldProcess($Pasta, $Acao)) { return }
 Exigir-Admin
 switch ($Acao) {
     'Permissoes' {
-        # SIDs evitam depender do idioma do Windows. Não segue links/reparse points.
-        $pastas = @($Pasta, (Join-Path $projeto 'dados'))
-        foreach ($alvo in $pastas) {
-            if (!(Test-Path -LiteralPath $alvo)) { throw "Pasta ausente: $alvo" }
-            $itens = @(Get-Item -LiteralPath $alvo) + @(Get-ChildItem -LiteralPath $alvo -Recurse -Force)
-            if ($itens | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }) { throw 'Links não são permitidos nas pastas protegidas.' }
-            foreach ($item in $itens) {
-                $acl = New-Object Security.AccessControl.DirectorySecurity
-                if (!$item.PSIsContainer) { $acl = New-Object Security.AccessControl.FileSecurity }
-                $acl.SetAccessRuleProtection($true,$false)
-                foreach ($sid in @('S-1-5-32-544','S-1-5-18','S-1-5-19')) {
-                    $gravavel = $item.FullName.StartsWith((Join-Path $projeto 'dados'), [StringComparison]::OrdinalIgnoreCase) -or $item.FullName.StartsWith((Join-Path $Pasta 'logs'), [StringComparison]::OrdinalIgnoreCase) -or $item.FullName.StartsWith((Join-Path $Pasta 'caddy-data'), [StringComparison]::OrdinalIgnoreCase)
-                    $direito = if ($sid -ne 'S-1-5-19') { 'FullControl' } elseif ($gravavel) { 'Modify' } else { 'ReadAndExecute' }
-                    $heranca = if ($item.PSIsContainer) { 'ContainerInherit,ObjectInherit' } else { 'None' }
-                    $rule = New-Object Security.AccessControl.FileSystemAccessRule((New-Object Security.Principal.SecurityIdentifier($sid)), $direito, $heranca, 'None', 'Allow')
-                    $acl.AddAccessRule($rule)
-                }
-                Set-Acl -LiteralPath $item.FullName -AclObject $acl
-            }
-        }
-        Executar-Nativo 'icacls.exe' @($projeto,'/grant','*S-1-5-19:(RX)')
-        Get-ChildItem -LiteralPath $projeto -File | Where-Object Extension -in @('.py','.html','.css','.js') | ForEach-Object {
-            Executar-Nativo 'icacls.exe' @($_.FullName,'/grant','*S-1-5-19:(R)')
-        }
+        Exigir-ServicosParados
+        if (!$SidManutencao -or !$BackupAcl) { throw 'Informe -SidManutencao da conta local responsável e -BackupAcl em diretório novo.' }
+        Import-Module (Join-Path $PSScriptRoot 'Acl-Lan.psm1') -Force
+        Set-DaviPermissions -ProjectRoot $projeto -PublicationRoot $Pasta -SnapshotPath $BackupAcl -MaintenanceSid $SidManutencao
+    }
+    'RestaurarPermissoes' {
+        Exigir-ServicosParados
+        if (!$BackupAcl) { throw 'Informe -BackupAcl do snapshot a restaurar.' }
+        Import-Module (Join-Path $PSScriptRoot 'Acl-Lan.psm1') -Force
+        Restore-DaviAcl -ProjectRoot $projeto -PublicationRoot $Pasta -SnapshotPath $BackupAcl
     }
     'Instalar' {
         $null = Ler-Rede

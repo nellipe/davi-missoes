@@ -69,6 +69,7 @@ Baixar os binários de [Caddy Releases](https://github.com/caddyserver/caddy/rel
 | `prepare_lan.py` | Gera configuração privada, Caddyfile e XMLs WinSW; não instala nem inicia |
 | `run_service.py` | Carrega configuração local e exige banco existente antes de iniciar |
 | `maintenance.py` | Backup consistente, integridade, restauração e senha inicial offline |
+| `scripts/Acl-Lan.psm1` | Snapshot privado verificável, política mínima e restauração de ACL com rollback em falha parcial |
 | `scripts/Publicacao-Lan.ps1` | Diagnóstico, preparação, ACLs, serviços e firewall reversível |
 
 `publicacao/` contém `config.json` com segredo aleatório do proxy, `network.json`, `Caddyfile`, XMLs e executáveis de serviço, `logs/`, `bin/` e `caddy-data/`. A geração recusa destino existente: preservar CA e configuração, sem sobrescrever silenciosamente. O `.gitignore` exclui dados, backups, SQLite, configurações geradas e material de certificados, inclusive arquivos gerados em outra pasta. Não usar `git add -f` nesses arquivos.
@@ -159,7 +160,47 @@ São dois serviços WinSW: `DaviApp` e `DaviProxy`, início automático, com o p
 
 Ambos usam explicitamente **NT AUTHORITY\LocalService**, não LocalSystem nem uma conta pessoal. Essa conta tem poucos privilégios, mas é compartilhada por outros serviços locais; não oferece isolamento entre os dois componentes. Para um host compartilhado com software não confiável, adotar contas dedicadas e revisar XMLs/ACLs antes da implantação. Não usar senha pessoal em XML.
 
-`Permissoes` aplica ACLs explícitas a dados e publicação: Administradores/SYSTEM com controle total; LocalService modifica dados, backups, logs e armazenamento da CA; somente lê/executa configuração e binários. Recusa reparse points. Concede leitura do código ao serviço. Não altera a conta de login do Windows. Administradores devem executar manutenção elevada após essas ACLs. Rever permissões herdadas do diretório do projeto e do Python para que contas não confiáveis não possam substituir código/binários. Não colocar dados em compartilhamento SMB, pasta pública, nuvem sincronizada ou unidade sem ACL NTFS adequada. Backup externo também precisa de ACL e proteção de disco.
+`Permissoes` exige **SID explícito de uma conta local habilitada do responsável** e **caminho de snapshot em um diretório novo**, fora de `dados/` e `publicacao/`. Não presume que a conta elevada do instalador seja a conta usada pela família. O SID é resolvido com `Get-LocalUser`; grupos amplos, contas de serviço e SID inválido são recusados. Para identificar a conta local apropriada, o responsável consulta `Get-LocalUser | Select-Object Name,SID,Enabled` no seu próprio PC e escolhe a conta que fará manutenção. Não registrar esse resultado privado no GitHub.
+
+A política de menor privilégio é:
+
+| Local | Administradores / SYSTEM | LocalService | Conta local de manutenção |
+| --- | --- | --- | --- |
+| `dados/`, agenda, autenticação e backups | Controle total | Modificar | Modificar |
+| `publicacao/logs/` e `publicacao/caddy-data/` | Controle total | Modificar | Ler/executar |
+| Configuração, XMLs e binários da publicação | Controle total | Ler/executar | Ler/executar |
+| Raiz e arquivos de código do projeto | ACEs anteriores preservadas | Acrescenta ler/executar, sem propagação | ACEs anteriores preservadas |
+
+Modificar dados permite backup/restauração dos arquivos e manutenção da agenda sem conceder controle de ACLs, propriedade, código ou executáveis à conta familiar. Atualização de binários/configuração e operações de ACL continuam elevadas. A conta familiar escolhida é confiável: poderá ler agenda, hash de senha e material privado da CA. Não usar conta compartilhada com pessoas sem autorização. Owner/group são preservados; o Windows permite ao proprietário administrar a DACL. O preflight recusa proprietário de dados/publicação fora de manutenção, operador atual, Administradores, SYSTEM ou LocalService; não toma posse silenciosamente. O teste verifica as ACEs do serviço e o acesso real da conta executora aos arquivos sintéticos; não executa LocalService por impersonação nem instala serviços.
+
+O módulo `scripts/Acl-Lan.psm1` enumera todos os alvos antes de mudar DACLs e recusa reparse points sem entrar neles. Inclui no snapshot **também a raiz e os arquivos de código** que receberão leitura para LocalService. Salva SDDL de DACL/ACEs, flags de herança, proprietário e grupo de cada item, com caminhos e tipos, em `*.acl.json`, payload e checksum SHA-256. O arquivo é fechado com flush, relido, validado e comparado com as ACLs atuais **antes da primeira alteração nos alvos**. Não salva SACL de auditoria: ela não é alterada. O diretório novo do snapshot é protegido na criação, com acesso apenas ao operador que o criou, Administradores e SYSTEM. Esse ajuste protege o backup e não altera as ACLs dos alvos.
+
+Somente depois do snapshot verificável substitui as DACLs de dados/publicação pela política acima. Não preserva ACEs amplas nesse conteúdo privado; elas ficam no snapshot para restauração. Verifica cada ACL aplicada. A verificação da aplicação normaliza apenas o indicador Windows `AutoInherited`, que o sistema pode acrescentar ao persistir; não ignora ACEs nem o bloqueio de herança. A restauração compara o SDDL original completo de DACL/owner/group. O checksum detecta corrupção acidental; não é assinatura contra alteração maliciosa por alguém que já controla o backup. Aceitar somente snapshots locais protegidos e conhecidos.
+
+Se uma aplicação falhar parcialmente, tenta automaticamente restaurar **todos os itens do snapshot**, dos pais para os filhos, e verifica o resultado. Preserva o snapshot tanto no sucesso quanto na falha. Se a recuperação falhar, informa **rollback incompleto**, não inicia serviços e exige recuperação administrativa pelo comando explícito abaixo. Não há promessa de transação atômica de ACL do Windows nem de recuperação automática após queda de energia; nesse caso usar o snapshot persistido.
+
+Aplicação e restauração recusam serviços Davi em execução e exigem janela sem processos manuais, gravações ou alterações na árvore. A restauração valida checksum, versão, raízes, tipos e escopo de todos os caminhos antes de escrever qualquer DACL, rejeitando caminho fora do projeto/publicação, duplicatas, links ou item ausente. Restaura os itens capturados; não apaga arquivos e não é restauração de conteúdo do banco. Arquivos criados após o snapshot exigem revisão separada. Preserve o snapshot original da primeira aplicação mesmo se gerar novos snapshots em reaplicações.
+
+Não colocar dados em compartilhamento SMB, pasta pública, nuvem sincronizada ou unidade sem ACL NTFS adequada. O preflight recusa escrita preexistente no código por LocalService ou grupos amplos comuns (incluindo Everyone, Authenticated Users e Users), sem corrigi-la automaticamente. Rever também permissões do Python, grupos locais personalizados e o contexto efetivo do serviço na homologação autorizada para impedir substituição de código por contas não confiáveis. Backups de ACL contêm caminhos/SIDs privados: `acl-snapshots/` e `*.acl.json` estão no `.gitignore`; não versioná-los ou usar `git add -f`.
+
+### Snapshot obrigatório e restauração explícita das permissões
+
+Exemplo **para execução futura somente após aprovação**, em PowerShell elevado. Substituir o SID pelo da conta local do responsável e escolher um diretório novo para cada aplicação:
+
+```powershell
+$backupAcl = 'D:\davi-missoes\acl-snapshots\primeira-aplicacao\snapshot.acl.json'
+.\scripts\Publicacao-Lan.ps1 -Acao Permissoes -SidManutencao '<SID-da-conta-local-do-responsavel>' -BackupAcl $backupAcl -Aprovado
+```
+
+O objeto retornado identifica o snapshot e o número de itens verificados. Guardar o caminho fora do Git. Para restaurar exatamente as permissões anteriores, com serviços e instâncias manuais parados:
+
+```powershell
+.\scripts\Publicacao-Lan.ps1 -Acao RestaurarPermissoes -BackupAcl 'D:\davi-missoes\acl-snapshots\primeira-aplicacao\snapshot.acl.json' -Aprovado -WhatIf
+.\scripts\Publicacao-Lan.ps1 -Acao RestaurarPermissoes -BackupAcl 'D:\davi-missoes\acl-snapshots\primeira-aplicacao\snapshot.acl.json' -Aprovado
+```
+
+Restaurar ACLs pode restabelecer acessos amplos que existiam antes: manter a aplicação parada e avaliar o estado restaurado antes de publicar novamente. A restauração não modifica o SQLite, não reverte firewall/DNS e não remove serviços. Caso mude `-Pasta` na preparação, usar o mesmo valor em aplicação/restauração; snapshots de outra raiz são rejeitados. As operações usam [Get-Acl/Set-Acl e descritores Windows](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-acl?view=powershell-5.1).
+
 
 No PowerShell elevado, **somente depois da autorização expressa para implantação**, revisar primeiro:
 
@@ -172,7 +213,7 @@ Depois, usando os caminhos dos binários já verificados e hashes SHA-256 desses
 
 ```powershell
 .\scripts\Publicacao-Lan.ps1 -Acao Instalar -WinSW <caminho-WinSW.exe> -Caddy <caminho-caddy.exe> -WinSWHash <SHA256-WinSW-exe> -CaddyHash <SHA256-Caddy-exe> -Aprovado
-.\scripts\Publicacao-Lan.ps1 -Acao Permissoes -Aprovado
+.\scripts\Publicacao-Lan.ps1 -Acao Permissoes -SidManutencao '<SID-da-conta-local-do-responsavel>' -BackupAcl 'D:\davi-missoes\acl-snapshots\primeira-aplicacao\snapshot.acl.json' -Aprovado
 .\scripts\Publicacao-Lan.ps1 -Acao FirewallAdicionar -Aprovado
 .\scripts\Publicacao-Lan.ps1 -Acao Iniciar -Aprovado
 .\scripts\Publicacao-Lan.ps1 -Acao Status
@@ -189,7 +230,7 @@ Operações posteriores, também sujeitas a aprovação:
 .\scripts\Publicacao-Lan.ps1 -Acao FirewallRemover -Aprovado
 ```
 
-Parar/desinstalar ignora serviços já parados/ausentes. Desinstalação remove apenas serviços, preservando banco, backups, CA, configurações e arquivos locais; a regra de firewall tem reversão separada. Não apagar `dados/`. ACLs protetoras são mantidas: não reabrir os dados para todos para fazer rollback.
+Parar/desinstalar ignora serviços já parados/ausentes. Desinstalação remove apenas serviços, preservando banco, backups, CA, configurações e arquivos locais; a regra de firewall tem reversão separada. Não apagar `dados/`. ACLs protetoras são mantidas pela desinstalação; para revertê-las, usar `RestaurarPermissoes` com o snapshot correspondente e manter a aplicação parada.
 
 ## Firewall Windows
 
@@ -221,7 +262,7 @@ python maintenance.py restore --database D:\davi-missoes\dados\agenda.sqlite3 --
 ```
 
 4. O comando valida o snapshot, salva o banco atual em `dados/antes-restauracao/` e substitui por um snapshot consistente verificado. Se houver `-wal`, `-shm` ou `-journal`, recusa: não apagar esses arquivos; investigar parada/recuperação antes de continuar.
-5. Reaplicar `Permissoes` após a substituição para verificar ACL do novo arquivo. Iniciar serviços, entrar como responsável, conferir uma data conhecida e reautorizar aparelhos. Não enviar agenda ou logs privados ao GitHub.
+5. Reaplicar `Permissoes` após a substituição, informando SID e **novo** diretório de snapshot, para verificar ACL do novo arquivo; preservar snapshots anteriores. Iniciar serviços, entrar como responsável, conferir uma data conhecida e reautorizar aparelhos. Não enviar agenda ou logs privados ao GitHub.
 
 Logs da aplicação registram somente estado de backup e erros genéricos, sem URLs/IPs/cookies/senhas/códigos ou conteúdo da agenda. Access log do Caddy não está habilitado. WinSW mantém logs de processo com rotação por tamanho: cinco arquivos de até aproximadamente 1 MiB por fluxo. Logs de erro do Caddy podem conter metadados técnicos de conexão: não publicá-los sem revisão. Evitar modo debug em produção.
 
@@ -262,6 +303,7 @@ Em Windows/Python 3.13.5, em 17/11/2026, exclusivamente com dados sintéticos:
 | Calendário anterior + segurança, CRUD, feriados, recorrências, concluir/desfazer, backup/restauração, rotação e reinício real do processo | `tests/test_calendar.py` e `tests/test_lan.py` (21 testes) |
 | Caddy 2.11.9 real, adaptação do Caddyfile original, HTTPS em loopback, CA não confiável rejeitada, CA explícita aceita, cookie Secure, login e logout | `tests/test_tls.py` (1 teste; total Python: 22 aprovados) |
 | Sintaxe PowerShell, ordem de reinício proxy/app, bloqueio sem aprovação, WhatIf sem mutações e diagnóstico da Ethernet 5 com dados simulados corretos/divergentes | `tests/test_service.ps1` |
+| ACLs reais, snapshot, ACEs antigas e herança, acesso de manutenção, privilégios do serviço, falha parcial e rollback, corrupção/escopo/junction recusados | `tests/test_acl.ps1`, em árvore temporária no Windows |
 | Regressões visuais de categoria, horário, datas e progresso | `tests/test_visual.cjs`: 9 testes |
 | Fluxos completos do redesign + dispositivo novo, autorização infantil persistente, isolamento e logout | `tests/browser_redesign.cjs`: 8 grupos |
 | Responsável e criança em 360, 390, 768, 1366 e 1920 px | [10 capturas e relatório](evidencias-v04/validation.json), sem overflow, sobreposição ou erros JS |
@@ -279,6 +321,7 @@ $env:DAVI_TEST_CADDY = '<caminho-caddy.exe>'
 python -m unittest discover -s tests -v
 node --test tests/test_visual.cjs
 powershell -NoProfile -File tests/test_service.ps1
+powershell -NoProfile -File tests/test_acl.ps1
 $env:NODE_PATH = Join-Path $env:TEMP 'davi-redesign-tools/node_modules'
 $env:PYTHON = (Get-Command python).Source
 node tests/browser_redesign.cjs
@@ -297,3 +340,7 @@ As dependências opcionais de navegador continuam sendo Playwright 1.65.1 e `@ax
 - Nenhuma alteração de horários, recorrências, feriados, medicações ou conclusão automática. O jogo guiado continua independente.
 
 Referência para configuração dos serviços: [WinSW 2.12 — XML e conta de serviço](https://github.com/winsw/winsw/blob/v2.12.0/doc/xmlConfigFile.md). Revisar versões e binários antes da instalação; atualização de binários é uma operação separada e aprovada.
+
+## Correção da revisão de ACL/rollback
+
+Atende à [pendência bloqueante da PR #2](https://github.com/nellipe/davi-missoes/pull/2#issuecomment-6957920901): snapshot verificável antes das mudanças, comando de restauração, conta de manutenção explícita e testes reais de ACL no Windows com falha parcial. Os testes criam somente pastas/arquivos sintéticos no TEMP, aplicam e restauram ACLs usando as APIs reais do Windows e removem a árvore temporária após validar seu caminho absoluto. Nenhuma ACL foi aplicada nas pastas reais do projeto/dados/publicação; nenhum SQLite real foi modificado. A PR #1 permanece independente e precisa de aprovação/merge separado antes de rebase ou revisão final da #2. Não houve rebase, merge, instalação, firewall, DNS ou trust CA.

@@ -6,7 +6,7 @@ $errors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$tokens, [ref]$errors)
 if ($errors.Count) { throw ($errors | Out-String) }
 $functions = $ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] }, $true)
-foreach ($name in @('Operar-Servico','Reiniciar-Servicos','Ler-Rede','Adicionar-RegraFirewall','Conferir-AmbienteRede')) {
+foreach ($name in @('Operar-Servico','Reiniciar-Servicos','Ler-Rede','Adicionar-RegraFirewall','Conferir-AmbienteRede','Exigir-ServicosParados')) {
     $definition = $functions | Where-Object Name -eq $name
     Invoke-Expression $definition.Extent.Text
 }
@@ -25,6 +25,8 @@ if (!$bloqueado) { throw 'A operação sem aprovação não foi bloqueada.' }
 # WhatIf deve encerrar antes de verificar admin, ler arquivos ou invocar o Windows.
 & $scriptPath -Acao FirewallAdicionar -Pasta $Pasta -Aprovado -WhatIf
 & $scriptPath -Acao Instalar -Pasta $Pasta -Aprovado -WhatIf
+& $scriptPath -Acao Permissoes -Pasta $Pasta -Aprovado -WhatIf
+& $scriptPath -Acao RestaurarPermissoes -Pasta $Pasta -Aprovado -WhatIf
 if ($script:chamadas.Count -ne 3) { throw 'WhatIf executou mutações.' }
 # Valida os argumentos reais da regra, substituindo somente as APIs Windows.
 function Get-NetFirewallRule { [CmdletBinding()]param([string]$Name) }
@@ -73,4 +75,12 @@ $script:ipTeste = '192.168.2.11'
 $script:gatewayTeste = '192.168.2.254'
 $ambiente = Conferir-AmbienteRede
 if ($ambiente.IPConfere -or $ambiente.GatewayConfere -or $ambiente.PerfilConfere) { throw 'Divergência de rede não identificada.' }
+# O fluxo não deve aplicar/restaurar ACL com serviço em execução.
+$script:statusTeste = 'Running'
+function Get-Service { [CmdletBinding()]param($Name) [pscustomobject]@{ Status=$script:statusTeste } }
+$blocked = $false
+try { Exigir-ServicosParados } catch { $blocked = $true }
+if (!$blocked) { throw 'Serviço em execução não bloqueou alteração de ACL.' }
+$script:statusTeste = 'Stopped'
+Exigir-ServicosParados
 Write-Output 'PASS: sintaxe PowerShell, reinício simulado, bloqueio sem aprovação e WhatIf sem mutações, firewall restrito em qualquer perfil e rede pública rejeitada e diagnóstico do ambiente confirmado/divergente com rede simulada.'

@@ -17,3 +17,5 @@ DaviApp.xml
 DaviProxy.xml
 *.exe
 *.zip
+acl-snapshots/
+*.acl.json
