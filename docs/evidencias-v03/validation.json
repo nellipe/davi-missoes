@@ -85,7 +85,7 @@
     "First-access setup and login",
     "UI create, edit weekly series, delete occurrence and delete series",
     "Holiday labels and selected date",
-    "Chronological next pending, explicit completion, undo and keyboard focus; medication remains pending",
+    "Next scheduled activity, visible earlier pendencies, explicit completion, undo and keyboard focus; medication remains pending",
     "Long name (35), title (100), description (800), forms and child layouts at all five widths",
     "Empty day, all completed, date navigation, logout denies parent API and invalid login",
     "Skip link and reduced-motion browser preference"

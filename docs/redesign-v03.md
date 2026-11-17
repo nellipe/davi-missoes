@@ -4,7 +4,11 @@
 
 A agenda agora tem uma identidade original de exploração: mascote geométrico desenhado em CSS, pequenos blocos de cenário estáticos, superfícies claras e sombras táteis. Não utiliza marcas, personagens ou assets de terceiros. Usa fontes do sistema e emojis locais; a aparência dos emojis pode variar entre sistemas.
 
-A área infantil responde a três perguntas: a primeira pendência aparece em **Próxima missão**, a lista cronológica mostra **o que vem depois**, e o estado textual e a barra mostram **o que já foi feito**. A próxima missão é a primeira pendência da data selecionada na ordem fornecida pela API, mesmo quando seu horário passou. A saudação “Olá” funciona em qualquer horário. Não há pontuação competitiva, punições, cronômetros, áudio ou animações contínuas.
+A área infantil responde a três perguntas: a próxima atividade programada aparece em **Próxima missão**, a lista cronológica mostra **o que vem depois**, e o estado textual e a barra mostram **o que já foi feito**. A próxima missão é a primeira pendência com data/hora igual ou posterior ao momento atual em `America/Sao_Paulo`, mantendo a ordem fornecida pela API. A saudação “Olá” funciona em qualquer horário. Não há pontuação competitiva, punições, cronômetros, áudio ou animações contínuas.
+
+Pendências de horários anteriores são identificadas na lista e em um aviso com link para a agenda. Nunca são ocultadas ou concluídas pelo relógio. Quando restam somente essas pendências, o destaque orienta “Vamos rever o combinado?”, sem declarar o dia concluído. Em datas passadas, todas as pendências são anteriores; em datas futuras, todas permanecem programadas para depois. No minuto exato do compromisso, a indicação é “Neste horário”. Não se presume que a atividade começou ou terminou pela duração.
+
+A separação usa o relógio do computador convertido para o fuso da agenda, independentemente do fuso configurado no dispositivo. A apresentação é conferida a cada minuto e ao voltar à aba, sendo redesenhada apenas se uma atividade mudou de grupo temporal. Essa conferência não faz requisições de rede nem grava conclusões.
 
 A área do responsável compartilha tipografia e cores, com uma hierarquia administrativa mais sóbria: calendário, detalhes do dia, cadastro e ações explícitas de edição/exclusão. O calendário exibe prévias em telas maiores. No celular, exibe contagens legíveis e o símbolo de feriado; a seleção revela abaixo os detalhes completos, inclusive o nome do feriado.
 
@@ -31,14 +35,14 @@ Os tons escuros nas categorias favorecem contraste do texto; os tons claros e s�
 
 - Cabeçalho com marca original, alternância das duas áreas e estado `aria-pressed`.
 - Saudação personalizada e cenário em CSS, oculto para tecnologias assistivas.
-- Cartão da próxima pendência com ícone, título, horário original, duração, descrição de até 160 caracteres e ação real “Consegui!”. O texto completo permanece na lista.
+- Cartão da próxima atividade programada com ícone, título, horário original, duração, descrição de até 160 caracteres e ação real “Consegui!”. O texto completo permanece na lista.
 - Progresso nativo (`progress`) calculado por concluídas / total da data, com contagem textual. Dias vazios mostram zero, sem divisão por zero e sem ação fictícia.
 - Lista diária ordenada, com categoria escrita, ícone e estado “Pendente” / “Concluída”; conclusão reversível.
 - Calendário com borda de seleção, indicação do dia atual, feriados com símbolo e nome acessível. As prévias concluídas também usam ✓.
 - Formulários com rótulos, controles nativos, grupos de recorrência e botões de cancelamento. Exclusões e alteração de série mantêm as confirmações existentes.
 - Alertas de erro, anúncio discreto de conclusão e bloqueio de ações duplicadas durante requisições.
 
-A classificação visual examina o título sem acentos e depois o ícone; usa fallback “Outras”. Não grava categoria no banco, não altera eventos e não conclui medicações ou outras atividades automaticamente.
+A classificação visual examina o título sem acentos e depois o ícone; usa fallback “Outras”. Reconhece também títulos sintéticos com Taekwondo, Futsal, psicopedagogia e a expressão “ferro gotas” (ou “ferro em gotas”), inclusive prefixos como “Saída para” e variações de acentos/caixa. “Ferro” isolado não implica medicação. Não grava categoria no banco, não altera eventos e não conclui medicações ou outras atividades automaticamente.
 
 ## Acessibilidade
 
@@ -50,7 +54,7 @@ Limite: a verificação automática não certifica conformidade integral. Leitor
 
 ## Responsividade e evidências
 
-As capturas usam exclusivamente nomes e compromissos sintéticos de demonstração. Não contêm dados do banco pessoal.
+As capturas usam exclusivamente nomes e compromissos sintéticos de demonstração. O relógio do navegador está fixado em 17/11/2026 às 10:00 de Florianópolis para reproduzir a distinção entre atividades anteriores e futuras. Não contêm dados do banco pessoal.
 
 | Largura | Área infantil | Responsável | Geometria e auditoria automatizada |
 | --- | --- | --- | --- |
@@ -79,13 +83,13 @@ Ambiente: Windows, Python **3.13.5**, Node.js **24.19.0**, Playwright **1.65.1**
 | Verificação | Comando / evidência | Resultado |
 | --- | --- | --- |
 | Regras existentes de calendário, recorrência, feriados, conclusão, hash de senha e liberação de SQLite | `py -3 -m unittest discover -s tests -v` | 12 testes aprovados |
-| Categorias, prioridade título/ícone, fallback, escape de texto, descrição curta, missão pendente sem conclusão por horário, progresso vazio/completo | `node --test tests/test_visual.cjs` | 5 testes aprovados |
+| Categorias, prioridade título/ícone, fallback, escape de texto, descrição curta, separação temporal, fronteira de meia-noite no fuso da agenda, pendências anteriores visíveis, progresso vazio/completo | `node --test tests/test_visual.cjs` | 9 testes aprovados |
 | Fluxos reais de interface e capturas | `node tests/browser_redesign.cjs` | 7 grupos aprovados; 10 capturas |
 | Axe com tags `wcag2a`, `wcag2aa`, `wcag21aa` | Mesmo script | 10 auditorias, nenhuma violação detectada |
 | Layout com textos extensos e formulários | Mesmo script | Cinco larguras, sem rolagem horizontal |
 | Erros JavaScript / console inesperados | Mesmo script | Nenhum; 401 esperado do cenário de senha incorreta |
 
-Os sete grupos de navegador abrangem: configuração inicial e login; cadastro/edição semanal e exclusões de ocorrência/série; feriado e seleção de data; ordenação, conclusão por Enter, desfazer e foco; conteúdo extenso e formulários; navegação de datas, dias vazio/completo, logout e senha inválida; link de salto e preferência por movimento reduzido. Os casos de recorrência diária, dias úteis, semanal, mensal e feriados também estão na suíte Python existente.
+Os sete grupos de navegador abrangem: configuração inicial e login; cadastro/edição semanal e exclusões de ocorrência/série; feriado e seleção de data; ordenação, distinção de horários anteriores, atualização do relógio sem concluir atividades, link para pendências pelo teclado, conclusão por Enter, desfazer e foco; conteúdo extenso e formulários; navegação de datas, dias vazio/completo, logout e senha inválida; link de salto e preferência por movimento reduzido. Os casos de recorrência diária, dias úteis, semanal, mensal e feriados também estão na suíte Python existente.
 
 O [relatório estruturado](evidencias-v03/validation.json) registra as medidas por largura, os grupos exercitados e os resultados Axe. Instruções reproduzíveis estão no [README](../README.md#testes-da-interface-opcionais-desenvolvimento). Node.js, Playwright e Axe são ferramentas opcionais de desenvolvimento, instaladas fora do repositório; não são necessários para usar a agenda.
 

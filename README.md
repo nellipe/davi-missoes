@@ -6,7 +6,7 @@ Projeto familiar para acompanhar os compromissos do Davi e desenvolver autonomia
 
 Identidade original com fundo claro, azul profundo, amarelo solar, mascote geométrico feito em CSS e botões com sombras táteis. Fontes, ícones e ilustrações são locais; nenhuma dependência de internet foi adicionada à aplicação.
 
-A **área infantil** prioriza a primeira atividade pendente do dia escolhido, com horário, descrição curta e botão “Consegui!”. A barra mostra a quantidade efetivamente concluída; a agenda abaixo mantém a ordem dos horários, descrições completas e opção de desfazer. Nenhuma atividade é concluída pela passagem do tempo. Categorias são apenas pistas visuais, com texto, símbolo e cor, sem mudar os registros.
+A **área infantil** prioriza a próxima atividade pendente com horário igual ou posterior ao atual na data escolhida, com horário, descrição curta e botão “Consegui!”. A barra mostra a quantidade efetivamente concluída; a agenda abaixo mantém a ordem dos horários, descrições completas e opção de desfazer. Pendências de horários anteriores continuam visíveis, com aviso e identificação na lista. Nenhuma atividade é concluída pela passagem do tempo. Categorias são apenas pistas visuais, com texto, símbolo e cor, sem mudar os registros.
 
 A **área do responsável** mantém o calendário mensal, formulários e senha. Em celulares, cada dia mostra a quantidade de atividades e um símbolo de feriado; ao selecionar o dia, a lista completa e o nome do feriado aparecem abaixo. Em telas maiores, o calendário também mostra prévias dos compromissos.
 
@@ -108,7 +108,7 @@ O script inicia seu próprio servidor na porta 18876, com `DAVI_DATA_DIR` em dir
 ## Limitações da v0.3
 
 - A categoria é inferida pelo título e depois pelo ícone; textos ambíguos podem aparecer em “Outras”. É apenas apresentação.
-- A próxima missão é a primeira atividade pendente na ordem da API, inclusive se o horário já passou; não há relógio de execução nem início automático.
+- A próxima missão considera data e hora de Florianópolis (`America/Sao_Paulo`), usando o relógio do computador. Um horário anterior permanece pendente até confirmação manual, sem representar atraso ou falha. A duração não indica execução em andamento; não há início automático.
 - A descrição em destaque é resumida a 160 caracteres; o texto completo permanece na agenda.
 - O jogo guiado do `index.html` ainda é independente. Nenhum botão sugere uma integração inexistente.
 - Os testes automatizados de acessibilidade não substituem avaliação com leitor de tela ou observação de uso pela família. Outros navegadores e toque físico não foram avaliados nesta entrega.

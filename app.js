@@ -138,7 +138,7 @@ function layout(html) {
   nav();
   if (inside) {
     const match = [
-      ...$("content").querySelectorAll("button,input,select,textarea"),
+      ...$("content").querySelectorAll("button,input,select,textarea,a"),
     ].find((el) =>
       key.id
         ? el.id === key.id
@@ -197,12 +197,12 @@ function category(e) {
   const rules = [
     [
       "medicine",
-      /\b(medicacao|medicamento|remedio|vitamina|comprimido)\b/,
+      /\b(medicacao|medicamento|remedio|vitamina|comprimido|ferro\s+(?:em\s+)?gotas)\b/,
       ["💊"],
     ],
     [
       "health",
-      /\b(terapia|terapeuta|psicolog[ao]|fono|fisioterapia|consulta|medic[ao]|dentista)\b/,
+      /\b(terapia|terapeuta|psicolog[ao]|psicopedagog(?:[ao]|ia)|fono|fisioterapia|consulta|medic[ao]|dentista)\b/,
       ["🩺", "🧩"],
     ],
     ["sleep", /\b(dormir|sono|descanso|soneca)\b/, ["💤", "🌙", "🛏️"]],
@@ -218,7 +218,7 @@ function category(e) {
     ],
     [
       "sport",
-      /\b(futebol|natacao|esporte|basquete|volei|corrida|karate|judo)\b/,
+      /\b(taekwondo|futsal|futebol|natacao|esporte|basquete|volei|corrida|karate|judo)\b/,
       ["⚽", "🏊", "🏀"],
     ],
     [
@@ -258,7 +258,57 @@ function doneButton(e, featured = false) {
     "</button>"
   );
 }
-function eventHtml(e, admin = false) {
+// Compare in the calendar's timezone, independently of the device timezone.
+function calendarClock(now = new Date()) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(now)
+      .map((p) => [p.type, p.value]),
+  );
+  return {
+    date: parts.year + "-" + parts.month + "-" + parts.day,
+    time: parts.hour + ":" + parts.minute,
+  };
+}
+function eventPeriod(e, clock) {
+  if (e.date < clock.date || (e.date === clock.date && e.time < clock.time))
+    return "earlier";
+  return e.date === clock.date && e.time === clock.time ? "now" : "later";
+}
+function dayPlan(events, clock = calendarClock()) {
+  const pending = events.filter((e) => !e.done);
+  return {
+    next: pending.find((e) => eventPeriod(e, clock) !== "earlier"),
+    earlier: pending.filter((e) => eventPeriod(e, clock) === "earlier"),
+  };
+}
+function pendingLabel(e, clock) {
+  return {
+    earlier: "○ Pendente · Horário anterior",
+    now: "○ Pendente · Neste horário",
+    later: "○ Pendente · Programada para depois",
+  }[eventPeriod(e, clock)];
+}
+function earlierNotice(count) {
+  return count
+    ? '<aside class="earlier-notice" aria-label="Pendências de horários anteriores"><div><strong>' +
+        count +
+        " " +
+        (count === 1
+          ? "atividade de horário anterior"
+          : "atividades de horários anteriores") +
+        '</strong><p>Continuam aqui. Combine com seu responsável o que fazer.</p></div><a id="earlierLink" href="#dailyAgenda">Ver na agenda ↓</a></aside>'
+    : "";
+}
+function eventHtml(e, admin = false, clock = calendarClock()) {
   const controls = admin
     ? '<div class="row admin-actions"><button data-action="edit" data-id="' +
       e.id +
@@ -282,7 +332,7 @@ function eventHtml(e, admin = false) {
     ' min</span></div><span class="symbol" aria-hidden="true">' +
     esc(e.icon || "⭐") +
     '</span><div class="info"><span class="state-label">' +
-    (e.done ? "✓ Concluída" : "○ Pendente") +
+    (e.done ? "✓ Concluída" : admin ? "○ Pendente" : pendingLabel(e, clock)) +
     "</span><h3>" +
     esc(e.title) +
     "</h3>" +
@@ -296,7 +346,9 @@ function eventHtml(e, admin = false) {
 function mascot() {
   return '<div class="landscape" aria-hidden="true"><span class="spark">✦</span><div class="block one"></div><div class="block two"></div><div class="block three"></div><div class="mascot"><div class="mascot-feet"></div><div class="mascot-body">✦</div><div class="mascot-head"></div></div></div>';
 }
-function nextMission(e, hasEvents) {
+function nextMission(e, hasEvents, earlierCount = 0) {
+  if (!e && earlierCount)
+    return '<section class="panel mission empty"><span class="symbol" aria-hidden="true">🗓️</span><h2>Vamos rever o combinado?</h2><p>Não há próximos horários nesta data. As pendências de horários anteriores continuam na agenda.</p></section>';
   if (!e)
     return (
       '<section class="panel mission empty"><span class="symbol" aria-hidden="true">' +
@@ -339,9 +391,14 @@ async function child() {
   state.view = "child";
   state.date = state.date || state.me.today;
   await fetchCalendar(state.date, state.date);
+  renderChild();
+}
+function renderChild() {
+  const clock = calendarClock();
+  state.childPeriods = periodSignature(clock);
   const es = dayEvents(state.date),
     done = es.filter((e) => e.done).length,
-    next = es.find((e) => !e.done),
+    plan = dayPlan(es, clock),
     pct = es.length ? Math.round((done / es.length) * 100) : 0;
   layout(
     '<div class="hero"><div class="hero-copy"><div class="eyebrow">Seu dia, uma grande aventura</div><h1>Olá, ' +
@@ -353,7 +410,7 @@ async function child() {
       "</div>" +
       tagHoliday(state.date) +
       '<div class="dashboard">' +
-      nextMission(next, es.length > 0) +
+      nextMission(plan.next, es.length > 0, plan.earlier.length) +
       '<section class="panel progress-card" aria-labelledby="progressTitle"><div class="progress-heading"><h2 id="progressTitle">Suas conquistas</h2><span class="progress-icon" aria-hidden="true">✦</span></div><div class="progress-total">' +
       done +
       " <span>de " +
@@ -373,14 +430,17 @@ async function child() {
         ? "Olha só o que você já fez! Cada passo conta."
         : "No seu ritmo. Cada pequeno passo conta.") +
       "</p></section></div>" +
-      '<section aria-labelledby="agendaTitle"><div class="section-heading"><div><div class="eyebrow">Seu caminho de hoje</div><h2 id="agendaTitle">Minha agenda <span class="tag">' +
+      earlierNotice(plan.earlier.length) +
+      '<section id="dailyAgenda" tabindex="-1" aria-labelledby="agendaTitle"><div class="section-heading"><div><div class="eyebrow">Seu caminho de hoje</div><h2 id="agendaTitle">Minha agenda <span class="tag">' +
       es.length +
       ' atividades</span></h2></div><div class="date-nav"><button data-action="childprev" aria-label="Dia anterior">←</button><input id="childDate" type="date" aria-label="Escolher dia" value="' +
       state.date +
       '"><button data-action="childnext" aria-label="Próximo dia">→</button><button data-action="childtoday">Hoje</button></div></div>' +
       (es.length
         ? '<ol class="task-list">' +
-          es.map((e) => "<li>" + eventHtml(e) + "</li>").join("") +
+          es
+            .map((e) => "<li>" + eventHtml(e, false, clock) + "</li>")
+            .join("") +
           "</ol>"
         : '<p class="sub">Quando houver atividades, elas aparecerão aqui em ordem de horário.</p>') +
       '</section><p class="sub small">Se o combinado mudar, converse com seu responsável. Você pode pedir ajuda.</p>',
@@ -710,6 +770,26 @@ $("brand").addEventListener("click", (e) => {
   e.preventDefault();
   safe(child);
 });
+// Refresh only when an activity changes time group; preserve focus and avoid needless renders.
+function periodSignature(clock) {
+  return JSON.stringify(
+    dayEvents(state.date).map((e) => [
+      e.id,
+      e.done ? "done" : eventPeriod(e, clock),
+    ]),
+  );
+}
+function refreshChildClock() {
+  if (
+    !document.hidden &&
+    state.view === "child" &&
+    state.me &&
+    !busy &&
+    state.childPeriods !== periodSignature(calendarClock())
+  )
+    renderChild();
+}
+
 safe(async () => {
   state.me = await api("/api/me");
   state.date = state.me.today;
@@ -717,3 +797,6 @@ safe(async () => {
   state.selected = state.date;
   await child();
 });
+
+setInterval(refreshChildClock, 60000);
+document.addEventListener("visibilitychange", refreshChildClock);

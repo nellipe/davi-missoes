@@ -53,6 +53,7 @@ async function main() {
     locale: "pt-BR",
   });
   const page = await context.newPage();
+  await page.clock.setFixedTime(new Date("2026-11-17T13:00:00Z"));
   page.on("pageerror", (e) => report.errors.push(e.message));
   page.on("console", (m) => {
     if (m.type() === "error" && !m.text().includes("401 (Unauthorized)"))
@@ -280,9 +281,18 @@ async function main() {
   await idle();
   assert.equal(
     await page.locator(".mission h2").textContent(),
-    "Escovar os dentes",
+    "Almoço de exemplo",
   );
   assert.equal(await page.locator(".task.done").count(), 0);
+  assert(
+    (await page.locator(".earlier-notice").textContent()).includes(
+      "2 atividades de horários anteriores",
+    ),
+  );
+  assert.equal(
+    await page.locator(".task").filter({ hasText: "Horário anterior" }).count(),
+    2,
+  );
   const times = await page.locator(".task .time").allTextContents();
   assert.deepEqual(times, [...times].sort());
   await page.locator(".mission button").focus();
@@ -291,17 +301,41 @@ async function main() {
   assert.equal(await page.locator("progress").getAttribute("value"), "1");
   assert.equal(
     await page.locator(".mission h2").textContent(),
-    "Escola de exploradores",
+    "Consulta de exemplo",
   );
   assert.equal(await page.locator(".task.cat-medicine.done").count(), 0);
   assert(await page.evaluate(() => document.activeElement !== document.body));
   await click(".task.done button");
   assert.equal(await page.locator("progress").getAttribute("value"), "0");
   report.checks.push(
-    "Chronological next pending, explicit completion, undo and keyboard focus; medication remains pending",
+    "Next scheduled activity, visible earlier pendencies, explicit completion, undo and keyboard focus; medication remains pending",
   );
   for (const width of [360, 390, 768, 1366, 1920])
     await capture("crianca", width);
+  await page.clock.setFixedTime(new Date("2026-11-17T15:01:00Z"));
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event("visibilitychange")),
+  );
+  assert.equal(
+    await page.locator(".mission h2").textContent(),
+    "Consulta de exemplo",
+  );
+  assert(
+    (await page.locator(".earlier-notice").textContent()).includes(
+      "3 atividades de horários anteriores",
+    ),
+  );
+  assert.equal(await page.locator("progress").getAttribute("value"), "0");
+  await page.locator("#earlierLink").focus();
+  await page.keyboard.press("Enter");
+  assert.equal(
+    await page.evaluate(() => document.activeElement.id),
+    "dailyAgenda",
+  );
+  await page.clock.setFixedTime(new Date("2026-11-17T13:00:00Z"));
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event("visibilitychange")),
+  );
   await click('[data-action="childnext"]');
   assert.equal(await page.locator("#childDate").inputValue(), "2026-11-18");
   await click('[data-action="childprev"]');
@@ -370,6 +404,18 @@ async function main() {
   await idle();
   while (await page.locator(".mission button").count())
     await click(".mission button");
+  assert(
+    (await page.locator(".mission h2").textContent()).includes(
+      "rever o combinado",
+    ),
+  );
+  assert.equal(
+    await page.locator(".task").filter({ hasText: "Horário anterior" }).count(),
+    2,
+  );
+  assert.equal(await page.locator("progress").getAttribute("value"), "6");
+  while (await page.locator(".task:not(.done) button").count())
+    await click(".task:not(.done) button");
   assert(
     (await page.locator(".mission h2").textContent()).includes("cada etapa"),
   );

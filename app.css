@@ -1244,3 +1244,30 @@ code {
     flex-wrap: wrap;
   }
 }
+.earlier-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 22px;
+  margin: 0 0 24px;
+  border: 1px solid #e8d5a6;
+  border-radius: 16px;
+  background: #fff9e9;
+  color: #694d17;
+  font-size: 0.9rem;
+}
+.earlier-notice p {
+  margin: 5px 0 0;
+}
+.earlier-notice a {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  font-weight: 750;
+  color: #694d17;
+}
+#dailyAgenda {
+  scroll-margin-top: 20px;
+}
