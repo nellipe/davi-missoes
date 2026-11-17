@@ -15,14 +15,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import RLock
 from urllib.parse import urlsplit, parse_qs
-from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent
 DATA = Path(os.environ.get("DAVI_DATA_DIR", ROOT / "dados")).resolve()
 DB = DATA / "agenda.sqlite3"
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("DAVI_PORT", "8765"))
-TZ = ZoneInfo("America/Sao_Paulo")
+TZ = dt.timezone(dt.timedelta(hours=-3), "America/Sao_Paulo")
 LOCK = RLock()
 SESSIONS = {}
 MAX_BODY = 100_000
