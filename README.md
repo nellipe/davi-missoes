@@ -1,78 +1,99 @@
-# Aventuras do Davi — Missões do Dia 🎮
+# Aventuras do Davi 🎮 — Agenda + Missões
 
-Protótipo de aplicativo educativo **offline** para ajudar uma criança de 8+ anos a praticar sequências de tarefas cotidianas com apoio visual, texto e áudio. O estilo de aventura em blocos é original; não é um produto Roblox nem utiliza seus personagens.
+Projeto familiar para acompanhar os compromissos do Davi e desenvolver autonomia nas rotinas diárias. Visual inspirado em jogos de aventuras em blocos, com identidade original (sem afiliação ao Roblox).
 
-## Como abrir no Windows
+## Versão 0.2 — agenda local
 
-1. Abra o repositório e selecione **Code → Download ZIP**.
-2. Extraia o ZIP no computador.
-3. Dê dois cliques em `index.html` (Chrome ou Edge atualizado).
-4. Ative o áudio do computador. A voz é sintetizada pelo navegador; dependendo do sistema, vozes em português precisam estar instaladas.
-5. Escolha uma missão e um modo de jogo.
+A nova aplicação abre numa **área do Davi** com agenda do dia: horário, compromissos ordenados, marcação de conclusão e navegação entre datas.
 
-Alternativa para desenvolvedores:
+A **área do responsável** exige senha cadastrada no primeiro acesso e inclui:
+- Calendário mensal com atividades, datas selecionáveis e feriados destacados;
+- Cadastro de atividades com horário, duração, ícone e descrição;
+- Recorrência **única, diária, segunda a sexta, dias selecionados da semana ou mensal**;
+- Data de início e fim opcional; opção de ignorar sábados/domingos e feriados;
+- Exclusão de ocorrência específica ou série inteira; edição da série completa;
+- Edição do nome exibido na área infantil;
+- Registros de tarefas feitas por data e atividade.
+
+**Dados locais:** SQLite criado em `dados/agenda.sqlite3`. Não usa serviços externos, API de feriados ou conta na nuvem. A interface só está disponível em `127.0.0.1` (no próprio computador).
+
+## Windows — instalar e executar
+
+Requer **Python 3.10 ou superior** e navegador Chrome ou Edge. Não requer bibliotecas Python adicionais.
+
+1. No GitHub, faça **Code → Download ZIP** e extraia; ou rode `git pull` se já clonou.
+2. Abra a pasta extraída e dê dois cliques em **`Iniciar-Davi.bat`**.
+3. Com a janela do servidor aberta, vá para **http://127.0.0.1:8765** no navegador.
+4. Clique em **Responsável** e defina uma senha com pelo menos 10 caracteres.
+5. Entre na área do responsável, clique em **Cadastrar atividade** e comece a montar a agenda.
+6. Clique em **Minha agenda** para ver o painel do Davi.
+7. Para encerrar o servidor, pressione **Ctrl+C** na janela aberta.
+
+Alternativa pelo PowerShell:
 
 ```powershell
-git clone https://github.com/nellipe/davi-missoes.git
-cd davi-missoes
-start .\index.html
+cd C:\davi-missoes
+py -3 server.py
+# Em outra janela/navegador: http://127.0.0.1:8765
 ```
 
-**Sem npm, build, instalação ou internet obrigatórios para a aplicação.** O jogo usa apenas HTML/CSS/JavaScript e emojis do sistema.
+Para rodar os testes da lógica:
 
-## Funcionalidades
+```powershell
+py -3 -m unittest discover -s tests -v
+```
 
-- **Aprender:** passo a passo com texto, símbolo visual e leitura por voz (Web Speech API).
-- **Fazer:** sequência de apoio durante uma tarefa real; a criança avança quando termina a etapa.
-- **Lembrar:** desafio de ordenar etapas; erros não retiram estrelas, e dicas são permitidas.
-- **Estrelas:** por participação e conclusão dos modos (1/2/3 estrelas), sem metas competitivas.
-- **Área do responsável:** nome, áudio, criação, edição e exclusão de missões (2 a 20 etapas).
-- **Backup JSON:** exportação/importação de missões, progresso e preferências.
-- **Privacidade:** nenhum dado é enviado a serviço externo pelo código; armazenamento local no navegador.
+## Feriados: Brasil + Florianópolis
 
-## Dez missões iniciais
+O cálculo é local e automático por ano, incluindo:
+- Feriados nacionais fixos: 1/1, 21/4, 1/5, 7/9, 12/10, 2/11, 15/11, 20/11 e 25/12;
+- Feriados municipais de Florianópolis: **23 de março, Sexta-feira Santa e Corpus Christi**.
+- Sexta-feira Santa e Corpus Christi são calculados a partir da data da Páscoa.
 
-| # | Missão | Área |
-|---|---|---|
-| 1 | Operação Banheiro | Banheiro |
-| 2 | Poder do Sorriso | Higiene bucal |
-| 3 | Missão Banho | Banho |
-| 4 | Inventário da Mochila | Escola |
-| 5 | Base Organizada | Quarto |
-| 6 | Portal do Descanso | Sono |
-| 7 | Start do Dia | Manhã |
-| 8 | Missão Refeição | Alimentação |
-| 9 | Pronto para Sair | Saída |
-| 10 | Fim da Partida | Encerrar brincadeiras/telas |
+Os feriados são identificados individualmente; uma atividade **não é excluída por padrão** nesses dias. Ao cadastrar uma série, marque **Não ocorrer em feriados** para omiti-los.
 
-As instruções são **modelos personalizáveis**, não protocolos universais: adapte a idade, a autonomia e os hábitos da família. Para começar, é melhor usar apenas uma ou duas missões com acompanhamento e combinar o apoio visual com pistas no ambiente real.
+**Pontos facultativos** (como Carnaval) não são tratados automaticamente como feriados. **Datas especiais estaduais de Santa Catarina, suspensão de aulas, emendas, calendário escolar e feriados extraordinários ainda não estão modelados**. Confirme dias sem aula com o calendário da escola e, quando necessário, remova apenas a ocorrência.
 
-## Limitações da versão 1
+Legislação de referência:
+- Florianópolis: [Lei Municipal nº 8.046/2009](https://www.legisweb.com.br/legislacao/?id=174581) e [Decreto Municipal nº 28.928/2026](https://www.legisweb.com.br/legislacao/?id=490360).
+- Brasil: [Calendário federal de 2026](https://agenciagov.ebc.com.br/noticias/202512/confira-o-calendario-oficial-de-feriados-nacionais-e-pontos-facultativos-em-2026).
 
-- Ícones são emojis, **não ilustrações individuais**. Nem todos os sistemas os exibem da mesma forma.
-- A voz depende do navegador e das vozes instaladas; o áudio pode variar e não há arquivos de áudio pré-gravados.
-- O armazenamento local não sincroniza dispositivos, e pode desaparecer ao limpar os dados do navegador.
-- A área do responsável **não possui senha**. Não é indicada para exposição pública sem autenticação.
-- O modo Fazer depende do toque consciente em **Próximo**; o sistema não verifica se a tarefa realmente foi executada.
-- Os passos de banheiro, higiene e segurança exigem personalização conforme necessidades individuais.
-- Sem rastreamento, notificações, analytics ou integração Roblox.
+## Segurança e dados
 
-## Orientação de uso
+- O administrador tem senha armazenada como hash PBKDF2-SHA256 com salt; a sessão é mantida em cookie HttpOnly/SameSite=Strict, por até oito horas em memória.
+- A interface do Davi **não exige autenticação nesta versão**; permite visualizar compromissos e marcar como feitos, apenas no próprio computador.
+- A senha protege a *edição da agenda* pela interface/API; o programa e o banco permanecem acessíveis a quem tiver acesso ao sistema de arquivos do computador.
+- A configuração inicial de senha é feita pela primeira pessoa que abrir a aplicação local; faça isso como responsável.
+- **Não abra a porta 8765 no firewall e não coloque esse servidor na internet.** Ainda não existe autenticação de criança, multiusuário nem acesso remoto seguro.
+- Para backup, encerre o programa e copie `dados/agenda.sqlite3` para uma pasta protegida; este arquivo contém agenda e hash da senha.
+- Se perder a senha, **não há recuperação automática** na v0.2; guarde-a em um gerenciador de senhas.
+- O projeto tem código e testes para validação local, mas o conjunto ainda precisa ser **executado e validado no seu Windows**.
 
-O jogo é ferramenta de apoio, não diagnóstico ou tratamento. Evite pressão, punições, comparação ou exigência de perfeição. Valorize tentativas e o progresso gradual. Use auxílio de um adulto em atividades que envolvam água quente, segurança, higiene ou saída de casa.
+## Missões lúdicas da v0.1
 
-## Arquivos
+A versão anterior, com 10 roteiros (banheiro, escovação, banho, mochila, quarto, sono, manhã, alimentação, sair, encerrar jogo), permanece em **`index.html`**. Você pode abri-la isoladamente no navegador. Os roteiros e design estão em `docs/PRODUTO-E-MISSOES.md`.
 
-- `index.html`: aplicação completa, autocontida.
-- `docs/PRODUTO-E-MISSOES.md`: conceito, design, 10 sequências, narração e roadmap.
+A **integração entre o calendário e a execução interativa das missões** é uma próxima etapa. Nesta versão, a agenda permite registrar o compromisso e marcá-lo como feito, mas **ainda não abre o passo a passo do jogo dentro do calendário**.
 
-## Próxima validação sugerida
+## Próximas etapas sugeridas
 
-1. Testar no Edge/Chrome do Windows, inclusive som.
-2. Conferir em telas pequenas.
-3. Validar **Operação Banheiro** com Davi e revisar a ordem real das etapas.
-4. Fazer um desafio Lembrar e verificar clareza de dicas.
-5. Editar uma missão e exportar backup.
-6. Testar fechar/reabrir o navegador e conferir progresso.
+1. Revisar e cadastrar os compromissos reais e os dias sem aula do Davi.
+2. Integrar “Executar missão” à atividade programada.
+3. Alertas visuais/sonoros próximos da hora e lembretes configuráveis.
+4. Ilustrações originais, avatar e mapas de progressão.
+5. API com autenticação forte multiusuário e banco de servidor quando o produto estiver validado.
 
-**Versão:** 0.1 — protótipo familiar para validação.
+## Estrutura
+
+```
+server.py            # API local + calendário + SQLite
+app.html             # Interface web da versão 0.2
+app.css              # Estilos
+app.js               # Painel infantil e responsável
+Iniciar-Davi.bat     # Inicializador Windows
+Iniciar-Davi.ps1     # Inicializador alternativo PowerShell
+tests/               # Testes das regras do calendário
+index.html           # Jogo original da versão 0.1
+docs/                # Design e roteiros das 10 missões
+dados/               # Banco gerado localmente (ignorado pelo Git)
+```
