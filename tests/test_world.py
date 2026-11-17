@@ -96,3 +96,72 @@ class WorldTests(HttpFixture):
             self.assertEqual(legacy,{t:[tuple(r) for r in c.execute('SELECT * FROM '+t)] for t in legacy})
         self.assertEqual(hashlib.sha256(server.AUTH.path.read_bytes()).hexdigest(),auth)
         self.assertEqual(len(list((self.data/'antes-v06').glob('*.sqlite3'))),1)
+
+    def test_revoke_spent_credit_once_and_block_regrant_and_new_purchase(self):
+        self.finish();self.finish('order');self.finish('bag')
+        self.assertEqual(self.child.request('/api/world/buy','POST',{'item_id':'bridge'})[1]['charged'],4)
+        config=self.parent.request('/api/world/config')[1]
+        credit=next(h for h in config['history'] if h['context'].get('mode')=='order')
+        self.assertEqual(credit['context']['activity'],'Taekwondo sintético')
+        body={'id':credit['id'],'reason':'Confirmação sintética indevida'}
+        for _ in range(2):
+            response=self.parent.request('/api/world/revoke','POST',body)
+            self.assertEqual(response[0],200,response)
+            self.assertEqual(response[1]['world']['stars'],-1)
+            self.assertIn('bridge',response[1]['world']['inventory'])
+        self.assertEqual(self.finish('order')[1]['reward']['delta'],0)
+        self.assertEqual(self.child.request('/api/world/buy','POST',{'item_id':'hat'})[0],400)
+        with server.db() as c:
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM world_ledger WHERE id=?',('revoke:'+credit['id'],)).fetchone()[0],1)
+            self.assertEqual(c.execute('SELECT delta FROM world_ledger WHERE id=?',(credit['id'],)).fetchone()[0],2)
+        self.finish('learn','2026-11-18')
+        self.assertEqual(self.child.request('/api/world')[1]['stars'],0)
+        self.assertEqual(self.parent.request('/api/world/revoke','POST',{'id':'buy:bridge'})[0],400)
+
+    def test_parent_inventory_idempotent_no_refund_or_charge_and_paths_reset(self):
+        self.finish();self.finish('order');self.finish('bag')
+        self.child.request('/api/world/buy','POST',{'item_id':'bridge'})
+        self.child.request('/api/world/move','PUT',{'x':185,'y':345})
+        for active in (False,False,True,True):
+            response=self.parent.request('/api/world/inventory','PUT',{'item_id':'bridge','active':active})
+            self.assertEqual(response[0],200,response)
+            self.assertEqual(response[1]['world']['stars'],1)
+            self.assertEqual('bridge' in response[1]['world']['inventory'],active)
+            self.assertEqual(response[1]['world']['avatar']['x'],530)
+            if not active:
+                self.assertEqual(self.child.request('/api/world/buy','POST',{'item_id':'bridge'})[0],400)
+                self.assertEqual(self.child.request('/api/world/move','PUT',{'x':185,'y':345})[0],400)
+        self.assertEqual(self.child.request('/api/world/buy','POST',{'item_id':'bridge'})[1]['charged'],0)
+        with server.db() as c:
+            self.assertEqual(c.execute("SELECT COUNT(*) FROM world_ledger WHERE id LIKE 'inventory:%'").fetchone()[0],2)
+
+    def test_controls_parent_only_csrf_and_separate_occurrence_corrections(self):
+        for path,method in (('/api/world/revoke','POST'),('/api/world/inventory','PUT')):
+            self.assertEqual(self.child.request(path,method,{})[0],403)
+            self.assertEqual(self.parent.request(path,method,{},**{'X-CSRF-Token':''})[0],403)
+        self.finish()
+        mission=self.parent.request(f'/api/events/{self.eid}/mission?date=2026-11-17')[1]['mission']
+        step=mission['steps'][0]
+        for done in (True,False):
+            response=self.parent.request(f"/api/events/{self.eid}/mission/steps/{step['id']}",'PUT',{'date':'2026-11-17','template_id':mission['id'],'revision':mission['revision'],'done':done})
+            self.assertEqual(response[0],200,response)
+        self.parent.request(f'/api/events/{self.eid}/done','POST',{'date':'2026-11-17'})
+        self.parent.request(f'/api/events/{self.eid}/done?date=2026-11-17','DELETE')
+        self.assertEqual(self.child.request('/api/world')[1]['stars'],1)
+        events=self.child.request('/api/calendar?start=2026-11-17&end=2026-11-18')[1]['events']
+        self.assertFalse(events[0]['done'])
+        self.assertFalse(self.parent.request(f'/api/events/{self.eid}/mission?date=2026-11-17')[1]['mission']['steps'][0]['done'])
+        self.assertEqual(self.parent.request('/api/me')[1]['version'],'0.6D-1')
+
+    def test_upgrade_previous_world_preserves_ledger_inventory_and_legacy_credit(self):
+        self.finish()
+        with server.db() as c:
+            c.execute('ALTER TABLE world_ledger DROP COLUMN context')
+            c.execute('ALTER TABLE world_inventory DROP COLUMN active')
+        server.initialize();server.initialize()
+        config=self.parent.request('/api/world/config')[1]
+        self.assertEqual(config['world']['stars'],1)
+        self.assertEqual(config['history'][0]['context']['activity'],'Taekwondo sintético')
+        self.assertEqual(self.parent.request('/api/world/revoke','POST',{'id':config['history'][0]['id']})[1]['world']['stars'],0)
+        self.assertEqual(self.finish()[1]['reward']['delta'],0)
+        self.assertTrue(list((self.data/'antes-v06').glob('*.sqlite3')))

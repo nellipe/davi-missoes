@@ -21,6 +21,7 @@ import missions
 import world
 
 ROOT = Path(__file__).resolve().parent
+APP_VERSION = '0.6D-1'
 DATA = Path(os.environ.get("DAVI_DATA_DIR", ROOT / "dados")).resolve()
 DB = DATA / "agenda.sqlite3"
 CONFIG = Config()
@@ -301,7 +302,7 @@ class Handler(BaseHTTPRequestHandler):
                 info={"parent":bool(session and session['role']=='parent'),
                       "authorized":bool(session), "configured":bool(get_setting("password")),
                       "simple_lan":CONFIG.auto_child,
-                      "today":today().isoformat(),"timezone":"America/Sao_Paulo"}
+                      "today":today().isoformat(),"timezone":"America/Sao_Paulo","version":APP_VERSION}
                 if session: info.update(name=get_setting("name"), csrf=session['csrf'])
                 return self.send(200,info,extra=extra)
             if path.startswith('/api/') and not (self.session() or (
@@ -389,13 +390,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200,{"ok":True},extra={"Set-Cookie":self.session_cookie(token,age)})
             if not session: return self.fail("Autorização necessária.",403)
             if path.startswith('/api/world'):
-                if path=='/api/world/config' and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                if path in ('/api/world/config','/api/world/revoke','/api/world/inventory') and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c:
                     c.execute('BEGIN IMMEDIATE')
                     if path=='/api/world/buy' and method=='POST': result=world.buy(c,body)
                     elif path=='/api/world/equip' and method=='PUT': result=world.equip(c,body)
                     elif path=='/api/world/move' and method=='PUT': result=world.move(c,body)
                     elif path=='/api/world/config' and method=='PUT': result=world.configure(c,body)
+                    elif path=='/api/world/revoke' and method=='POST': result=world.revoke(c,body)
+                    elif path=='/api/world/inventory' and method=='PUT': result=world.inventory_control(c,body)
                     elif path=='/api/world/real' and method=='POST': result=world.real_reward(c,body,mission_event)
                     elif path=='/api/world/practice' and method=='POST': result=world.start(c,body,mission_event)
                     elif (match:=re.fullmatch(r'/api/world/practice/([a-f0-9]{48})/(advance|answer|hint)',path)) and method=='POST':

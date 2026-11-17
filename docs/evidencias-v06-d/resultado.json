@@ -1,0 +1,10 @@
+{
+  "synthetic": true,
+  "checks": [
+    "Mundo mostra todas as atividades, horários/status, datas futuras/anteriores e acesso à agenda sem roteiro.",
+    "Item removido/reativado sem cobrança e sem manter acessório equipado.",
+    "Responsável revoga concessão pela interface e vê estado e motivo no extrato.",
+    "Vínculo de roteiro e correção/desfazer do compromisso pelo responsável em dia futuro."
+  ],
+  "errors": []
+}

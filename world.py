@@ -27,11 +27,16 @@ RNG = random.SystemRandom()
 
 
 def needs_migration(c):
-    return not c.execute("SELECT 1 FROM sqlite_master WHERE name='world_settings'").fetchone()
+    return (not c.execute("SELECT 1 FROM sqlite_master WHERE name='world_settings'").fetchone()
+            or 'context' not in {r[1] for r in c.execute('PRAGMA table_info(world_ledger)')})
 
 
 def initialize(c):
-    if not needs_migration(c): return
+    if c.execute("SELECT 1 FROM sqlite_master WHERE name='world_settings'").fetchone():
+        if needs_migration(c):
+            c.execute("ALTER TABLE world_ledger ADD COLUMN context TEXT NOT NULL DEFAULT '{}'")
+            c.execute('ALTER TABLE world_inventory ADD COLUMN active INTEGER NOT NULL DEFAULT 1')
+        return
     for sql in (
         '''CREATE TABLE world_settings(id INTEGER PRIMARY KEY,learn INTEGER NOT NULL,memory INTEGER NOT NULL,
             real INTEGER NOT NULL,daily_limit INTEGER NOT NULL)''',
@@ -48,6 +53,8 @@ def initialize(c):
     c.execute('INSERT INTO world_settings VALUES(1,1,2,2,12)')
     c.execute("INSERT INTO world_state VALUES(1,530,460,'mint',NULL,NULL,NULL)")
     c.executemany('INSERT INTO world_catalog VALUES(?,?,1)',[(key,value[1]) for key,value in CATALOG.items()])
+    c.execute("ALTER TABLE world_ledger ADD COLUMN context TEXT NOT NULL DEFAULT '{}'")
+    c.execute('ALTER TABLE world_inventory ADD COLUMN active INTEGER NOT NULL DEFAULT 1')
 
 
 def today(): return dt.datetime.now(TZ).date().isoformat()
@@ -57,20 +64,26 @@ def balance(c): return c.execute('SELECT COALESCE(SUM(delta),0) FROM world_ledge
 
 
 def scene(c):
-    owned={r['item_id'] for r in c.execute('SELECT item_id FROM world_inventory')}
+    owned={r['item_id'] for r in c.execute('SELECT item_id FROM world_inventory WHERE active=1')}
     return {'stars':balance(c),'avatar':dict(c.execute('SELECT * FROM world_state WHERE id=1').fetchone()),
             'inventory':sorted(owned), 'catalog':[{'id':r['id'],'price':r['price'],'available':bool(r['available']),
                 'name':CATALOG[r['id']][0],'kind':CATALOG[r['id']][2],'description':CATALOG[r['id']][3],
-                'owned':r['id'] in owned} for r in c.execute('SELECT * FROM world_catalog')]}
+                'owned':r['id'] in owned,
+                'removed':bool(c.execute('SELECT 1 FROM world_inventory WHERE item_id=? AND active=0',(r['id'],)).fetchone())
+                } for r in c.execute('SELECT * FROM world_catalog')]}
 
 
-def grant(c, key, amount, label):
+def grant(c, key, amount, label, context=None):
     if c.execute('SELECT 1 FROM world_ledger WHERE id=?',(key,)).fetchone():
+        if c.execute('SELECT 1 FROM world_ledger WHERE id=?',('revoke:'+key,)).fetchone():
+            return {'delta':0,'stars':balance(c),'reason':'revoked',
+                    'message':'O responsável ajustou as estrelas deste treino. Você pode continuar brincando!'}
         return {'delta':0,'stars':balance(c),'reason':'already','message':'As estrelas deste treino já foram guardadas. Você pode continuar brincando!'}
     limit=c.execute('SELECT daily_limit FROM world_settings WHERE id=1').fetchone()[0]
     earned=c.execute('SELECT COALESCE(SUM(delta),0) FROM world_ledger WHERE day=? AND delta>0',(today(),)).fetchone()[0]
     amount=max(0,min(amount,limit-earned))
-    c.execute('INSERT INTO world_ledger(id,delta,label,day) VALUES(?,?,?,?)',(key,amount,label,today()))
+    c.execute('INSERT INTO world_ledger(id,delta,label,day,context) VALUES(?,?,?,?,?)',
+              (key,amount,label,today(),json.dumps(context or {},ensure_ascii=False)))
     return {'delta':amount,'stars':balance(c),'reason':'earned' if amount else 'limit',
             'message':f'Você ganhou {amount} estrela(s)!' if amount else 'Seu treino foi concluído. As estrelas de hoje já estão guardadas.'}
 
@@ -80,6 +93,8 @@ def buy(c, body):
     if not isinstance(ident,str) or ident not in CATALOG: raise ValueError('Item não encontrado.')
     item=c.execute('SELECT * FROM world_catalog WHERE id=?',(ident,)).fetchone()
     if c.execute('SELECT 1 FROM world_inventory WHERE item_id=?',(ident,)).fetchone():
+        if not c.execute('SELECT active FROM world_inventory WHERE item_id=?',(ident,)).fetchone()[0]:
+            raise ValueError('Este item foi removido pelo responsável. Peça a ele para reativar.')
         return {'charged':0,'world':scene(c)}
     if not item['available']: raise ValueError('Este item está descansando na oficina.')
     if 'price' in body and body['price']!=item['price']: raise missions.Conflict('O preço mudou. Reabra a oficina para conferir.')
@@ -96,7 +111,7 @@ def equip(c, body):
     values=[]
     for slot in ('hat','cape','buddy'):
         item=body.get(slot)
-        if item is not None and (item!=slot or not c.execute('SELECT 1 FROM world_inventory WHERE item_id=?',(item,)).fetchone()):
+        if item is not None and (item!=slot or not c.execute('SELECT 1 FROM world_inventory WHERE item_id=? AND active=1',(item,)).fetchone()):
             raise ValueError('Escolha um acessório que já é seu.')
         values.append(item)
     c.execute('UPDATE world_state SET color=?,hat=?,cape=?,buddy=? WHERE id=1',(color,*values))
@@ -112,15 +127,64 @@ def walkable(x,y,owned):
 def move(c,body):
     x,y=body.get('x'),body.get('y')
     if type(x) not in (int,float) or type(y) not in (int,float) or not math.isfinite(x+y) or not (0<=x<=1100 and 0<=y<=650): raise ValueError('Posição inválida.')
-    owned={r[0] for r in c.execute('SELECT item_id FROM world_inventory')}
+    owned={r[0] for r in c.execute('SELECT item_id FROM world_inventory WHERE active=1')}
     if not walkable(x,y,owned): raise ValueError('Vamos ficar nos caminhos da ilha.')
     c.execute('UPDATE world_state SET x=?,y=? WHERE id=1',(x,y))
     return {'ok':True}
 
 
+def credit_context(c,row):
+    context=json.loads(row['context'])
+    # Legacy credits retain a stable occurrence key; recover the activity when available.
+    if row['id'].startswith('award:') and not context:
+        _,key,date,mode=row['id'].split(':')
+        event=c.execute('SELECT e.title FROM events e JOIN mission_event_keys k ON k.event_id=e.id WHERE k.identity=?',(key,)).fetchone()
+        context={'activity':event['title'] if event else 'Atividade anterior','date':date,'mode':mode}
+    return context
+
+
 def config(c):
+    history=[]
+    for r in c.execute('SELECT * FROM world_ledger ORDER BY rowid DESC'):
+        entry=dict(r); entry['context']=credit_context(c,r)
+        entry['revoked']=bool(c.execute('SELECT 1 FROM world_ledger WHERE id=?',('revoke:'+r['id'],)).fetchone())
+        if r['id'].startswith('buy:'):
+            item=c.execute('SELECT active FROM world_inventory WHERE item_id=?',(r['id'][4:],)).fetchone()
+            entry['context']['item_state']='Ativo' if item and item['active'] else 'Removido'
+        history.append(entry)
     return {'settings':dict(c.execute('SELECT * FROM world_settings WHERE id=1').fetchone()),'world':scene(c),
-            'history':[dict(r) for r in c.execute('SELECT label,delta,created FROM world_ledger ORDER BY rowid DESC LIMIT 30')]}
+            'inventory':[dict(r) for r in c.execute('SELECT * FROM world_inventory')], 'history':history}
+
+
+def revoke(c,body):
+    ident=body.get('id'); reason=body.get('reason','')
+    if not isinstance(ident,str) or not isinstance(reason,str) or len(reason)>400:
+        raise ValueError('Concessão ou motivo inválido.')
+    row=c.execute('SELECT * FROM world_ledger WHERE id=?',(ident,)).fetchone()
+    if not row or not ident.startswith('award:') or row['delta']<=0:
+        raise ValueError('Escolha uma concessão de estrelas.')
+    c.execute('INSERT OR IGNORE INTO world_ledger(id,delta,label,day,context) VALUES(?,?,?,?,?)',
+              ('revoke:'+ident,-row['delta'],'Revogação de '+row['label'],today(),
+               json.dumps({**credit_context(c,row),'original_id':ident,'reason':reason.strip()},ensure_ascii=False)))
+    return config(c)
+
+
+def inventory_control(c,body):
+    ident=body.get('item_id'); active=body.get('active')
+    if not isinstance(ident,str) or ident not in CATALOG or type(active) is not bool:
+        raise ValueError('Item ou estado inválido.')
+    row=c.execute('SELECT active FROM world_inventory WHERE item_id=?',(ident,)).fetchone()
+    if not row: raise ValueError('Este item ainda não foi adquirido.')
+    if bool(row['active'])!=active:
+        c.execute('UPDATE world_inventory SET active=? WHERE item_id=?',(int(active),ident))
+        if not active:
+            for slot in ('hat','cape','buddy'):
+                c.execute(f'UPDATE world_state SET {slot}=NULL WHERE {slot}=?',(ident,))
+            # Removing a path must not strand the avatar on an inaccessible island.
+            c.execute('UPDATE world_state SET x=530,y=460 WHERE id=1')
+        c.execute('INSERT INTO world_ledger(id,delta,label,day) VALUES(?,0,?,?)',
+                  ('inventory:'+secrets.token_hex(16),('Reativado: ' if active else 'Removido: ')+CATALOG[ident][0],today()))
+    return config(c)
 
 
 def configure(c,body):
@@ -215,7 +279,9 @@ def practice_action(c,ident,action,body,validate):
     if complete:
         field='learn' if row['mode']=='learn' else 'memory'
         value=c.execute(f'SELECT {field} FROM world_settings WHERE id=1').fetchone()[0]
-        result['reward']=grant(c,grant_key,value,'Aprender' if field=='learn' else 'Treino de memória')
+        event=validate(c,row['event_id'],row['date'])
+        result['reward']=grant(c,grant_key,value,'Aprender' if field=='learn' else 'Treino de memória',
+            {'activity':event['title'],'date':row['date'],'mode':row['mode']})
     return result
 
 
@@ -229,4 +295,4 @@ def real_reward(c,body,validate):
         return {'delta':0,'stars':balance(c),'reason':'care','message':'Cuidar de você não depende de estrelas. Seu progresso está guardado.'}
     key=f"award:{missions.ensure_event_key(c,event_id)}:{date}:real"
     value=c.execute('SELECT real FROM world_settings WHERE id=1').fetchone()[0]
-    return grant(c,key,value,'Esforço na missão real')
+    return grant(c,key,value,'Esforço na missão real',{'activity':event['title'],'date':date,'mode':'real'})

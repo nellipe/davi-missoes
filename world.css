@@ -84,3 +84,7 @@
   .w-shop-grid { grid-template-columns:1fr 1fr; gap:11px; }.w-product { padding:9px; }.w-product strong { font-size:.75rem; }.w-product > svg { height:90px; }
   .w-character-preview { height:190px; }.w-accessories { flex-direction:column; }.w-color-options { gap:8px; }.w-color-options button { padding:11px; font-size:.8rem; }
 }
+
+.w-day-controls { padding:16px 20px 0; gap:12px; }
+.w-day-controls label { margin:0; }
+.w-day-note { padding:0 20px; }
