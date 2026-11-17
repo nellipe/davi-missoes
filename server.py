@@ -124,12 +124,18 @@ def matches(event, day):
     delta=(day-start).days
     weekdays=json.loads(event["weekdays"])
     if frequency=="none" and day!=start: return False
-    if frequency=="daily": pass
-    elif frequency=="weekdays" and day.weekday()>4: return False
-    elif frequency=="weekly" and day.weekday() not in weekdays: return False
-    elif frequency=="monthly" and day.day!=start.day: return False
-    elif frequency=="none": pass
-    else: return False
+    if frequency=="daily":
+        pass
+    elif frequency=="weekdays":
+        if day.weekday()>4: return False
+    elif frequency=="weekly":
+        if day.weekday() not in weekdays: return False
+    elif frequency=="monthly":
+        if day.day!=start.day: return False
+    elif frequency=="none":
+        pass
+    else:
+        return False
     if event["skip_weekends"] and day.weekday()>4: return False
     if event["skip_holidays"] and day.isoformat() in holiday_map(day.year): return False
     return True
