@@ -43,6 +43,17 @@ class CalendarTests(unittest.TestCase):
         self.create(start_date="2026-11-16",skip_holidays=True)
         rows=server.occurrences(dt.date(2026,11,16),dt.date(2026,11,22))
         self.assertEqual([r["date"] for r in rows],["2026-11-16","2026-11-17","2026-11-18","2026-11-19"])
+    def test_weekday_occurrences_are_visible(self):
+        self.create(start_date="2026-11-17",recurrence="weekdays")
+        dates=[r["date"] for r in server.occurrences(dt.date(2026,11,17),dt.date(2026,11,23))]
+        self.assertEqual(dates,["2026-11-17","2026-11-18","2026-11-19","2026-11-20","2026-11-23"])
+
+    def test_real_monday_agenda_recurrence(self):
+        self.create(title="Psicóloga",time="09:20",start_date="2026-11-17",
+                    recurrence="weekly",weekdays=[0])
+        dates=[r["date"] for r in server.occurrences(dt.date(2026,11,17),dt.date(2026,11,30))]
+        self.assertEqual(dates,["2026-11-23","2026-11-30"])
+
     def test_weekly_selected_days(self):
         self.create(recurrence="weekly",weekdays=[1,3],start_date="2026-11-16")
         dates=[r["date"] for r in server.occurrences(dt.date(2026,11,16),dt.date(2026,11,22))]
