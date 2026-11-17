@@ -33,38 +33,56 @@ def import_file(filename, dry_run=False):
         validated.append((key,values,entry["title"]))
     # Cria banco, mas nunca apaga/modifica linhas preexistentes sem controle.
     initialize()
+    retire=data.get("retire_keys",[])
+    if not isinstance(retire,list) or any(not isinstance(k,str) for k in retire):
+        raise ValueError("Lista de chaves antigas inválida.")
+    if set(retire)&ids:
+        raise ValueError("Uma atividade não pode ser importada e removida no mesmo arquivo.")
     with db() as c:
         c.execute("CREATE TABLE IF NOT EXISTS import_keys (source_key TEXT PRIMARY KEY, event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE)")
-        existing={r[0] for r in c.execute("SELECT source_key FROM import_keys")}
+        existing={r["source_key"]:r["event_id"] for r in c.execute("SELECT source_key,event_id FROM import_keys")}
+        current={r["id"]:r for r in c.execute("SELECT * FROM events")}
     new=[item for item in validated if item[0] not in existing]
+    changed=[]
+    for key,values,title in validated:
+        if key not in existing: continue
+        old=current.get(existing[key])
+        if old is None: continue
+        if tuple(old[field] for field in FIELDS.split(","))!=tuple(values):
+            changed.append((key,values,title,existing[key]))
+    retired=[(key,existing[key]) for key in retire if key in existing]
     print(f"Atividades no arquivo: {len(validated)}")
-    print(f"Já importadas anteriormente: {len(validated)-len(new)}")
     print(f"Novas atividades: {len(new)}")
+    print(f"Atividades alteradas: {len(changed)}")
+    print(f"Atividades antigas a remover: {len(retired)}")
     for _,_,title in new: print("  + "+title)
+    for _,_,title,_ in changed: print("  ~ "+title)
+    for key,_ in retired: print("  - "+key)
     if dry_run:
-        print("SIMULAÇÃO: nenhuma atividade foi adicionada.")
+        print("SIMULAÇÃO: nenhuma atividade foi alterada.")
         return
-    if not new:
+    if not (new or changed or retired):
         print("Nada para importar. Os registros anteriores permanecem.")
         return
-    backup=None
-    if DB.exists():
-        DATA.mkdir(parents=True,exist_ok=True)
-        backup=DATA/("agenda-backup-"+datetime.now().strftime("%Y%m%d-%H%M%S-%f")+".sqlite3")
-        # backup SQLite consistente inclusive com conexões abertas
-        source=sqlite3.connect(DB)
-        try:
-            destination=sqlite3.connect(backup)
-            try: source.backup(destination)
-            finally: destination.close()
-        finally: source.close()
-        print("Backup pré-importação:",backup)
+    DATA.mkdir(parents=True,exist_ok=True)
+    backup=DATA/("agenda-backup-"+datetime.now().strftime("%Y%m%d-%H%M%S-%f")+".sqlite3")
+    source=sqlite3.connect(DB)
+    try:
+        destination=sqlite3.connect(backup)
+        try: source.backup(destination)
+        finally: destination.close()
+    finally: source.close()
+    print("Backup pré-importação:",backup)
     with db() as c:
         c.execute("BEGIN IMMEDIATE")
         for key,values,_ in new:
             cur=c.execute(f"INSERT INTO events({FIELDS}) VALUES({','.join('?' * len(values))})",values)
             c.execute("INSERT INTO import_keys(source_key,event_id) VALUES(?,?)",(key,cur.lastrowid))
-    print(f"OK: {len(new)} atividades importadas. Abra/recarregue a agenda no navegador.")
+        for _,values,_,id in changed:
+            c.execute("UPDATE events SET "+",".join(field+"=?" for field in FIELDS.split(","))+" WHERE id=?",(*values,id))
+        for _,id in retired:
+            c.execute("DELETE FROM events WHERE id=?",(id,))
+    print(f"OK: {len(new)} incluídas, {len(changed)} atualizadas e {len(retired)} removidas. Recarregue a agenda.")
 
 def main():
     p=argparse.ArgumentParser(description="Importa arquivo de atividades para SQLite local, com backup e sem duplicatas.")
