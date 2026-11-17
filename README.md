@@ -97,3 +97,19 @@ index.html           # Jogo original da versão 0.1
 docs/                # Design e roteiros das 10 missões
 dados/               # Banco gerado localmente (ignorado pelo Git)
 ```
+
+
+## Importar uma agenda pessoal sem publicar seus dados
+
+**Não coloque informações particulares de crianças no repositório público.** Receba o JSON por canal privado, salve-o somente no seu Windows, e execute na pasta do projeto:
+
+```powershell
+py -3 .\importar_agenda.py "$env:USERPROFILE\Downloads\agenda-privada-davi.json" --simular
+py -3 .\importar_agenda.py "$env:USERPROFILE\Downloads\agenda-privada-davi.json"
+```
+
+O importador valida o JSON, faz backup SQLite antes de inserir, preserva os dados existentes e reconhece cada atividade por uma chave estável: se executado de novo, não duplica os mesmos compromissos. O banco local fica em `dados/agenda.sqlite3`. Recarregue o navegador após importar.
+
+O formato do JSON é `davi-agenda-v1`, contendo `events`, cada qual com `key` exclusiva e os mesmos campos do cadastro normal (título, horário, recorrência etc.). O importador é genérico e **não contém nenhuma agenda particular embutida**.
+
+**Atenção aos limites:** há atividades que dependem de momentos relativos, como “ao acordar” ou “depois de almoçar”, para as quais ainda não existe um motor de gatilhos na agenda. Não invente um horário apenas para preencher o campo. Atividades em feriados e calendário escolar devem ser conferidas pelo responsável. A importação não é sincronização: alterações feitas no JSON após a primeira importação não atualizam eventos existentes com a mesma chave.
