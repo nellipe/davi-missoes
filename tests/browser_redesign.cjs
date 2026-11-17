@@ -13,7 +13,7 @@ const marker = "Synthetic-" + require("node:crypto").randomUUID().slice(0, 8);
 const bootstrap =
   "import server; server.initialize(); server.set_setting('name', " +
   JSON.stringify(marker) +
-  "); server.main()";
+  "); server.set_setting('password', server.hash_password('SyntheticPassword123')); server.main()";
 const server = spawn(
   process.env.PYTHON || "py",
   process.env.PYTHON ? ["-c", bootstrap] : ["-3", "-c", bootstrap],
@@ -26,7 +26,7 @@ const server = spawn(
 );
 const report = { widths: [], checks: [], accessibility: [], errors: [] };
 let browser;
-const evidence = path.join(root, "docs", "evidencias-v03");
+const evidence = path.join(root, "docs", "evidencias-v04");
 fs.mkdirSync(evidence, { recursive: true });
 async function main() {
   const api = await request.newContext({ baseURL: base });
@@ -36,7 +36,7 @@ async function main() {
       const response = await api.get("/api/me");
       if (
         response.ok() &&
-        (await response.json()).name === marker &&
+        (await response.json()).configured === true &&
         server.exitCode === null
       ) {
         ready = true;
@@ -51,6 +51,7 @@ async function main() {
     viewport: { width: 1366, height: 1000 },
     reducedMotion: "reduce",
     locale: "pt-BR",
+    extraHTTPHeaders: { Origin: base },
   });
   const page = await context.newPage();
   await page.clock.setFixedTime(new Date("2026-11-17T13:00:00Z"));
@@ -154,18 +155,41 @@ async function main() {
   }
   await page.goto(base);
   await idle();
-  assert.equal(await page.locator("progress").getAttribute("value"), "0");
+  assert.equal(await page.locator("#pairForm").count(), 1);
   await click("#parentTab");
-  assert.equal(await page.locator("#setupForm").count(), 1);
-  await page.locator("#password").fill("SyntheticOnly!2026");
-  await page.locator("#repeat").fill("SyntheticOnly!2026");
-  await submit("#setupForm");
   assert.equal(await page.locator("#loginForm").count(), 1);
-  await page.locator("#password").fill("SyntheticOnly!2026");
+  await page.locator("#password").fill("SyntheticPassword123");
   await submit("#loginForm");
-  assert.equal(await page.locator(".month").count(), 1);
-  report.checks.push("First-access setup and login");
+  report.checks.push("Offline parent bootstrap and login");
   const me = await (await context.request.get(base + "/api/me")).json();
+  assert.equal(me.name, marker);
+  await context.setExtraHTTPHeaders({Origin:base, 'X-CSRF-Token':me.csrf});
+  await click('[data-action="settings"]');
+  await click('[data-action="pair-code"]');
+  const code = (await page.locator('#pairResult').textContent()).split(' ')[1];
+  const childContext = await browser.newContext({extraHTTPHeaders:{Origin:base}});
+  const childPage = await childContext.newPage();
+  await childPage.goto(base);
+  await childPage.locator('#pairForm').waitFor();
+  assert.equal((await childContext.request.get(base+'/api/calendar')).status(),403);
+  const lockedAxe = await new AxeBuilder({page:childPage}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+  assert.equal(lockedAxe.violations.length,0);
+  await childPage.locator('#pairCode').fill(code);
+  await childPage.locator('#pairForm').evaluate(f=>f.requestSubmit());
+  await childPage.locator('#childDate').waitFor();
+  await childPage.reload();
+  await childPage.locator('#childDate').waitFor();
+  assert.equal((await childContext.request.get(base+'/api/events')).status(),403);
+  await childPage.locator('#parentTab').click();
+  await childPage.locator('#loginForm').waitFor();
+  await childPage.locator('#childTab').click();
+  await childPage.locator('[data-action="forget"]').click();
+  await childPage.locator('#pairForm').waitFor();
+  assert.equal((await childContext.request.get(base+'/api/calendar')).status(),403);
+  await childContext.close();
+  report.checks.push('Anonymous device blocked, accessible pairing, persistent child authorization, profile isolation and device logout');
+  await click('[data-action="calendar"]');
+
   const today = me.today;
   // Fixed future range for repeatability; all activity text is synthetic.
   const day = "2026-11-17";
