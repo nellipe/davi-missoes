@@ -7,6 +7,7 @@ import { walkable as validPosition, terrainHeight, route, advance } from '/asset
 let Trail;
 let onTrail=false, trailScene=null, currentRegion='';
 let buddyHead=null, reactUntil=0;
+let leafPending=null;
 const headBase=new T.Quaternion();
 let generation = 0, savePending = null, path = [], movingNow = false;
 let ownedMaterials = new Set(), ownedGeometry = new Set(), ownedTextures = new Set();
@@ -563,11 +564,20 @@ function animateClip(next) {
 function updateCamera(dt = 1) {
   const pos = player.position,
     follow = pos.clone().add(new T.Vector3(0, 0.9, 0));
+  // A small pullback at the fork keeps both treads in the portrait frame.
+  const portraitTrail=onTrail && camera.aspect<.85;
+  const forkView=portraitTrail
+    ? 1.3*Math.max(0,1-Math.hypot(pos.x-2.6,pos.z-6.6)/3)
+    : 0;
+  if(portraitTrail){
+    follow.x-=.55*Math.max(0,1-Math.hypot(pos.x+9,pos.z-1.4)/2.3);
+  }
+  const framing=distance+forkView;
   look.lerp(follow, Math.min(1, dt * 5));
   const offset = new T.Vector3(
-    Math.sin(angle) * distance,
-    distance * (onTrail ? 0.69 : 0.82),
-    Math.cos(angle) * distance,
+    Math.sin(angle) * framing,
+    framing * (onTrail ? 0.69 : 0.82),
+    Math.cos(angle) * framing,
   );
   camera.position.lerp(follow.clone().add(offset), Math.min(1, dt * 4));
   camera.lookAt(look);
@@ -684,8 +694,12 @@ function tick(now) {
     if(region!==currentRegion){
       currentRegion=region;reactUntil=clock+1.5;
       document.getElementById('forestRegion').textContent=region;
-      message(region.startsWith('Garganta')?'Pipo para para olhar a espuma.':region.startsWith('Bosque')?'Pipo espia por baixo do pano.':'Pipo observa o barquinho passar.');
+      message(region.startsWith('Garganta')?'Pipo para para olhar a espuma.':region.startsWith('Bosque')?'':'Pipo observa o barquinho passar.');
     }
+    const shelter=trailScene.shelter;
+    const gap=Math.hypot(x+9,z-1.4);
+    shelter.group.visible=gap<10;
+    if(shelter.group.visible && shelter.tick(clock,still,gap<2.3)) reactUntil=clock+1.5;
     trailScene.tick(clock,still,camera.position,player.position);
   }else updateLabels();
   renderer.info.reset();
@@ -717,7 +731,7 @@ function tick(now) {
   const near = nearest(),
     b = document.getElementById("forestInteract");
   if (b) {
-    b.disabled = near.d > 1.8;
+    b.disabled = near.d > 1.8 || (near.id==='leaf' && !!leafPending);
     b.textContent =
       near.d < 1.8
         ? onTrail?near.title:`${near.icon} ${near.title} · E`
@@ -750,7 +764,7 @@ function bind() {
       keys.add(dirs[e.key]);
       selectedPlace=null;
     }
-    if (e.key.toLowerCase() === "e") {
+    if (e.key.toLowerCase() === "e" && !e.repeat) {
       e.preventDefault();
       host.run(() => action("forest-nearby", {}));
     }
@@ -812,6 +826,16 @@ function bind() {
     ray.setFromCamera(p, camera);
     const surfaces = deckHitMesh && owned('bridge') ? [terrain,deckHitMesh] : [terrain];
     const hit = ray.intersectObjects(surfaces, false)[0];
+    if (onTrail) {
+      const near=nearest();
+      if(near.id==='leaf' && near.d<1.8){
+        const leafHit=trailScene.shelter.pickLeaf(ray,hit);
+        if(leafHit && !trailScene.blocksTap(ray,leafHit)){
+          host.run(() => action('forest-nearby',{}));
+          return;
+        }
+      }
+    }
     if (hit && walkable(hit.point.x, hit.point.z) && !(onTrail&&trailScene.blocksTap(ray,hit)))
       destination(hit.point.x,hit.point.z);
     else {
@@ -968,9 +992,27 @@ async function action(a, b) {
   if (name === "nearby") {
     const near = nearest();
     if(onTrail&&near.d<1.8){
+      if(near.id==='leaf'){
+        if(leafPending)return;
+        const token=generation;
+        const changed=!data.leaf_up;
+        leafPending=host.api('/api/forest/trail/shelter','PUT',{leaf_up:changed});
+        try {
+          const result=await leafPending;
+          if(token===generation){
+            data.leaf_up=result.leaf_up;
+            trailScene.shelter.set(data.leaf_up,clock);
+            reactUntil=clock+1.5;
+            message('');
+          }
+        } finally {
+          leafPending=null;
+        }
+        return;
+      }
       reactUntil=clock+1.5;
       message(trailScene.interact(near.id,clock));
-      if(near.id==='leaf'||near.id==='echo')pipo.rotation.y=Math.atan2(near.x-pipo.position.x,near.z-pipo.position.z);
+      if(near.id==='echo')pipo.rotation.y=Math.atan2(near.x-pipo.position.x,near.z-pipo.position.z);
       return;
     }
     if (near.d < 1.8) { if(near.id==='calendar')await action('forest-calendar',{});else dialog(near.id); }
@@ -1060,6 +1102,7 @@ async function open(options) {
   const openStarted = performance.now();
   const token=++generation;
   if (renderer) await save();
+  if (leafPending) await leafPending.catch(() => {});
   if(token!==generation)return false;
   dispose();
   host = options;
@@ -1110,7 +1153,7 @@ async function open(options) {
   if(onTrail){
     scene.background=new T.Color('#adc8b7');
     scene.fog=new T.Fog('#adc8b7',8,23);
-    trailScene=Trail.build(scene);terrain=trailScene.terrain;
+    trailScene=Trail.build(scene,data.leaf_up);terrain=trailScene.terrain;
     trailScene.group.traverse(o=>{if(o.isMesh){ownedGeometry.add(o.geometry);ownedMaterials.add(o.material);}});
   }
   camera = new T.PerspectiveCamera(44, 1, 0.1, 120);
@@ -1249,8 +1292,8 @@ window.DaviForest = {
   open,
   close,
   action,
-  project(x,z) {
-    const p=new T.Vector3(x,floor(x,z),z).project(camera),rect=canvas.getBoundingClientRect();
+  project(x,z,y=floor(x,z)) {
+    const p=new T.Vector3(x,y,z).project(camera),rect=canvas.getBoundingClientRect();
     const visible=Math.abs(p.x)<1&&Math.abs(p.y)<1&&Math.abs(p.z)<1;
     let groundVisible=visible;
     if(onTrail&&visible){
@@ -1284,6 +1327,7 @@ window.DaviForest = {
         : gl?.getParameter(gl.RENDERER),
       vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : null,
       place:onTrail?"trail":"forest",region:currentRegion,
+      shelter:trailScene?.shelter.diagnostics()??null,
       frames: stats.frames,
       frameMs: stats.times.slice(),
       loadMs: stats.loads,

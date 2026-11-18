@@ -45,3 +45,15 @@ class ForestTests(HttpFixture):
   import http.client
   for path,status in [('/assets/forest/davi.glb',200),('/vendor/three/addons/loaders/GLTFLoader.js',200),('/assets/forest/../../server.py',404),('/assets/forest/asset-report.json',404)]:
    c=http.client.HTTPConnection('127.0.0.1',self.port);c.request('GET',path);r=c.getresponse();self.assertEqual(r.status,status,path);r.read();c.close()
+
+ def test_shelter_leaf_is_reversible_and_independent_of_world_progress(self):
+  trail='/api/forest/trail'
+  change=trail+'/shelter'
+  self.assertFalse(self.child.request(trail)[1]['leaf_up'])
+  before=self.child.request('/api/world')[1]
+  self.assertEqual(self.child.request(change,'PUT',{'leaf_up':1})[0],400)
+  self.assertEqual(self.child.request(change,'PUT',{'leaf_up':True},**{'X-CSRF-Token':''})[0],403)
+  for value in (True,True,False):
+   self.assertEqual(self.child.request(change,'PUT',{'leaf_up':value})[:2], (200,{'leaf_up':value}))
+   self.assertIs(self.parent.request(trail)[1]['leaf_up'],value)
+  self.assertEqual(self.child.request('/api/world')[1],before)

@@ -60,7 +60,7 @@ async function session(
     windowsHide: true,
   });
   server.stderr.resume();
-  let browser, api;
+  let browser, context, api;
   try {
     api = await request.newContext({ baseURL: base, extraHTTPHeaders: { Origin: base } });
     for (let i = 0; i < 100; i++) {
@@ -93,7 +93,7 @@ async function session(
     browser = await chromium.launch({
       args: ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu', '--disable-software-rasterizer'],
     });
-    const context = await browser.newContext({
+    context = await browser.newContext({
       baseURL: base,
       viewport,
       hasTouch: true,
@@ -147,6 +147,7 @@ async function session(
         { windowsHide: true }
       );
   } finally {
+    if (context) await context.close();
     if (browser) await browser.close();
     if (api) await api.dispose();
     const exited = new Promise((resolve) => server.once('exit', resolve));

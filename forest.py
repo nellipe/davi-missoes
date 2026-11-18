@@ -59,7 +59,18 @@ def trail_scene(c):
     position = json.loads(row[0]) if row else TRAIL['spawn']
     if not trail_walkable(position['x'], position['z']):
         position = TRAIL['spawn']
-    return {'economy': world.scene(c), 'layout': TRAIL, 'position': position}
+    leaf = c.execute("SELECT value FROM settings WHERE key='trail_shelter_leaf'").fetchone()
+    return {'economy': world.scene(c), 'layout': TRAIL, 'position': position,
+            'leaf_up': bool(leaf and leaf[0] == 'up')}
+
+
+def shelter_leaf(c, body):
+    leaf_up = body.get('leaf_up')
+    if type(leaf_up) is not bool:
+        raise ValueError('Escolha uma posição para a folha.')
+    c.execute("INSERT INTO settings(key,value) VALUES('trail_shelter_leaf',?) "
+              "ON CONFLICT(key) DO UPDATE SET value=excluded.value", ('up' if leaf_up else 'down',))
+    return {'leaf_up': leaf_up}
 
 
 def trail_move(c, body):

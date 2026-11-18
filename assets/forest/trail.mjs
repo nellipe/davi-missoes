@@ -1,5 +1,6 @@
 import * as T from '/vendor/three/three.module.min.js';
 import { terrainHeight } from './navigation.mjs';
+import { buildShelter } from './beetle.mjs';
 
 let layout;
 export function configure(map) {
@@ -19,7 +20,7 @@ export function region(x, z) {
 export function hint(x, z) {
   if (z > 8) return 'A água chega pelo vão da sebe. A roda fica aqui na volta.';
   if (z < -6.5) return 'As lajes e a casca voltam ao varal. A roda fica depois dele.';
-  if (x < -3) return 'De pertinho, dá para olhar por dentro do tronco.';
+  if (x < -3) return 'Vi duas patinhas perto da ponta prateada.';
   if (x > 4.5) return 'Esta pedra tem uma irmã do outro lado do vale. Quer ouvir a resposta?';
   return 'Vejo casca de um lado e lajes do outro. Qual chão você quer experimentar?';
 }
@@ -63,7 +64,7 @@ for (let j = 0; j <= grid.n; j++)
     grid.heights.push(height(-24 + (48 * i) / grid.n, -24 + (48 * j) / grid.n));
 export const floor = (x, z) => terrainHeight(grid, x, z) + 0.012;
 
-export function build(scene) {
+export function build(scene, leafUp) {
   let seed = 7239;
   const random = () => (seed = (Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296;
   const group = new T.Group();
@@ -229,15 +230,18 @@ export function build(scene) {
   }
   moving(boat, 'slab', '#715c3c', 0, 0.07, 0, 0.027, 0.045, 0.69);
   // A dyed cloth hangs at the fork. Parallel grain and limestone treads distinguish the branches.
-  for (const x of [0.0, 1.68]) piece('trunk', '#785b44', x, floor(x, 6.3) + 1.35, 6.3, 0.085, 2.7, 0.085);
-  piece('slab', '#9d7751', 0.84, floor(0.84, 6.3) + 2.67, 6.3, 1.88, 0.09, 0.12);
+  const forkZ = 2.95;
+  const forkX = 2.95;
+  for (const x of [forkX - .72, forkX + .72])
+    piece('trunk', '#785b44', x, floor(forkX, forkZ) + 1.25, forkZ, 0.085, 2.5, 0.085);
+  piece('slab', '#9d7751', forkX, floor(forkX, forkZ) + 2.48, forkZ, 1.62, 0.09, 0.12);
   for (let i = 0; i < 4; i++)
     piece(
       'slab',
       i % 2 ? '#bf7755' : '#e8c57a',
-      0.22 + i * 0.39,
-      floor(0.84, 6.3) + 2.37,
-      6.3,
+      forkX - .52 + i * .34,
+      floor(forkX, forkZ) + 2.19,
+      forkZ,
       0.28,
       0.55,
       0.06,
@@ -246,7 +250,7 @@ export function build(scene) {
       0.08 * i
     );
   for (const [index, color] of [
-    [1, '#ac8961'],
+    [1, '#8b6241'],
     [2, '#bdba9a'],
   ]) {
     const line = layout.paths[index].points;
@@ -264,9 +268,9 @@ export function build(scene) {
           x,
           floor(x, z) + 0.003,
           z,
-          index === 1 ? 0.8 : 1.28,
+          index === 1 ? 1.2 : 1.28,
           0.045,
-          index === 1 ? 0.13 : 0.38,
+          index === 1 ? 0.25 : 0.38,
           0,
           Math.atan2(c - a, d - b),
           0
@@ -300,30 +304,8 @@ export function build(scene) {
     const grain = logPart(new T.RingGeometry(0.81, 0.84, 12), '#9b7451');
     grain.position.z = sign * 1.081;
   }
-  const silver = new T.Group();
-  group.add(silver);
-  silver.position.set(-9.87, floor(-9.87, 0.54) + 0.87, 0.54);
-  silver.rotation.set(0.48, -0.28, -0.52);
-  moving(silver, 'leaf', '#729b52', 0, 0.04, 0, 0.48, 0.087, 0.92);
-  moving(silver, 'leaf', '#e7ead2', 0, -0.038, 0, 0.48, 0.075, 0.92);
-  for (const side of [-1, 1]) {
-    moving(silver, 'slab', '#c2ac69', 0, side * 0.117, -0.08, 0.029, 0.026, 1.65);
-    for (let k = 0; k < 3; k++)
-      for (const sign of [-1, 1]) {
-        moving(
-          silver,
-          'slab',
-          '#9dae74',
-          sign * (0.11 + k * 0.018),
-          side * 0.106,
-          -0.47 + k * 0.31,
-          0.028,
-          0.027,
-          0.34
-        ).rotation.y = sign * 0.75;
-      }
-  }
-  rock(-9.96, 0.34, 0.69, 0.72, 0.54, '#788b74');
+  const shelter = buildShelter(floor, leafUp);
+  group.add(shelter.group);
   for (let i = 0; i < 3; i++) rock(8 + 0.22 * i, 0.9 - 0.65 * i, 0.43, 0.8 + i * 0.3, 0.35, '#abac94');
   const pulse = moving(group, 'ring', '#f9da8e', 7.8, floor(7.8, 0.35) + 1, 0.35, 0.1, 0.1, 0.1);
   // Water drops through a notch between two limestone faces, beyond the walkable shelf.
@@ -353,14 +335,14 @@ export function build(scene) {
     group.add(mesh);
     if (list.some((p) => p.shield)) blockers.push({ mesh, list });
   }
-  let leafUp = false,
-    echoAt = -10,
+  let echoAt = -10,
     boatAt = 0,
     echoPending = false;
   const hideMatrix = new T.Matrix4().makeScale(0, 0, 0);
   return {
     group,
     terrain,
+    shelter,
     blocksTap(ray, hit) {
       if (ray.intersectObject(log, true).some((p) => p.distance + 0.02 < hit.distance)) return true;
       return blockers.some(({ mesh, list }) =>
@@ -370,13 +352,6 @@ export function build(scene) {
       );
     },
     interact(id, t) {
-      if (id === 'leaf') {
-        leafUp = !leafUp;
-        silver.rotation.z = leafUp ? 2.68 : -0.52;
-        return leafUp
-          ? 'Pipo se inclina. O avesso da folha é prateado!'
-          : 'A folha mostra de novo seu lado verde.';
-      }
       if (id === 'echo') {
         echoAt = t;
         echoPending = true;

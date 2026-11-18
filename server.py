@@ -417,6 +417,9 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/forest/trail/move' and method=='PUT':
                 with LOCK, db() as c:result=forest.trail_move(c,body)
                 return self.send(200,result)
+            if path=='/api/forest/trail/shelter' and method=='PUT':
+                with LOCK, db() as c:result=forest.shelter_leaf(c,body)
+                return self.send(200,result)
             if path=='/api/forest/move' and method=='PUT':
                 with LOCK, db() as c:result=forest.move(c,body)
                 return self.send(200,result)

@@ -515,6 +515,7 @@
   max-width:40%; margin:0; font-size:.92rem; line-height:1.35; pointer-events:none;
 }
 .trail-shell .forest-interact:disabled { visibility:hidden; }
+.trail-shell #forestMessage:empty { display:none; }
 .forest-tools .forest-now { color:#fff9dc; background:#326147; border-color:#31543c; }
 @media(max-width:700px) {
   .forest-shell:not(.trail-shell) .forest-title { flex-wrap:wrap; }

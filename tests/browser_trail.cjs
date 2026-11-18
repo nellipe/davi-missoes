@@ -151,8 +151,8 @@ session(
       await walk(-7.4, 2.6);
       await walk(-9, 1.4);
       await click('forest-nearby');
-      assert.match(await page.locator('#forestMessage').innerText(), /prateado/);
-      await mark('Avesso da folha');
+      await page.waitForFunction(() => DaviForest.diagnostics().shelter.leafUp);
+      await mark('Folha do abrigo');
       await shot('tronco-1366');
       await page.waitForTimeout(800);
       await walk(-7.4, 2.6);
