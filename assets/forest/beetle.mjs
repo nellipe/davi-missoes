@@ -3,7 +3,7 @@ import * as T from '/vendor/three/three.module.min.js';
 export function buildShelter(floor, leafUp) {
   const group = new T.Group();
   group.position.set(-10.45, floor(-10.45, -.06), -.06);
-  const sphere = new T.SphereGeometry(1, 12, 8);
+  const sphere = new T.SphereGeometry(1, 14, 9);
   const stick = new T.BoxGeometry(1, 1, 1);
   const drop = new T.OctahedronGeometry(1);
   const materials = new Map();
@@ -23,13 +23,14 @@ export function buildShelter(floor, leafUp) {
   ], 3));
   leaf.setIndex([8, 0, 1, 8, 1, 2, 8, 2, 3, 8, 3, 4, 8, 4, 5, 8, 5, 6, 8, 6, 7, 8, 7, 0]);
   leaf.computeVertexNormals();
-  const wood = '#826044', shell = '#a9563d', dark = '#31272a';
+  const wood = '#826044', shell = '#ba6336', dark = '#352525';
   // A shallow bend in the leaf carries water to one end of the fork.
   const hinge = new T.Group();
   hinge.position.set(-.24, .65, .01);
   group.add(hinge);
   const roof = part(hinge, leaf, '#a0bd5d', [0, 0, 0], [1.2, 1, 1.08]);
   roof.material.side = T.DoubleSide;
+  roof.material.roughness = .72;
   part(hinge, sphere, '#e4d78d', [0, .13, -.04], [.035, .055, .65]);
   for (const side of [-1, 1]) {
     const leg = part(group, stick, wood, [-.24 + side * .48, .31, -.12], [.105, .68, .11]);
@@ -39,28 +40,34 @@ export function buildShelter(floor, leafUp) {
   twig.rotation.x = .12;
   const stem = part(group, stick, wood, [-.43, .69, -.89], [.14, 1.48, .14]);
   stem.rotation.z = -.05;
-  const water = '#63cfd1';
+  const water = '#47ccdf';
   const falling = part(group, drop, water, [-.31, 1.23, -.06], [.080, .16, .073]);
   const runnel = part(group, sphere, water, [-.24, .04, 0], [.105, .032, .33]);
-  const pool = part(group, sphere, '#428c92', [-.35, .027, 0], [.43, .052, .25]);
+  const pool = part(group, sphere, '#2d8793', [-.35, .027, 0], [.50, .052, .30]);
   const ripple = part(group, sphere, '#a9eef0', [-.32, .074, 0], [.22, .014, .072]);
   const drip = part(group, drop, water, [-.24, .35, 0], [.067, .14, .067]);
 
   const beetle = new T.Group();
-  beetle.scale.setScalar(1.18);
+  beetle.scale.setScalar(1.32);
   group.add(beetle);
   part(beetle, sphere, dark, [0, .21, .04], [.26, .17, .35]);
   for (const side of [-1, 1]) {
-    part(beetle, sphere, shell, [side * .137, .31, -.075], [.16, .16, .32]);
-    part(beetle, sphere, '#e79857', [side * .17, .409, .035], [.075, .064, .103]);
+    const wing = part(beetle, sphere, shell, [side * .141, .31, -.075], [.154, .16, .32]);
+    wing.material.roughness = .39;
+    part(beetle, sphere, '#e8a253', [side * .17, .433, .035], [.073, .045, .101]);
   }
   part(beetle, sphere, dark, [0, .24, .29], [.206, .17, .162]);
+  const antennae = [];
   for (const side of [-1, 1]) {
-    part(beetle, sphere, '#fff3d3', [side * .097, .28, .414], [.065, .072, .044]);
+    part(beetle, sphere, '#fff3d3', [side * .102, .28, .414], [.077, .080, .047]);
     part(beetle, sphere, dark, [side * .099, .285, .448], [.027, .033, .014]);
-    const antenna = part(beetle, stick, dark, [side * .107, .417, .323], [.028, .21, .03]);
+    const feeler = new T.Group();
+    feeler.position.set(side*.067,.34,.323);
+    beetle.add(feeler);
+    antennae.push({ feeler, side });
+    const antenna = part(feeler, stick, dark, [side * .04, .077, 0], [.028, .21, .03]);
     antenna.rotation.z = -side * .45;
-    part(beetle, sphere, '#e79857', [side * .154, .51, .323], [.042, .041, .04]);
+    part(feeler, sphere, '#e79857', [side * .087, .177, 0], [.049, .046, .042]);
   }
   const feet = [];
   for (const side of [-1, 1]) {
@@ -117,6 +124,8 @@ export function buildShelter(floor, leafUp) {
       beetle.position.x += .24 * Math.sin(Math.PI * T.MathUtils.smoothstep(time - arrivedAt, 0, 1.45));
     }
     const stepping = !still && (start < 1 || time - arrivedAt < 1.45);
+    for(const { feeler, side } of antennae)
+      feeler.rotation.z = still ? 0 : side * (.07 + .12*Math.sin(time*(stepping?9:2.7)));
     feet.forEach((foot, i) => {
       foot.position.y = .084 + (stepping ? .036 * Math.sin(time * 19 + i * Math.PI) : 0);
     });

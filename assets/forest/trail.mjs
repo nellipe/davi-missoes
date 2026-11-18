@@ -1,6 +1,7 @@
 import * as T from '/vendor/three/three.module.min.js';
 import { terrainHeight } from './navigation.mjs';
 import { buildShelter } from './beetle.mjs';
+import { inBosque, installBosque } from './bosque.mjs';
 
 let layout;
 export function configure(map) {
@@ -64,7 +65,7 @@ for (let j = 0; j <= grid.n; j++)
     grid.heights.push(height(-24 + (48 * i) / grid.n, -24 + (48 * j) / grid.n));
 export const floor = (x, z) => terrainHeight(grid, x, z) + 0.012;
 
-export function build(scene, leafUp) {
+export function build(scene, leafUp, library, grain) {
   let seed = 7239;
   const random = () => (seed = (Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296;
   const group = new T.Group();
@@ -93,6 +94,7 @@ export function build(scene, leafUp) {
   }
   const positions = [],
     colors = [],
+    uv = [],
     indices = [];
   const grass = new T.Color('#709258'),
     earth = new T.Color('#d4b681'),
@@ -106,9 +108,23 @@ export function build(scene, leafUp) {
         border = edge(x, z);
       const c = grass.clone().lerp(moss, 0.28 + 0.23 * Math.sin(x * 0.55 + z * 0.35));
       c.lerp(x > 3.7 && z < 5 ? stonePath : earth, 1 - T.MathUtils.smoothstep(border, -0.4, 0.33));
-      c.multiplyScalar(0.95 + random() * 0.08);
+      const pigment = random();
+      c.multiplyScalar(0.95 + pigment * 0.08);
+      if (inBosque(x,z)) {
+        const roughEdge = border + .22*Math.sin(x*2.4-z*3.5) + .13*Math.cos(x*6.2+z*3.6);
+        const pathLight = 1-T.MathUtils.smoothstep(roughEdge,-.69,.53);
+        const variation = .5+.29*Math.sin(x*.98+z*.84)+.21*Math.sin(z*3.27-x*2.8);
+        const soil = new T.Color('#4a6945').lerp(new T.Color('#77864b'),variation);
+        const clay = new T.Color(x>3.7&&z<5 ? '#b2a999' : '#b9905c');
+        soil.lerp(clay,pathLight);
+        const dapple = Math.sin(x*1.88 + Math.cos(z*1.63)) * Math.sin(z*1.37-x*.89);
+        soil.multiplyScalar(.91 + .14*variation + .20*dapple + .15*pigment);
+        const taper = T.MathUtils.smoothstep(Math.min(x+13.2,10.7-x,z+4.2,9.8-z),0,2);
+        c.lerp(soil,taper);
+      }
       colors.push(c.r, c.g, c.b);
       positions.push(x, y, z);
+      uv.push(x/3.4,z/3.4);
       if (i < grid.n && j < grid.n) {
         const a = j * (grid.n + 1) + i,
           b = a + grid.n + 1;
@@ -118,9 +134,12 @@ export function build(scene, leafUp) {
   const geometry = new T.BufferGeometry();
   geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  const terrain = new T.Mesh(geometry, new T.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
+  const terrain = new T.Mesh(geometry, new T.MeshStandardMaterial({
+    vertexColors: true, roughness: 1, map: grain,
+  }));
   terrain.receiveShadow = true;
   group.add(terrain);
 
@@ -158,11 +177,13 @@ export function build(scene, leafUp) {
     [-5.5, -8.9, 1.3, 3.8, 1.3],
     [-7, -12.7, 1.15, 4.8, 1.7],
     [0.4, -13.1, 1.5, 5.3, 1.7],
-  ].forEach(([x, z, w, h, d], i) => rock(x, z, w, h, d, ['#677e73', '#7e9381', '#597674'][i % 3], i * 0.65));
+  ].forEach(([x, z, w, h, d], i) => {
+    if (!inBosque(x,z)) rock(x,z,w,h,d,['#677e73','#7e9381','#597674'][i%3],i*.65);
+  });
   for (let i = 0; i < 320; i++) {
     const x = random() * 36 - 18,
       z = random() * 36 - 18;
-    if (z < -13 || edge(x, z) < 1.4 || Math.hypot(x, z - 14) < 4 || Math.hypot(x + 8, z - 2) < 3) continue;
+    if (inBosque(x,z) || z < -13 || edge(x, z) < 1.4 || Math.hypot(x, z - 14) < 4 || Math.hypot(x + 8, z - 2) < 3) continue;
     if (random() < 0.46) tree(x, z, 2.8 + random() * 3.8);
     else
       rock(
@@ -178,7 +199,7 @@ export function build(scene, leafUp) {
   for (let i = 0; i < 530; i++) {
     const x = random() * 26 - 13,
       z = random() * 32 - 15;
-    if (z < -13 || Math.abs(edge(x, z) - 0.44) > 0.72) continue;
+    if (inBosque(x,z) || z < -13 || Math.abs(edge(x, z) - 0.44) > 0.72) continue;
     const y = floor(x, z);
     for (let k = 0; k < 3; k++)
       piece(
@@ -229,26 +250,7 @@ export function build(scene, leafUp) {
     side.rotation.z = sign * 0.45;
   }
   moving(boat, 'slab', '#715c3c', 0, 0.07, 0, 0.027, 0.045, 0.69);
-  // A dyed cloth hangs at the fork. Parallel grain and limestone treads distinguish the branches.
-  const forkZ = 2.95;
-  const forkX = 2.95;
-  for (const x of [forkX - .72, forkX + .72])
-    piece('trunk', '#785b44', x, floor(forkX, forkZ) + 1.25, forkZ, 0.085, 2.5, 0.085);
-  piece('slab', '#9d7751', forkX, floor(forkX, forkZ) + 2.48, forkZ, 1.62, 0.09, 0.12);
-  for (let i = 0; i < 4; i++)
-    piece(
-      'slab',
-      i % 2 ? '#bf7755' : '#e8c57a',
-      forkX - .52 + i * .34,
-      floor(forkX, forkZ) + 2.19,
-      forkZ,
-      0.28,
-      0.55,
-      0.06,
-      0,
-      0,
-      0.08 * i
-    );
+  // The original treads outside the art sample continue towards the gorge.
   for (const [index, color] of [
     [1, '#8b6241'],
     [2, '#bdba9a'],
@@ -262,6 +264,7 @@ export function build(scene, leafUp) {
         const t = (k + 0.5) / count,
           x = a + (c - a) * t,
           z = b + (d - b) * t;
+        if (inBosque(x,z)) continue;
         piece(
           'slab',
           color,
@@ -278,32 +281,7 @@ export function build(scene, leafUp) {
       }
     }
   }
-  // The spur skirts the open end of the fallen trunk; the return view looks down its bore.
-  const log = new T.Group();
-  log.position.set(-7.78, floor(-7.78, 0.24) + 0.87, 0.24);
-  log.rotation.y = 0.21;
-  group.add(log);
-  const logPart = (geometry, color) => {
-    const mesh = new T.Mesh(
-      geometry,
-      new T.MeshStandardMaterial({ color, flatShading: true, side: T.DoubleSide })
-    );
-    mesh.castShadow = true;
-    log.add(mesh);
-    return mesh;
-  };
-  for (const [radius, color] of [
-    [1.03, '#79503b'],
-    [0.69, '#443d32'],
-  ]) {
-    logPart(new T.CylinderGeometry(radius, radius * 0.95, 2.15, 12, 1, true), color).rotation.x = Math.PI / 2;
-  }
-  for (const sign of [-1, 1]) {
-    const end = logPart(new T.RingGeometry(0.67, 1.02, 12), '#c29a68');
-    end.position.z = sign * 1.078;
-    const grain = logPart(new T.RingGeometry(0.81, 0.84, 12), '#9b7451');
-    grain.position.z = sign * 1.081;
-  }
+  const art = installBosque(group, library, layout, floor, edge);
   const shelter = buildShelter(floor, leafUp);
   group.add(shelter.group);
   for (let i = 0; i < 3; i++) rock(8 + 0.22 * i, 0.9 - 0.65 * i, 0.43, 0.8 + i * 0.3, 0.35, '#abac94');
@@ -343,8 +321,9 @@ export function build(scene, leafUp) {
     group,
     terrain,
     shelter,
+    setEconomy: art.setEconomy,
     blocksTap(ray, hit) {
-      if (ray.intersectObject(log, true).some((p) => p.distance + 0.02 < hit.distance)) return true;
+      if (art.blocksTap(ray,hit)) return true;
       return blockers.some(({ mesh, list }) =>
         ray
           .intersectObject(mesh, false)
@@ -365,6 +344,7 @@ export function build(scene, leafUp) {
       return 'Pela abertura, a água se desfaz em espuma. A corrente segue em direção à roda.';
     },
     tick(t, still, camera, hero) {
+      art.clearSight(camera,hero);
       if (!still) wheel.rotation.z = -t * 0.65;
       boat.position.z = 9.0 + (still ? 0.76 : ((t - boatAt) % 7) / 7) * 4.5;
       const age = t - echoAt;

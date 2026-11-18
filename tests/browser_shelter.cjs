@@ -5,11 +5,15 @@ const { session, diag, ready, distance, out, save } = require('./forest_session.
 const width = Number(process.argv[2] || 1366);
 const mobile = width < 700;
 const height = mobile ? 850 : 820;
-const stem = 'besouro-' + width;
+const profile = process.env.FOREST_PROFILE;
+const captureOnly = process.env.FOREST_CAPTURE_ONLY === '1';
+const suffix = width + (profile ? '-' + profile : '');
+const stem = 'besouro-' + suffix;
 
 session(stem, async ({ page, api, guided }) => {
   const start = performance.now();
   const stops = [];
+  const samples = [];
   const action = (name) => page.locator('[data-action="' + name + '"]');
   const press = (name) => mobile ? action(name).tap() : action(name).click();
   const point = (x, z) => page.evaluate(([a, b]) => {
@@ -61,8 +65,27 @@ session(stem, async ({ page, api, guided }) => {
       region: d.region, position: d.position, shelter: d.shelter });
     console.log(width, name, d.position);
   }
+  async function measure(scene) {
+    const result = await page.evaluate(async () => {
+      const canvas = document.getElementById('forestCanvas');
+      const start = Number(canvas.dataset.frames);
+      do { await new Promise(requestAnimationFrame); }
+      while (Number(canvas.dataset.frames) < start + 36);
+      const d = DaviForest.diagnostics();
+      const frames = d.frameMs.slice(-36).sort((a,b) => a-b);
+      return { p95ms: frames[Math.ceil(frames.length*.95)-1], calls: d.calls,
+        triangles: d.triangles, loadMs: d.readyMs, geometryBytes: d.geometryBufferBytes,
+        textureBytes: d.estimatedTextureBytes, pixelRatio: d.pixelRatio, low: d.low };
+    });
+    if (profile) assert.equal(result.low, profile === 'low');
+    samples.push({ scene, ...result });
+  }
   function shot(name) {
-    return page.screenshot({ path: path.join(out, name + '-' + width + '.png') });
+    return page.screenshot({ path: path.join(out, name + '-' + suffix + '.png') });
+  }
+  async function record() {
+    save(stem, { stops, samples, fork, activeTask: guided.title, width,
+      renderer: (await diag(page)).renderer });
   }
   async function expectShelter(expected) {
     await page.waitForFunction((beetle) => {
@@ -79,9 +102,16 @@ session(stem, async ({ page, api, guided }) => {
   const agenda = async () => (await (await api.get(events)).json()).events;
   const beforeEvent = (await agenda()).find((item) => item.id === guided.id);
   assert.equal(before.stars, 0);
+  if (profile) {
+    await press('forest-options');
+    await page.locator('#forestQuality').selectOption(profile);
+    await press('forest-close');
+  }
   await press('forest-enter-trail');
-  await page.waitForFunction(() => DaviForest.diagnostics().place === 'trail');
-  await ready(page);
+  await page.waitForFunction(() => {
+    const d = DaviForest.diagnostics();
+    return d.place === 'trail' && !!d.position && !!document.querySelector('#forestCanvas[data-ready=true]');
+  });
   await page.evaluate(() => scrollTo(0, 0));
   await mark('soleira');
   await walk(2.7, 11.5);
@@ -91,6 +121,7 @@ session(stem, async ({ page, api, guided }) => {
   const fork = { casca: await point(1.25, 4.72), lajes: await point(3.72, 4.21) };
   for (const branch of Object.values(fork)) assert(branch.groundVisible && branch.free, JSON.stringify(fork));
   await shot('bifurcacao');
+  if(profile) await measure('bifurcacao');
   if (mobile) {
     await touch(fork.lajes);
     await page.waitForFunction(() => {
@@ -130,6 +161,12 @@ session(stem, async ({ page, api, guided }) => {
   assert(distance(initial.pool, changed.pool) > 1);
   await mark('folha virada');
   await shot('abrigo');
+  if(profile) await measure('abrigo');
+  if(captureOnly) {
+    assert.deepEqual(await (await api.get('/api/world')).json(),before);
+    await record();
+    return;
+  }
   await leave();
   await walk(-6, -1.8);
   await walk(-4, -4.7);
@@ -177,6 +214,6 @@ session(stem, async ({ page, api, guided }) => {
   const after = await (await api.get('/api/world')).json();
   assert.deepEqual(after, before);
   assert.deepEqual((await agenda()).find((item) => item.id === guided.id), beforeEvent);
-  save(stem, { stops, fork, activeTask: guided.title, width, renderer: (await diag(page)).renderer });
-}, !mobile, { stars: 0, viewport: { width, height }, videoSize: { width, height }, videoFps: 24 })
+  await record();
+}, !mobile && !captureOnly, { stars: 0, viewport: { width, height }, videoSize: { width, height }, videoFps: 24 })
   .catch((error) => { console.error(error); process.exitCode = 1; });

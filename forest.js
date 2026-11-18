@@ -168,7 +168,7 @@ function store(key, value) {
 }
 async function assets() {
   const loader=new GLTFLoader();
-  const names=onTrail?['davi','pipo']:['forest','bridge','treehouse','davi','pipo','activity'];
+  const names=onTrail?['davi','pipo','bosque']:['forest','bridge','treehouse','davi','pipo','activity'];
   return Promise.all(names.map(name=>{
     if(!assetCache.has(name))assetCache.set(name,loader.loadAsync('/assets/forest/'+name+'.glb')
       .then(asset=>({name,...asset})).catch(error=>{assetCache.delete(name);throw error;}));
@@ -536,6 +536,7 @@ function setQuality() {
   for (const g of staticGroups) {
     if (g.userData.detail) g.visible = !low;
   }
+  trailScene?.setEconomy(low);
   resize();
 }
 async function save() {
@@ -700,6 +701,15 @@ function tick(now) {
     const gap=Math.hypot(x+9,z-1.4);
     shelter.group.visible=gap<10;
     if(shelter.group.visible && shelter.tick(clock,still,gap<2.3)) reactUntil=clock+1.5;
+    if(gap<1.7 && !moving && !target){
+      const sight=shelter.group.position;
+      const lookAtShelter=(character)=>{
+        const turn=Math.atan2(sight.x-character.position.x,sight.z-character.position.z)-character.rotation.y;
+        character.rotation.y+=Math.atan2(Math.sin(turn),Math.cos(turn))*(still?1:Math.min(1,dt*6));
+      };
+      lookAtShelter(player);
+      if(!buddyMoving) lookAtShelter(pipo);
+    }
     trailScene.tick(clock,still,camera.position,player.position);
   }else updateLabels();
   renderer.info.reset();
@@ -1151,14 +1161,12 @@ async function open(options) {
   scene.background = new T.Color("#608580");
   scene.fog = new T.FogExp2("#6e9188", 0.014);
   if(onTrail){
-    scene.background=new T.Color('#adc8b7');
-    scene.fog=new T.Fog('#adc8b7',8,23);
-    trailScene=Trail.build(scene,data.leaf_up);terrain=trailScene.terrain;
-    trailScene.group.traverse(o=>{if(o.isMesh){ownedGeometry.add(o.geometry);ownedMaterials.add(o.material);}});
+    scene.background=new T.Color('#9cbcb6');
+    scene.fog=new T.Fog('#9cbcb6',10,28);
   }
   camera = new T.PerspectiveCamera(44, 1, 0.1, 120);
-  scene.add(new T.HemisphereLight("#fff0cc", "#365943", 1.7));
-  const sun = new T.DirectionalLight("#ffe8be", 2.7);
+  scene.add(new T.HemisphereLight("#fff0cc", "#365943", onTrail ? 1.65 : 1.7));
+  const sun = new T.DirectionalLight("#ffe8be", onTrail ? 2.10 : 2.7);
   sun.position.set(-12, 24, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -1179,11 +1187,25 @@ async function open(options) {
   rim.position.set(10, 8, -13);
   scene.add(rim);
   const started = performance.now();
-  const loaded = await assets();
-  if(token!==generation)return false;
+  const [loaded, grain] = await Promise.all([
+    assets(),
+    onTrail ? new T.TextureLoader().loadAsync('/assets/forest/bosque-solo.png').catch(() => null) : null,
+  ]);
+  if(token!==generation){grain?.dispose();return false;}
+  if(onTrail){
+    if(grain){
+      grain.wrapS=grain.wrapT=T.RepeatWrapping;
+      grain.colorSpace=T.SRGBColorSpace;
+      grain.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+      ownedTextures.add(grain);
+    }
+    trailScene=Trail.build(scene,data.leaf_up,loaded.find(asset=>asset.name==='bosque').scene,grain);
+    terrain=trailScene.terrain;
+    trailScene.group.traverse(o=>{if(o.isMesh){ownedGeometry.add(o.geometry);ownedMaterials.add(o.material);}});
+  }
   stats.loads.push(performance.now() - started);
   for (const asset of loaded) {
-    if(asset.name==='activity')continue;
+    if(asset.name==='activity'||asset.name==='bosque')continue;
     const root = cloneRig(asset.scene);
     const materialCopies = new Map();
     root.traverse((o) => {
