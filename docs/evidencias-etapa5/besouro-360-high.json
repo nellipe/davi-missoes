@@ -1,0 +1,130 @@
+{
+  "stops": [
+    {
+      "name": "soleira",
+      "seconds": 1.4,
+      "region": "Soleira da Roda Baixa",
+      "position": [
+        0,
+        0.018508252712314228,
+        14
+      ],
+      "shelter": {
+        "leafUp": false,
+        "beetle": [
+          -9.879999999999999,
+          0.026601687337175873,
+          -0.009999999999999995
+        ],
+        "pool": [
+          -10.649999999999999,
+          0.08766858024998453,
+          1.18
+        ],
+        "leaf": [
+          -10.69,
+          0.6593653303281645,
+          -0.049999999999999996
+        ]
+      }
+    },
+    {
+      "name": "folha inicial",
+      "seconds": 19.6,
+      "region": "Bosque das Bainhas",
+      "position": [
+        -9.040880321420106,
+        0.04122459236560298,
+        1.3940290710427714
+      ],
+      "shelter": {
+        "leafUp": false,
+        "beetle": [
+          -9.879999999999999,
+          0.026601687337175873,
+          -0.009999999999999995
+        ],
+        "pool": [
+          -10.649999999999999,
+          0.08766858024998453,
+          1.18
+        ],
+        "leaf": [
+          -10.69,
+          0.6593653303281645,
+          -0.049999999999999996
+        ]
+      }
+    },
+    {
+      "name": "folha virada",
+      "seconds": 21.4,
+      "region": "Bosque das Bainhas",
+      "position": [
+        -9.040880321420106,
+        0.04122459236560298,
+        1.3940290710427714
+      ],
+      "shelter": {
+        "leafUp": true,
+        "beetle": [
+          -10.75,
+          0.039839026997168694,
+          0.29
+        ],
+        "pool": [
+          -11.739999999999998,
+          0.07867672444076974,
+          0.9199999999999999
+        ],
+        "leaf": [
+          -10.69,
+          0.6593653303281645,
+          -0.049999999999999996
+        ]
+      }
+    }
+  ],
+  "samples": [
+    {
+      "scene": "bifurcacao",
+      "p95ms": 16.80000000000109,
+      "calls": 125,
+      "triangles": 203676,
+      "loadMs": 882.8999999910593,
+      "geometryBytes": 1628372,
+      "textureBytes": 3582635,
+      "pixelRatio": 1,
+      "low": false
+    },
+    {
+      "scene": "abrigo",
+      "p95ms": 16.700000000000728,
+      "calls": 143,
+      "triangles": 202746,
+      "loadMs": 882.8999999910593,
+      "geometryBytes": 1628372,
+      "textureBytes": 3582635,
+      "pixelRatio": 1,
+      "low": false
+    }
+  ],
+  "fork": {
+    "casca": {
+      "x": 121.33241834713921,
+      "y": 418.4948218382558,
+      "visible": true,
+      "groundVisible": true,
+      "free": true
+    },
+    "lajes": {
+      "x": 255.15092686116247,
+      "y": 405.68195815276295,
+      "visible": true,
+      "groundVisible": true,
+      "free": true
+    }
+  },
+  "width": 360,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}
