@@ -155,7 +155,7 @@ class WorldTests(HttpFixture):
         events=self.child.request('/api/calendar?start=2026-11-17&end=2026-11-18')[1]['events']
         self.assertFalse(events[0]['done'])
         self.assertFalse(self.parent.request(f'/api/events/{self.eid}/mission?date=2026-11-17')[1]['mission']['steps'][0]['done'])
-        self.assertEqual(self.parent.request('/api/me')[1]['version'],'0.7A-1')
+        self.assertEqual(self.parent.request('/api/me')[1]['version'],server.APP_VERSION)
 
     def test_upgrade_previous_world_preserves_ledger_inventory_and_legacy_credit(self):
         self.finish()

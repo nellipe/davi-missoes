@@ -117,7 +117,7 @@ async function session(
     page.setDefaultTimeout(9000);
     await page.goto(base);
     await ready(page);
-    await run({ page, context, api, guided, plain, errors, write, browser });
+    await run({ page, context, api, guided, plain, errors, write, browser, parentPassword: password });
     assert.deepEqual(errors, []);
     const video = page.video();
     await context.close();

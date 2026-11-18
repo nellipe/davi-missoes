@@ -13,16 +13,16 @@ session(
         .getExtension('WEBGL_lose_context');
       testLoss.loseContext();
     });
-    await page.waitForFunction(() => ForestQA.events.some((e) => e.type === 'webgl-lost'));
+    await page.waitForFunction(() => DaviForest.telemetry().events.some((e) => e.type === 'webgl-lost'));
     await page.waitForTimeout(300);
     await page.evaluate(() => testLoss.restoreContext());
     await page.waitForFunction(
-      () => ForestQA.events.some((e) => e.type === 'webgl-restored') && DaviForest.diagnostics().webgl
+      () => DaviForest.telemetry().events.some((e) => e.type === 'webgl-restored') && DaviForest.diagnostics().webgl
     );
     assert(distance(at, (await diag(page)).position) < 0.025);
     await page.evaluate(() => testLoss.loseContext());
     await page.locator('#worldMap').waitFor({ timeout: 12000 });
-    const events = await page.evaluate(() => ForestQA.events.map((e) => e.type));
+    const events = await page.evaluate(() => DaviForest.telemetry().events.map((e) => e.type));
     assert(events.includes('fallback'));
     assert.equal((await diag(page)).view, '2d');
     assert.equal((await diag(page)).webgl, false);

@@ -23,7 +23,36 @@ import forest
 import schedule_window as timing
 
 ROOT = Path(__file__).resolve().parent
-APP_VERSION = '0.7A-1'
+APP_VERSION = '0.7B-chibi.1'
+
+
+def checkout_commit(root):
+    """Read the served checkout at process start, including linked worktrees."""
+    git = root / '.git'
+    try:
+        if git.is_file():
+            git = (root / git.read_text().strip().removeprefix('gitdir: ')).resolve()
+        head = (git / 'HEAD').read_text().strip()
+        if head.startswith('ref: refs/'):
+            ref = head[5:]
+            shared = git
+            if (git / 'commondir').is_file():
+                shared = (git / (git / 'commondir').read_text().strip()).resolve()
+            for entry in (git / ref, shared / ref):
+                if entry.is_file():
+                    head = entry.read_text().strip()
+                    break
+            else:
+                for entry in (shared / 'packed-refs').read_text().splitlines():
+                    if entry.endswith(' ' + ref):
+                        head = entry.split(' ', 1)[0]
+                        break
+        return head if re.fullmatch(r'[0-9a-f]{40}', head) else None
+    except (OSError, UnicodeError):
+        return None
+
+
+BUILD_COMMIT = checkout_commit(ROOT)
 DATA = Path(os.environ.get("DAVI_DATA_DIR", ROOT / "dados")).resolve()
 DB = DATA / "agenda.sqlite3"
 CONFIG = Config()
@@ -303,6 +332,8 @@ class Handler(BaseHTTPRequestHandler):
                 name='app.html' if path=='/' else path[1:]
                 kind='text/html; charset=utf-8' if name.endswith('.html') else 'text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
                 return self.send(200,(ROOT/name).read_bytes(),kind)
+            if path=='/api/build':
+                return self.send(200,{'version':APP_VERSION,'commit':BUILD_COMMIT})
             if path=="/api/me":
                 session=self.session()
                 extra={}
@@ -320,6 +351,10 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith('/api/') and not (self.session() or (
                     CONFIG.auto_child and path in ('/api/calendar','/api/holidays'))):
                 return self.fail("Autorize este dispositivo com o responsável.",403)
+            if path=='/api/forest/diagnostics':
+                if not self.is_parent():
+                    return self.fail('Acesso do responsável necessário.',403)
+                return self.send(200,{'version':APP_VERSION,'commit':BUILD_COMMIT})
             if path=="/api/holidays":
                 year=int(parse_qs(url.query).get("year",[str(today().year)])[0])
                 if not 2000<=year<=2100: raise ValueError("Ano fora do intervalo.")

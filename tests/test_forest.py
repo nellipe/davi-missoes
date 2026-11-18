@@ -81,3 +81,11 @@ class ForestTests(HttpFixture):
   self.assertEqual(self.parent.request(endpoint+'?resume=trail')[1]['position'],position)
   self.assertEqual(self.child.request('/api/world')[1],before)
   self.assertEqual(self.child.request('/api/forest/trail')[1]['position'],old)
+
+ def test_diagnostics_requires_parent_and_contains_only_build_identity(self):
+  status,public,_=self.child.request('/api/build')
+  self.assertEqual(status,200)
+  self.assertEqual(set(public),{'version','commit'})
+  self.assertRegex(public['commit'],r'^[0-9a-f]{40}$')
+  self.assertEqual(self.child.request('/api/forest/diagnostics')[0],403)
+  self.assertEqual(self.parent.request('/api/forest/diagnostics')[:2],(200,public))

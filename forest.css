@@ -517,6 +517,13 @@
 .trail-shell .forest-interact:disabled { visibility:hidden; }
 .trail-shell #forestMessage:empty { display:none; }
 .forest-map-2d { display:block; width:100%; height:100%; position:absolute; inset:0; touch-action:none; }
+.trail-hud > div:first-child { background:#254e47f5; border:1px solid #ffe7b336; }
+#forestFamilyDiagnostics {
+  position:fixed; z-index:1000; right:10px; bottom:10px; max-width:calc(100vw - 20px);
+  padding:9px 12px; border:1px solid #a3bbad; border-radius:12px;
+  background:#fffdf0; color:#29443e; font-size:.85rem; box-shadow:0 4px 16px #152c2638;
+}
+#forestFamilyDiagnostics output { display:block; margin:8px 0; }
 .forest-tools .forest-now { color:#fff9dc; background:#326147; border-color:#31543c; }
 @media(max-width:700px) {
   .forest-shell:not(.trail-shell) .forest-title { flex-wrap:wrap; }

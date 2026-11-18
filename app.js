@@ -1,5 +1,6 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
+let stopForestDiagnostics;
 const state = {
   me: null,
   forestMode: null,
@@ -594,7 +595,7 @@ async function parentMonth() {
   }
   const selected = dayEvents(state.selected);
   layout(
-    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável · versão ' + esc(state.me.version || 'anterior') + '</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="world-settings">Mundo e estrelas</button><button data-action="mission-library">Roteiros de missões</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
+    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável · versão ' + esc(state.me.version || 'anterior') + '</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="world-settings">Mundo e estrelas</button><button data-action="mission-library">Roteiros de missões</button><button data-action="forest-diagnostics-start">Medir desempenho</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
       '<div class="panel calendar-panel"><div class="row between"><h2>' +
       esc(fmt(first, { month: "long", year: "numeric" })) +
       '</h2><div class="row calendar-controls"><button data-action="monthprev">← Mês anterior</button><button data-action="monthtoday">Hoje</button><button data-action="monthnext">Próximo mês →</button></div></div><div class="month">' +
@@ -867,6 +868,14 @@ async function action(e) {
     if (a==='child-now') await childNow();
     else if (a==='child-now-calendar'){state.childSurface='calendar';await child();}
     else if (a==='world-home') {state.childSurface='world';await child();}
+    else if(a==='forest-diagnostics-start'){
+      const build=await api('/api/forest/diagnostics');
+      const {beginDiagnostics}=await import('/assets/forest/diagnostico.mjs');
+      stopForestDiagnostics?.();
+      stopForestDiagnostics=beginDiagnostics(build);
+      state.childSurface='world';
+      await child();
+    }
     else if(a.startsWith('forest-')) await DaviForest.action(a,b);
     else if(a==='world-forest'||a==='world-island'){
       await window.DaviForest?.close();
@@ -937,6 +946,8 @@ async function action(e) {
     else if (a === "settings") await settings();
     else if (a === "logout") {
       await api("/api/logout", "POST", {});
+      stopForestDiagnostics?.();
+      stopForestDiagnostics=null;
       state.events = [];
       await parentEntry();
     } else if (a === "delete") {
