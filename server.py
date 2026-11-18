@@ -19,6 +19,7 @@ from urllib.parse import urlsplit, parse_qs
 from lan_security import Config, AuthStore
 import missions
 import world
+import forest
 import schedule_window as timing
 
 ROOT = Path(__file__).resolve().parent
@@ -256,7 +257,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length",str(len(raw)))
         self.send_header("Cache-Control","no-store")
         self.send_header("X-Content-Type-Options","nosniff")
-        self.send_header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
         self.send_header("Referrer-Policy","no-referrer")
         for k,v in (extra or {}).items(): self.send_header(k,v)
         self.end_headers()
@@ -292,7 +293,13 @@ class Handler(BaseHTTPRequestHandler):
         if not self.request_ok(): return self.fail("Acesso não autorizado.",403)
         try:
             url=urlsplit(self.path); path=url.path
-            if path in ('/','/app.js','/app.css','/game.js','/game.css','/world.js','/world.css'):
+            if path.startswith(('/assets/forest/','/vendor/three/')):
+                asset=(ROOT/path.lstrip('/')).resolve()
+                allowed=ROOT/('assets/forest' if path.startswith('/assets/forest/') else 'vendor/three')
+                if not asset.is_relative_to(allowed) or asset.suffix not in ('.js','.glb','.png','.webp') or not asset.is_file():return self.fail('Não encontrado.',404)
+                kind={'.js':'text/javascript; charset=utf-8','.glb':'model/gltf-binary','.png':'image/png','.webp':'image/webp'}[asset.suffix]
+                return self.send(200,asset.read_bytes(),kind)
+            if path in ('/','/app.js','/app.css','/game.js','/game.css','/world.js','/world.css','/forest.js','/forest.css'):
                 name='app.html' if path=='/' else path[1:]
                 kind='text/html; charset=utf-8' if name.endswith('.html') else 'text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
                 return self.send(200,(ROOT/name).read_bytes(),kind)
@@ -340,6 +347,8 @@ class Handler(BaseHTTPRequestHandler):
                         return self.send(200,{'history':rows})
                     match=re.fullmatch(r'/api/missions/([a-zA-Z0-9_-]{1,80})',path)
                     if match: return self.send(200,missions.template(c,match.group(1)))
+            if path=='/api/forest':
+                with db() as c:return self.send(200,forest.scene(c))
             if path.startswith('/api/world'):
                 with db() as c:
                     if path=='/api/world': return self.send(200,world.scene(c))
@@ -402,6 +411,9 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/schedule/config' and method=='PUT':
                 if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c: result=timing.configure(c,body)
+                return self.send(200,result)
+            if path=='/api/forest/move' and method=='PUT':
+                with LOCK, db() as c:result=forest.move(c,body)
                 return self.send(200,result)
             if path.startswith('/api/world'):
                 if path in ('/api/world/config','/api/world/revoke','/api/world/inventory') and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)

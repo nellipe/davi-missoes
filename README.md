@@ -93,6 +93,10 @@ Legislação de referência:
 - Backups consistentes, rotação, integridade e restauração ficam em `maintenance.py`. O banco, backups, configuração privada e CA não são versionados.
 - O acesso físico ao computador e a dispositivos autorizados exige cuidado. Sem recuperação automática por e-mail; guarde a senha do responsável.
 
+## Marco visual — Floresta Encantada
+
+Um único mundo 3D em avaliação artística, com GLBs autorais, cenário editável em Blender, Davi/Pipo animados e integrações existentes. Veja o [marco visual](docs/floresta-marco-visual-v16.md) e as [capturas, gameplay e comparação](docs/evidencias-forest-v16/README.md). A ilha 2D e as regras de horário permanecem.
+
 ## Controle do responsável — V0.6D
 
 Revogação individual de estrelas, histórico preservado, remoção/reativação de itens e correções de passos/compromissos no painel protegido. O mundo mostra todas as atividades da data, mesmo sem roteiro. Veja o [guia V0.6D](docs/controle-responsavel-v06d.md). O visual 3D cartoon fica para uma próxima PR.

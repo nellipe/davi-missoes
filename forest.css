@@ -1,0 +1,490 @@
+.forest-view {
+  background: #e9eddf;
+}
+.forest-view main {
+  max-width: 1530px;
+  padding: 8px 18px 25px;
+}
+.forest-view > footer {
+  display: none;
+}
+.forest-shell {
+  overflow: hidden;
+  background: #f5f2df;
+  border: 1px solid #bcc8ad;
+  border-radius: 22px;
+  box-shadow:
+    0 6px 0 #c4ceb6,
+    0 18px 45px #223d3020;
+  color: #304d39;
+}
+.forest-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 17px 23px;
+  background: #f7f3e5;
+}
+.forest-title h1 {
+  margin: 4px 0 0;
+  font-size: 1.75rem;
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+  color: #34533f;
+}
+.forest-title > div > span {
+  font-size: 0.6rem;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+  color: #657451;
+}
+.forest-tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.f-button {
+  border: 1px solid #b5c2a1;
+  background: #fcf8e6;
+  color: #3a5541;
+  border-radius: 11px;
+  padding: 10px 15px;
+  min-height: 42px;
+  font:
+    750 0.8rem "Segoe UI",
+    sans-serif;
+  box-shadow: 0 3px 0 #c5cfb2;
+}
+.f-button:hover {
+  background: #e6edce;
+  border-color: #8caa7b;
+}
+.f-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+  box-shadow: none;
+}
+.forest-wallet {
+  background: #f6df9d;
+  color: #71552b;
+  border-color: #d3bb78;
+  font-size: 1rem;
+  min-width: 65px;
+}
+.forest-wallet strong {
+  margin-left: 7px;
+}
+.forest-stage {
+  height: min(72vh, 740px);
+  min-height: 490px;
+  position: relative;
+  overflow: hidden;
+  background: #3f6652;
+}
+.forest-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  outline-offset: -4px;
+}
+.forest-chapter {
+  position: absolute;
+  top: 19px;
+  left: 22px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #fff5d7;
+  background: #203c3075;
+  backdrop-filter: blur(8px);
+  padding: 9px 13px;
+  border: 1px solid #ece8c43f;
+  border-radius: 12px;
+  pointer-events: none;
+  text-shadow: 0 1px 4px #18362c66;
+}
+.forest-chapter > span {
+  font-size: 1.5rem;
+  color: #f3d084;
+  font-weight: 800;
+  line-height: 1;
+}
+.forest-chapter > div {
+  font-weight: 750;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+}
+.forest-chapter small {
+  display: block;
+  letter-spacing: 0.06em;
+  font-size: 0.63rem;
+  font-weight: 500;
+  margin-top: 3px;
+  color: #e3e9c9;
+}
+.forest-camera {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: flex;
+  gap: 5px;
+}
+.forest-camera .f-button {
+  background: #faf4dfdf;
+  min-height: 36px;
+  padding: 6px 11px;
+}
+.forest-dpad {
+  position: absolute;
+  bottom: 23px;
+  left: 20px;
+  display: grid;
+  grid-template-columns: 46px 46px 46px;
+  grid-template-rows: 46px 46px;
+  gap: 5px;
+  touch-action: none;
+}
+.forest-dpad button {
+  padding: 0;
+  min-width: 46px;
+  min-height: 46px;
+  border: 1px solid #eee9cfa8;
+  border-radius: 12px;
+  color: #fdf6d9;
+  background: #294d38c9;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 3px 0 #183b2a70;
+  font-size: 1.25rem;
+  touch-action: none;
+}
+.forest-dpad button:first-child {
+  grid-column: 2;
+}
+.forest-dpad button:nth-child(2) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.forest-dpad button:nth-child(3) {
+  grid-column: 2;
+  grid-row: 2;
+}
+.forest-dpad button:nth-child(4) {
+  grid-column: 3;
+  grid-row: 2;
+}
+.forest-dpad button:hover {
+  background: #3b6248;
+}
+.forest-interact {
+  position: absolute;
+  bottom: 26px;
+  right: 24px;
+  background: #f5df9fe8;
+  border: 1px solid #d4ba72;
+  color: #5a4b2d;
+  border-radius: 15px;
+  box-shadow: 0 4px 0 #94794366;
+  font-size: 0.86rem;
+  font-weight: 800;
+  padding: 14px 22px;
+  min-height: 48px;
+  max-width: 280px;
+}
+.forest-interact:disabled {
+  background: #f5f2d3a8;
+  color: #485d43;
+  box-shadow: none;
+}
+.forest-pipo {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 22px;
+  background: #f8f3df;
+  border-top: 1px solid #cdd4b9;
+}
+.forest-pipo p {
+  margin: 0;
+  font-size: 0.85rem;
+  flex: 1;
+  color: #4c6449;
+}
+.forest-pipo-icon {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  border-radius: 12px;
+  background: #d9e3be;
+  color: #68815a;
+  border: 1px solid #a5bc94;
+  font-size: 27px;
+}
+.forest-instructions {
+  margin: 0 !important;
+  padding: 8px 22px;
+  color: #677957;
+  font-size: 0.68rem;
+  background: #edf0db;
+}
+.forest-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #f7efcd;
+  font-size: 1rem;
+  background: linear-gradient(140deg, #325640, #507259);
+  z-index: 5;
+}
+.forest-dialog {
+  width: min(760px, 94vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  border: 1px solid #c7ceb0;
+  background: #faf5e3;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 25px 100px #102f3480;
+  color: #3b583f;
+}
+.forest-dialog::backdrop {
+  background: #163e3675;
+  backdrop-filter: blur(5px);
+}
+.f-dialog-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.f-dialog-top > span {
+  font-size: 0.63rem;
+  font-weight: 800;
+  color: #69805c;
+  letter-spacing: 0.14em;
+}
+.forest-dialog h2 {
+  font-size: 1.9rem;
+  letter-spacing: -0.04em;
+  margin: 13px 0;
+  color: #35543c;
+}
+.forest-dialog p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.f-primary {
+  background: #edd18b;
+  border-color: #c9a966;
+  color: #5c4a29;
+}
+.f-missions {
+  display: grid;
+  gap: 11px;
+  margin: 20px 0;
+}
+.f-missions article,
+.f-shop article {
+  padding: 17px;
+  border: 1px solid #c8d1b7;
+  border-radius: 16px;
+  background: #f2f0db;
+}
+.f-missions h3,
+.f-shop h3 {
+  font-size: 1rem;
+  margin: 7px 0;
+}
+.f-missions small {
+  font-size: 0.75rem;
+  color: #58734e;
+}
+.f-missions p {
+  font-size: 0.8rem;
+}
+.f-shop {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.f-shop strong {
+  display: block;
+  margin: 10px 0;
+  font-size: 0.85rem;
+}
+.f-options {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.forest-dialog select {
+  background: #fffaf0;
+}
+.forest-dialog input[type="checkbox"] {
+  width: auto;
+}
+.forest-view :focus-visible {
+  outline: 3px solid #dca83c;
+  outline-offset: 3px;
+}
+@media (max-width: 700px) {
+  .forest-view main {
+    padding: 5px 7px 16px;
+  }
+  .forest-shell {
+    border-radius: 18px;
+  }
+  .forest-title {
+    padding: 14px 13px;
+    gap: 10px;
+  }
+  .forest-title h1 {
+    font-size: 1.24rem;
+    max-width: 175px;
+  }
+  .forest-title > div > span {
+    font-size: 0.46rem;
+    letter-spacing: 0.1em;
+  }
+  .forest-tools {
+    gap: 5px;
+  }
+  .forest-tools .f-button {
+    font-size: 0.64rem;
+    padding: 8px;
+    min-height: 36px;
+  }
+  .forest-wallet {
+    min-width: 40px;
+  }
+  .forest-wallet strong {
+    margin-left: 3px;
+  }
+  .forest-stage {
+    height: 68svh;
+    min-height: 495px;
+    max-height: 700px;
+  }
+  .forest-chapter {
+    top: 12px;
+    left: 12px;
+    padding: 7px 9px;
+    gap: 7px;
+  }
+  .forest-chapter > span {
+    font-size: 1.2rem;
+  }
+  .forest-chapter > div {
+    font-size: 0.5rem;
+  }
+  .forest-chapter small {
+    font-size: 0.5rem;
+  }
+  .forest-camera {
+    top: 12px;
+    right: 10px;
+    gap: 4px;
+  }
+  .forest-camera .f-button {
+    min-height: 32px;
+    padding: 5px 7px;
+  }
+  .forest-dpad {
+    left: 12px;
+    bottom: 18px;
+    grid-template-columns: 44px 44px 44px;
+    grid-template-rows: 44px 44px;
+    gap: 4px;
+  }
+  .forest-dpad button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .forest-interact {
+    right: 12px;
+    bottom: 21px;
+    font-size: 0.7rem;
+    padding: 12px;
+    max-width: 172px;
+  }
+  .forest-pipo {
+    padding: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .forest-pipo p {
+    font-size: 0.76rem;
+    min-width: 235px;
+  }
+  .forest-pipo .f-button {
+    margin-left: auto;
+    min-height: 34px;
+    padding: 7px 11px;
+  }
+  .forest-instructions {
+    padding: 8px 12px;
+    font-size: 0.6rem;
+  }
+  .forest-dialog {
+    padding: 18px;
+  }
+  .forest-dialog h2 {
+    font-size: 1.5rem;
+  }
+  .f-dialog-top > span {
+    font-size: 0.54rem;
+  }
+  .f-shop {
+    gap: 9px;
+  }
+  .f-shop article {
+    padding: 12px;
+  }
+  .f-shop p {
+    font-size: 0.8rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .forest-shell * {
+    scroll-behavior: auto;
+  }
+}
+.forest-title {
+  max-width: none;
+  margin: 0;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+.forest-title > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+.forest-tools {
+  flex-shrink: 0;
+}
+@media (max-width: 700px) {
+  .forest-title {
+    gap: 7px;
+  }
+  .forest-title h1 {
+    max-width: 145px;
+  }
+  .forest-title > div > span {
+    letter-spacing: 0.04em;
+  }
+  .forest-tools .f-button {
+    padding: 7px;
+  }
+}
+
+.forest-instructions {
+  color: #475b39;
+}
+.f-dialog-top > span {
+  color: #4d633f;
+}
