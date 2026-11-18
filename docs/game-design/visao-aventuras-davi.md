@@ -1,6 +1,6 @@
 # Aventuras do Davi · A floresta das duas rodas
 
-**Etapa 1 | Proposta para decisão do responsável | Aprovação pendente**
+**Direção narrativa aprovada · Etapa 3 · Arquitetura do percurso em revisão**
 
 Uma roda de madeira gira ao lado da soleira onde Davi deixa a mochila. De vez em quando, uma folha em forma de canoa chega pela calha e passa sob a roda. Pipo tenta acompanhá-la com a cabeça. Davi pode abrir sua atividade ali mesmo ou seguir a calha *contra* a corrente. De onde vêm os barcos de folha?
 
@@ -11,51 +11,54 @@ A resposta se encontra acima das copas. Uma segunda roda recolhe folhas caídas 
 | Evidência do projeto | Consequência para esta proposta |
 |---|---|
 | O produto foi pensado para crianças de 8+ anos, com um passo por vez, prática curta, ajuda ajustável e passagem da tela à vida real. A agenda, os modos Aprender/Fazer/Lembrar, as estrelas e os controles do responsável já existem. | A atividade real pode interromper qualquer descoberta. Sair no meio do caminho é um fim de sessão válido. |
-| A ilha 2D já oferece diário, calendário, oficina, personagem, ponte, casa e portal. A PR #17 tem Davi e Pipo animados, uma clareira 3D, construções e uma primeira distribuição de estações e marcadores de atividade. A paridade completa segue em validação. | Preservar o que a criança consegue fazer, mas reorganizar onde e como encontra cada coisa. |
+| A ilha 2D já oferece diário, calendário, oficina, personagem, ponte, casa e portal. A PR #17 tem Davi e Pipo animados, uma clareira 3D, construções e uma primeira distribuição de estações e marcadores de atividade. A Etapa 2 validou os dez destinos no navegador desktop. | Preservar o que a criança consegue fazer, mas reorganizar onde e como encontra cada coisa. |
 | Na prévia de 1366 px, baú, oficina, diário, ponte e casa são identificáveis por etiquetas no mesmo quadro. A 360 px, a etiqueta da ponte compete com o personagem. Na referência original, vemos a entrada da ponte, um trecho de água muito abaixo e uma saída encoberta. A posição do observador muda o que se pode saber. | Usar o relevo para separar destinos. Reservar nomes para o lugar próximo ou para a orientação solicitada. A composição precisa funcionar também com som e etiquetas desligados. |
-| A família relatou flutuação e perda de referência ao alternar 2D/3D. A PR contém correções parciais e um teste curto. | Uma revelação depende da caminhada voluntária e do ponto de vista da criança. A câmera nunca toma o controle para apresentar um lugar. |
+| A família relatou flutuação e perda de referência ao alternar 2D/3D. A Etapa 2 estabilizou movimento, apoio e troca de visão em 30 ciclos no desktop. | Uma revelação depende da caminhada voluntária e do ponto de vista da criança. A câmera nunca toma o controle para apresentar um lugar. |
 
-As cinco regiões, as duas rodas, os encontros abaixo e os critérios de decisão são **design proposto**. As capturas documentam a versão anterior a esse design. Bases consultadas: [produto e missões](../PRODUTO-E-MISSOES.md), [README](../../README.md), [Issue #16](https://github.com/nellipe/davi-missoes/issues/16), [Issue #18](https://github.com/nellipe/davi-missoes/issues/18), [PR e comentários do responsável](https://github.com/nellipe/davi-missoes/pull/17), [relatório e capturas](../issue18-progresso.md). A imagem local `D:\davi-missoes\docs\modelo.png` foi consultada como referência de composição.
+As cinco regiões e o mistério são **direção aprovada**. O protótipo da Etapa 3 materializa a roda baixa, o varal, as duas trilhas, o avesso da folha, o eco e a janela da queda. Os endereços pedagógicos futuros por região, o diário de lugares visitados, a travessia entre regiões 3 e 4 e a roda alta continuam propostos. As capturas documentam a versão anterior a esse design. Bases consultadas: [produto e missões](../PRODUTO-E-MISSOES.md), [README](../../README.md), [Issue #16](https://github.com/nellipe/davi-missoes/issues/16), [Issue #18](https://github.com/nellipe/davi-missoes/issues/18), [PR e comentários do responsável](https://github.com/nellipe/davi-missoes/pull/17), [relatório e capturas](../issue18-progresso.md). A imagem local `D:\davi-missoes\docs\modelo.png` foi consultada como referência de composição.
 
 ## Mapa de direção
 
-As setas indicam a ordem sugerida da primeira visita. Todos os caminhos permitem voltar. Linhas pontilhadas representam desvios opcionais. Os nomes entre parênteses são recantos dentro de uma região. Este mapa completo serve ao responsável e à equipe. A criança começa conhecendo apenas a Soleira.
+A primeira volta cabe entre três lugares. No bosque, a criança pode baixar até a madeira escura ou subir pela pedra clara. Do entroncamento da garganta, a outra trilha é também um caminho de volta. O miolo de vegetação e pedra impede cortar de uma escolha para a outra pelo centro.
 
 ```mermaid
 flowchart LR
-    A["1 · Soleira da Roda Baixa"] <-->|"calha sob a sebe"| B["2 · Bosque das Bainhas"]
-    B <-->|"curva entre raízes"| C["3 · Garganta das Duas Margens"]
-    C <-->|"rampa de pedra sempre aberta"| D["4 · Pátio dos Remendos"]
-    C -. "ponte construída · travessia curta" .- D
-    D <-->|"escada em torno do tronco"| E["5 · Copa da Nascente"]
-    E -. "atalho de volta pela encosta" .- A
-    B -. "atrás do tronco oco" .- F["(Avesso das folhas)"]
-    C -. "sob a saliência de rocha" .- G["(Janela da queda)"]
-    E -. "atrás da roda alta" .- H["(Poleiro das andorinhas)"]
+    A["Soleira · roda e calha"] <--> B["Bosque · varal de bainhas"]
+    B <-->|"piso de casca"| L["Tronco oco · margem baixa"]
+    B <-->|"lajes claras"| H["Costela de pedra · vista alta"]
+    L -.-> F["Recanto do avesso"]
+    F -.-> L
+    L <--> C["Garganta · reencontro"]
+    H <--> C
+    C <-->|"rampa livre"| G["Janela da queda"]
+    C <-.-> D["Futuro · Pátio dos Remendos"]
+    D <-.-> E["Futuro · Copa da Nascente"]
+    E <-.-> A
 ```
 
-A encosta dobra o percurso sobre si mesmo. No alto, uma fresta deixa ver a roda baixa sem expor o pátio inteiro. O atalho tem sua entrada mais evidente pelo alto e faz da segunda visita um circuito conhecido. A ponte comprável muda a travessia de fato, mas a rampa gratuita chega à outra margem desde o início. A casa é uma construção opcional sobre uma plataforma natural já acessível. O portal abre a entrada local dos jogos e a prática continua acessível pelas missões.
+As linhas contínuas descrevem o circuito deste protótipo. O recanto é opcional. Pátio e Copa ficam para uma decisão posterior. No desenho futuro, a ponte comprável encurta uma travessia já acessível por terra e a escada da Copa fecha outra volta até a Soleira.
 
 ## Os primeiros cinco minutos
 
-Ritmo de referência para uma sessão livre, sem relógio na tela. O percurso abaixo supõe que Davi escolheu explorar e ainda tem zero estrelas.
+| Momento da sessão livre | Escolha e descoberta |
+|---|---|
+| Chegada | Parar ao lado da roda e esperar um barquinho passar, abrir Agora ou seguir a curva da calha. A sebe e o cotovelo de pedra encobrem o fundo do vale. |
+| Primeira escolha | O pano suspenso marca o bosque. À esquerda o chão escurece e desce até a casca. À direita lajes claras sobem pelo ombro da rocha. É possível dar meia-volta logo depois de escolher. |
+| Uma pequena investigação | Pela esquerda, entrar no recanto ao lado do tronco e virar uma folha para ver o avesso. Pela direita, acordar o eco junto às pedras e observar o vale de cima. As duas decisões permitem seguir adiante. |
+| Retorno ou continuação | Quem chega à garganta pode olhar pela janela da queda e voltar pelo outro piso. Quem fica junto à roda também completou uma pequena história. A pergunta sobre a origem dos barquinhos fica aberta para outro dia. |
 
-| Tempo aproximado | O que a criança percebe e decide | Mudança emocional buscada |
-|---|---|---|
-| 0:00–0:30 | Há chão livre à frente, a mochila ao alcance e uma única roda à altura de Pipo. Uma folha emerge sob a pá. Davi pode chegar perto para vê-la passar. | **Segurança.** Já entendo onde estou e algo acontece mesmo se eu ficar parado. |
-| 0:30–1:20 | A calha some sob uma sebe. Ao contorná-la, Davi reencontra o veio de água. Pipo se abaixa junto a uma folha que mostra o lado prateado. Dá para investigar ou seguir a trilha clara. | **Iniciativa.** Fui eu quem escolheu olhar. |
-| 1:20–2:20 | O som da queda e uma faixa de espuma aparecem antes do rio inteiro. Só depois da curva rochosa surge a garganta. Com a ponte por construir, os sulcos no piso conduzem naturalmente à rampa. | **Surpresa e confiança.** Consigo chegar à outra margem. |
-| 2:20–3:35 | Do outro lado há aparas de madeira no chão. A oficina só aparece quando Davi passa o muro baixo. Ele pode examinar um remendo em forma de folha, vestir o que já possui ou seguir uma canaleta que desce do alto. | **Familiaridade.** Aqui alguém constrói coisas que reconheço. |
-| 3:35–5:00 | A trilha sobe por trás do tronco. Primeiro aparece uma pá molhada, depois a copa se abre e Davi vê a segunda roda lançar uma folha. Pipo olha para baixo. Pela fresta, vê-se a roda da chegada. A criança pode parar aqui ou voltar pelo atalho para assistir à chegada da próxima folha. | **Entendimento e pertencimento.** Agora sei de onde ela vem e sei voltar. |
+Cinco minutos são uma oportunidade de escolher, observar e reconhecer o caminho de volta. A criança pode gastar a sessão inteira comparando duas folhas. O relevo e as mudanças de perspectiva dão escala sem impor distância ou tempo mínimo.
 
-Uma sessão de quarenta segundos também tem uma pequena história completa: chegar, ver Pipo quase apanhar a folha e abrir a mochila para a atividade do dia. Na retomada, Davi reaparece em chão seguro junto ao último lugar visitado, voltado para um marco reconhecível. Nada pede que termine a volta.
+### O que convida a voltar
+
+Na segunda visita, é possível percorrer o circuito no sentido inverso. O arco escuro que escondia a folha passa a emoldurar a saída, e as pedras que convidavam a subir formam degraus reconhecíveis na descida. A roda recebe outro barco enquanto Davi está perto. Virar a folha outra vez muda a face exposta, e bater na pedra repete o eco visível. São brincadeiras reversíveis, disponíveis em dia livre. Pipo reage à proximidade e à investigação. A ajuda depende de um pedido da criança. No futuro, a roda alta dará uma explicação à água que já se conhece daqui de baixo. Mesmo depois dessa explicação, permanecem os dois pontos de vista, os gestos e o prazer de mostrar a alguém o caminho escolhido.
 
 ## Como se vive em cada região
 
 | Região e assinatura artística | O que se faz ali | O que fica escondido e como se revela |
 |---|---|---|
 | **1. Soleira da Roda Baixa.** Luz de manhã, lona azul, madeira clara marcada pela água. A roda é baixa o suficiente para Davi pôr a mão ao lado de uma pá. | Pendurar a mochila abre a preparação para escola ou saída. As páginas datadas no banco dão acesso ao calendário e ao diário completo. A água continua trazendo folhas quando não há compromissos. | Da soleira vê-se a água entrando por baixo da sebe. Nem a nascente nem a oficina entram no quadro inicial. A abertura lateral convida a investigar. |
-| **2. Bosque das Bainhas.** Troncos finos, luz em faixas e folhas compridas que se dobram como tecido. Um lenço no varal distingue o lugar mesmo em silhueta. | O varal é o lugar de experimentar capa, chapéu e lenço de Pipo. Uma cesta de pano pode acolher a preparação de roupa para um passeio. Por trás de um tronco oco, a mesma folha parece escura de um lado e prateada do outro. | Na bifurcação, a trilha larga deixa entrever pedra clara. O desvio curto exige dar a volta no tronco e reencontra a trilha pelo outro lado. |
+| **2. Bosque das Bainhas.** Troncos finos, luz em faixas e folhas compridas que se dobram como tecido. Um lenço no varal distingue o lugar mesmo em silhueta. | O varal é o lugar de experimentar capa, chapéu e lenço de Pipo. Uma cesta de pano pode acolher a preparação de roupa para um passeio. Por trás de um tronco oco, a mesma folha parece escura de um lado e prateada do outro. | As duas trilhas levam à garganta. Só a investigação do avesso exige sair do caminho, ao lado do tronco. |
 | **3. Garganta das Duas Margens.** Rocha em camadas, eco e um intervalo de céu entre duas paredes. A primeira vista enquadra a margem próxima, o corrimão ou seus encaixes e a espuma ao fundo. | Escolher como atravessar. A rampa contorna a parede em dois lances curtos. Construir a ponte cria uma travessia mais direta, com Davi e Pipo lado a lado. Sob a saliência há uma janela de onde a queda parece sair de dentro da pedra. | Antes da curva, vê-se espuma, mas a queda só aparece por inteiro no desvio. Na saída, as aparas anunciam o pátio sem revelar sua bancada. |
 | **4. Pátio dos Remendos.** Cor de barro, bancada gasta, ferramentas com um lugar próprio. O ritmo de uma peça de madeira batendo no batente contrasta com o som contínuo do rio. | A bancada abre a oficina com preço e prévia. A prateleira vazia corresponde à missão de organizar. Ao lado, um arco de galhos acomoda o portal construído para praticar os jogos. Sem atividade, mudar de posição revela que dois pedaços de madeira separados formam a silhueta de um pássaro. | O muro protege o pátio da vista da garganta. A calha que passa sobre a bancada conduz o olhar a uma escada. O tronco encobre o topo da escada. |
 | **5. Copa da Nascente.** Copa aberta, pano de vela, água que reluz devagar. Uma bica move a roda alta. Cada pá é larga como uma folha. | Assistir ao nascimento dos barquinhos. O ninho de leitura na plataforma acolhe a preparação para o descanso. A casa construída acrescenta um refúgio mobiliado. O poleiro atrás da roda oferece uma pausa para observar aves pousarem. | A roda alta só se revela no último quarto de volta em torno do tronco. Uma abertura estreita na folhagem aponta de volta à roda baixa. O restante da floresta continua parcialmente oculto. |
@@ -93,17 +96,17 @@ Cada mundo futuro herda Davi, Pipo, o diário e o acesso a “Agora”. Cada um 
 | Ilha dos Tesouros | O que a maré baixa deixou desenhado na areia? | Observar o mesmo recife de duas enseadas revela uma figura inteira. Uma mesa de viagem acolhe conferir itens da mochila. |
 | Montanhas de Cristal | Por que uma pedra canta mais baixo que a outra? | Mudar de galeria altera o eco e o desenho da luz. Um abrigo silencioso acolhe uma sequência de descanso. |
 
-## Como decidir antes de implementar
+## Como avaliar o protótipo
 
-O responsável pode avaliar esta etapa com cinco cartões de papel, um por região. Cobrir os cartões ainda ocultos. Ler apenas o que Davi veria no ponto de partida. Pedir à criança que escolha onde olhar e quando parar, sem sugerir uma resposta. Os tempos abaixo são medidas de projeto para o adulto, nunca metas para a criança.
+Começar na Soleira e deixar a criança escolher onde olhar e quando parar. Na volta, perguntar por onde ela passou e qual caminho tentaria numa próxima visita. Os tempos abaixo são medidas de projeto para o adulto, nunca metas para a criança.
 
 | Ensaio de design | Aprovar quando | Pedir revisão quando |
 |---|---|---|
-| Primeira vista em três enquadramentos desenhados, 360, 390 e 1366 px | Há um marco dominante, chão livre e uma pista para o próximo trecho em cada quadro. | Dois ou mais destinos distantes se identificam por etiquetas, ou um controle cobre a dupla ou a trilha. |
-| Caminhada imaginada em dia livre, sem estrelas | A criança escolhe ao menos um desvio ou indica espontaneamente algo que quer investigar. Após a revelação, consegue apontar a ligação entre as duas rodas por gesto, desenho ou fala. | Precisa de instrução a cada curva, de um prêmio para seguir ou de explicação adulta para relacionar folha e nascente. Rever a pista, sem atribuir a dificuldade à criança. |
-| Percurso e proporção | No percurso desenhado à velocidade normal, cada trecho de até 15 s oferece escolha, mudança de vista ou encontro. Cada desvio reconecta à trilha ou permite voltar pelo mesmo marco em até 30 s. | Aparece uma caminhada maior que 15 s cujo único acontecimento é a passagem do tempo, ou uma compra impede a volta completa. |
-| Interrupção em três situações sintéticas: atividade aberta, futura e sem roteiro | De cada cartão, um gesto abre “Agora”. Em até dois gestos chega-se à ficha desejada. A ficha apresenta a ação correta e permite sair para a vida real. | Uma tarefa exige andar, estrelas ou completar um roteiro. Uma atividade desaparece ou uma descoberta dá baixa nela. |
+| Primeira vista em três larguras de tela, 360, 390 e 1366 px | Há um marco dominante, chão livre e uma pista para o próximo trecho em cada quadro. | Dois ou mais destinos distantes se identificam por etiquetas, ou um controle cobre a dupla ou a trilha. |
+| Caminhada em dia livre, sem estrelas | A criança escolhe ao menos um desvio ou indica espontaneamente algo que quer investigar. Consegue indicar um detalhe que mudaria se voltasse pela outra trilha. | Precisa de instrução a cada curva, de um prêmio para seguir ou de explicação adulta para reconhecer o reencontro das duas trilhas. Rever a pista, sem atribuir a dificuldade à criança. |
+| Percurso e proporção | A criança consegue distinguir os dois caminhos pelo piso e pelo marco, encontrar o reencontro e reconhecer a entrada na volta. | Um segmento só acrescenta espera, as duas vistas parecem iguais ou uma compra impede a volta. |
+| Interrupção em três situações sintéticas: atividade aberta, futura e sem roteiro | Em cada região, um gesto abre “Agora”. Em até dois gestos chega-se à ficha desejada. A ficha apresenta a ação correta e permite sair para a vida real. | Uma tarefa exige andar, estrelas ou completar um roteiro. Uma atividade desaparece ou uma descoberta dá baixa nela. |
 | Volta e acessibilidade | Saindo da garganta, a criança reconhece um marco de volta, ou encontra a ajuda por iniciativa própria. A mesma escolha é compreensível com som desligado, sem distinguir cores e em quadro estático. | É necessário ouvir Pipo, ler várias placas de uma vez ou acompanhar um giro automático para saber para onde ir. |
-| Julgamento do responsável | O responsável identifica um lugar que gostaria de revisitar com Davi e aprova expressamente a passagem para um primeiro protótipo de percurso. | A resposta continua sendo “parece um menu”. Nesse caso, redesenhar primeiro a passagem entre soleira e garganta, antes de investir nos cinco cenários. |
+| Julgamento do responsável | O responsável identifica um lugar que gostaria de revisitar com Davi e aprova expressamente o mapa, as escolhas e o ritmo observados. | A resposta continua sendo “parece um menu”. Nesse caso, redesenhar primeiro a passagem entre soleira e garganta, antes de investir nos cinco cenários. |
 
-**Decisão solicitada nesta etapa:** aprovar, pedir ajustes ou rejeitar a fantasia das duas rodas, a distribuição das cinco regiões e o acesso direto à rotina. Se aprovada, a primeira prova jogável deverá validar escala, câmera e revelação com formas simples. Estabilidade nas 30 alternâncias, sessão contínua de dez minutos, medições nos três aparelhos da família e julgamento visual com capturas reais pertencem à avaliação posterior da versão jogável.
+**Decisão da Etapa 3.** Jogar da Soleira até a Garganta e voltar. A criança reconhece o bosque, percebe as duas opções, encontra algo por iniciativa própria e sabe pedir ajuda ou abrir Agora? O responsável decide se o mapa e o ritmo merecem avançar. A próxima etapa exige aprovação explícita. [Revisão do orquestrador](https://github.com/nellipe/davi-missoes/pull/17#issuecomment-6977127539).
