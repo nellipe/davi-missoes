@@ -6,7 +6,9 @@ import world
 NAVIGATION_PATH=Path(__file__).parent/'assets/forest/navigation.json'
 TERRAIN=json.loads(NAVIGATION_PATH.read_text()) if NAVIGATION_PATH.exists() else None
 SPAWN=(0,7.5)
-OBSTACLES=[(6,-7,2.2),(-10,10,1.1),(-10,3,1),(13,8,1.1),(12,1,1.1),(-8,-3,1),(-11,-8,1.3),(10,-7,1.2),(-4,-12,1.2),(4,-13,1.2),(11,-13,1.3),(-13,-13,1.1),(6,5,1),(-6,-5,1.1),(7,4,.8),(-8,-8,1.4)]
+# Coordinates use the exported GLB axes. Both input and saved positions use this manifest.
+_groups = json.loads(NAVIGATION_PATH.with_name('obstacles.json').read_text())
+OBSTACLES = [disk for group in _groups.values() for disk in group]
 def walkable(x,z,inventory):
  if abs(x+9)<1.35 and -6.5<z<-.3:return False
  if not math.isfinite(x+z) or (x/17)**2+(z/11.5)**2>1:return False

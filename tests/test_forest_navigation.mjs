@@ -2,10 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {walkable,terrainHeight,route,advance,segmentClear} from '../assets/forest/navigation.mjs';
 import fs from 'node:fs';
-const obstacles=[[6,-7,2.2],[-10,10,1.1],[-10,3,1],[13,8,1.1],[12,1,1.1],[-8,-3,1],[-11,-8,1.3],[10,-7,1.2],[-4,-12,1.2],[4,-13,1.2],[11,-13,1.3],[-13,-13,1.1],[6,5,1],[-6,-5,1.1],[7,4,.8],[-8,-8,1.4]];
+const groups=JSON.parse(fs.readFileSync(new URL('../assets/forest/obstacles.json',import.meta.url)));
+const obstacles=Object.values(groups).flat();
 const valid=(x,z)=>walkable(x,z,['bridge'],obstacles);
+test('the six landmark rocks use the horizontal axes of the rendered GLB',()=>{
+  const glb=fs.readFileSync(new URL('../assets/forest/forest.glb',import.meta.url));
+  const scene=JSON.parse(glb.subarray(20,20+glb.readUInt32LE(12)).toString());
+  const rocks=scene.nodes.filter(n=>n.name?.startsWith('Mossy landmark'));
+  assert.equal(rocks.length,6);
+  for(const {translation:[x,,z]} of rocks){
+    assert(groups.rocks.some(([a,b])=>Math.hypot(a-x,b-z)<.01));
+    assert.equal(valid(x,z),false);
+  }
+  assert.equal(valid(6,5),true,'old mirrored rock blocked open ground');
+});
 test('routes reach every side through bridge without crossing water or cascade',()=>{
-  for(const goal of [{x:-5.7,z:4.6},{x:8.3,z:2.5},{x:-4,z:-4},{x:3.5,z:-6.1}]){
+  assert.deepEqual(route({x:0,z:7.5},{x:-5.7,z:4.6},valid),[],'inside the workshop boulder');
+  for(const goal of [{x:-5.7,z:3.6},{x:8.3,z:2.5},{x:-4,z:-4},{x:3.5,z:-6.1}]){
     const points=route({x:0,z:7.5},goal,valid);assert(points.length>0);let last={x:0,z:7.5};
     for(const p of points){assert(segmentClear(last,p,valid));last=p;}assert.deepEqual(last,goal);
   }

@@ -8,7 +8,7 @@ let generation = 0, savePending = null, path = [], movingNow = false;
 let ownedMaterials = new Set(), ownedGeometry = new Set(), ownedTextures = new Set();
 const supportCache = new Map();
 let playerSupport, pipoSupport;
-let features=[], labels=[], activityObjects=[];
+let features=[], labels=[], selectedPlace=null;
 let lastCalendarRefresh=0,calendarPending=false;
 let sunLight,
   adaptiveLow = false;
@@ -71,21 +71,51 @@ const esc = (s) =>
 const button = (text, action, attrs = "", cls = "") =>
   `<button type="button" class="f-button ${cls}" data-action="forest-${action}" ${attrs}>${text}</button>`;
 const owned = (id) => data.economy.inventory.includes(id);
-const ground = (x, z) =>
-  0.14 * Math.sin(x * 0.28) +
-  0.13 * Math.cos(-z * 0.31) +
-  0.07 * Math.sin(x * 0.5 - z * 0.3) +
-  2.1 * Math.exp(-(((x + 9) / 3.2) ** 2) - ((-z - 6) / 4) ** 2);
+let deckProfile = [], deckHitMesh = null, deckBoards = [];
+// The same continuous tread supports the feet and picks taps between planks.
+function prepareDeck(root) {
+  root.updateMatrixWorld(true);
+  root.traverse(o => {
+    if (!o.isMesh || !o.name.startsWith('Worn_bridge_board')) return;
+    const bounds = new T.Box3().setFromObject(o);
+    const z = bounds.getCenter(new T.Vector3()).z;
+    deckProfile.push({z, y:bounds.max.y});
+    deckBoards.push(o);
+  });
+  deckProfile.sort((a,b) => a.z-b.z);
+  for (const side of [-1,1]) {
+    const z = (side < 0 ? deckProfile[0] : deckProfile.at(-1)).z + side*.5;
+    const end = {z,y:terrainHeight(data.terrain,0,z)};
+    if (side < 0) deckProfile.unshift(end);
+    else deckProfile.push(end);
+  }
+  const positions = [], indices = [];
+  for (const [i,{z,y}] of deckProfile.entries()) {
+    positions.push(-1.12,y,z,1.12,y,z);
+    if (i) { const a=2*i-2; indices.push(a,a+2,a+1,a+1,a+2,a+3); }
+  }
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+  geometry.setIndex(indices);
+  const material = new T.MeshBasicMaterial();
+  ownedGeometry.add(geometry);ownedMaterials.add(material);
+  deckHitMesh = new T.Mesh(geometry,material);
+}
 function walkable(x, z) {
   return validPosition(x, z, data.economy.inventory, data.obstacles);
 }
 function floor(x, z) {
-  if (owned("bridge") && Math.abs(x) < 1.12 && z < 1.2 && z > -5.2)
-    return ground(0, z) + 0.19 + 0.48 * Math.sin(((-z + 1.2) / 6.21) * Math.PI);
-  return terrainHeight(data.terrain, x, z) + 0.012;
+  const land = terrainHeight(data.terrain,x,z);
+  if (owned('bridge') && Math.abs(x)<=1.12 && z>=deckProfile[0].z && z<=deckProfile.at(-1).z) {
+    const i = deckProfile.findIndex((p,i) => i>0 && z<=p.z);
+    const a=deckProfile[i-1],b=deckProfile[i];
+    return Math.max(land,T.MathUtils.lerp(a.y,b.y,(z-a.z)/(b.z-a.z)))+.012;
+  }
+  return land+.012;
 }
 function destination(x,z) {
   keys.clear();
+  selectedPlace=null;
   path = route({x:player.position.x,z:player.position.z},{x,z},walkable);
   target = path.shift() || null;
   if(!target) message('Pipo: Vamos pelo caminho. Talvez seja preciso construir a ponte.');
@@ -107,7 +137,7 @@ function supportTable(name, root, mixer, list) {
 function supportHeight(table, list) {
   let height=0,weight=0;
   for(const [name,action] of Object.entries(list)) {
-    const samples=table?.[name],w=action.enabled?action.getEffectiveWeight():0;
+    const samples=table?.[name],w=action.isRunning()?action.getEffectiveWeight():0;
     if(!samples||!w)continue;
     const phase=(action.time/action.getClip().duration%1)*24,i=Math.floor(phase);
     height+=(samples[i]+(samples[i+1]-samples[i])*(phase-i))*w;weight+=w;
@@ -145,10 +175,15 @@ async function assets() {
 function prepare(root) {
   root.traverse((o) => {
     if (o.isMesh) {
+      // dispose() frees each renderer's buffers/listeners; the cached GLB keeps its CPU data.
+      ownedGeometry.add(o.geometry);
       o.castShadow = true;
       o.receiveShadow = true;
       const list = Array.isArray(o.material) ? o.material : [o.material];
       for (const mat of list) {
+        for (const value of Object.values(mat)) {
+          if (value?.isTexture) ownedTextures.add(value);
+        }
         mat.envMapIntensity = 0.35;
         for (const key of ["map", "normalMap", "roughnessMap"])
           if (mat[key])
@@ -411,6 +446,10 @@ function updateLabels() {
   }
 }
 function nearest() {
+  if (selectedPlace) {
+    const d=Math.hypot(player.position.x-selectedPlace.x,player.position.z-selectedPlace.z);
+    if (d<1.8) return {...selectedPlace,d};
+  }
   return features.map(f=>({...f,d:Math.hypot(player.position.x-f.x,player.position.z-f.z)})).sort((a,b)=>a.d-b.d)[0];
 }
 function syncOwned() {
@@ -547,9 +586,10 @@ function tick(now) {
     if (target && !keys.size) {
       dx = target.x - player.position.x;
       dz = target.z - player.position.z;
-      if (Math.hypot(dx, dz) < 0.12) {
+      if (Math.hypot(dx, dz) < .00001) {
         target = path.shift() || null;
-        dx = dz = 0;
+        dx = target ? target.x-player.position.x : 0;
+        dz = target ? target.z-player.position.z : 0;
       }
     }
   }
@@ -558,10 +598,10 @@ function tick(now) {
   if (len) {
     const next = advance({x:player.position.x,z:player.position.z},{x:dx,z:dz},1.95*dt,walkable),{x,z}=next;
     if (Math.hypot(x-player.position.x,z-player.position.z)>0.00001) {
+      const rot = Math.atan2(x-player.position.x,z-player.position.z);
       player.position.x = x;
       player.position.z = z;
-      const rot = Math.atan2(dx, dz),
-        delta = Math.atan2(
+      const delta = Math.atan2(
           Math.sin(rot - player.rotation.y),
           Math.cos(rot - player.rotation.y),
         );
@@ -570,6 +610,7 @@ function tick(now) {
       moving = true;
     } else { target = null; path=[]; }
   }
+  if (movingNow && !moving) save();
   movingNow = moving;
   const oldBuddy={x:pipo.position.x,z:pipo.position.z};
   const desired={x:player.position.x-.7,z:player.position.z+.55};
@@ -665,6 +706,7 @@ function bind() {
       e.preventDefault();
       target = null;path=[];
       keys.add(dirs[e.key]);
+      selectedPlace=null;
     }
     if (e.key.toLowerCase() === "e") {
       e.preventDefault();
@@ -693,6 +735,7 @@ function bind() {
       b.setPointerCapture(e.pointerId);
       target = null;path=[];
       keys.add(b.dataset.forestDir);
+      selectedPlace=null;
     });
     on(b, "pointerup", () => {
       keys.clear();
@@ -704,7 +747,9 @@ function bind() {
     });
     on(b, "lostpointercapture", () => { keys.clear(); });
     on(b, "keydown", (e) => {
-      if (e.key === " " || e.key === "Enter") keys.add(b.dataset.forestDir);
+      if (e.key === " " || e.key === "Enter") {
+        selectedPlace=null;target=null;path=[];keys.add(b.dataset.forestDir);
+      }
     });
     on(b, "keyup", () => {
       keys.clear();
@@ -723,10 +768,14 @@ function bind() {
     if(rect.width<=0||rect.height<=0)return;
     camera.updateMatrixWorld(true);terrain.updateWorldMatrix(true,false);
     ray.setFromCamera(p, camera);
-    const hit = ray.intersectObject(terrain, false)[0];
+    const surfaces = owned('bridge') ? [terrain,deckHitMesh] : [terrain];
+    const hit = ray.intersectObjects(surfaces, false)[0];
     if (hit && walkable(hit.point.x, hit.point.z))
       destination(hit.point.x,hit.point.z);
-    else message("Pipo: Siga o caminho. A ponte nos leva à outra margem.");
+    else {
+      target=null;path=[];
+      message("Pipo: Siga o caminho. A ponte nos leva à outra margem.");
+    }
   });
   on(canvas, "webglcontextlost", (e) => {
     e.preventDefault();
@@ -833,7 +882,20 @@ async function action(a, b) {
     return;
   }
   if (name === 'travel') {
-    document.getElementById('forestDialog').close();modal=null;const f=features.find(f=>f.id===b.dataset.id);if(f){const candidates=[[f.x,f.z+1.1],[f.x,f.z-1.1],[f.x+1.1,f.z],[f.x-1.1,f.z],[f.x,f.z]].filter(([x,z])=>walkable(x,z)).sort((a,b)=>Math.hypot(a[0]-player.position.x,a[1]-player.position.z)-Math.hypot(b[0]-player.position.x,b[1]-player.position.z));if(candidates.length)destination(...candidates[0]);}return;
+    document.getElementById('forestDialog').close();
+    modal=null;
+    const place=features.find(f=>f.id===b.dataset.id);
+    if (!place) return;
+    const {x,z}=place;
+    const approaches=[[x,z+1.1],[x,z-1.1],[x+1.1,z],[x-1.1,z],[x,z]]
+      .filter(([a,b])=>walkable(a,b))
+      .sort(([a,b],[c,d])=>Math.hypot(a-player.position.x,b-player.position.z)-Math.hypot(c-player.position.x,d-player.position.z));
+    for (const point of approaches) {
+      destination(...point);
+      if (target) {selectedPlace=place;return;}
+    }
+    message('Pipo: A ponte abre o caminho até a outra margem.');
+    return;
   }
   if (name === "rotate") {
     angle += (Number(b.dataset.turn) * Math.PI) / 6;
@@ -914,14 +976,20 @@ function dispose() {
   });
   staticGroups = [];
   composer?.dispose();
-  renderer?.dispose();
-  renderer?.forceContextLoss();
-  renderer = null;
-  composer = null;
-  scene?.clear();
+  const skeletons=new Set();
+  scene?.traverse(o=>{if(o.skeleton)skeletons.add(o.skeleton);});
+  skeletons.forEach(s=>s.dispose());
+  sunLight?.shadow.dispose();
   ownedMaterials.forEach(m=>m.dispose());ownedMaterials.clear();
   ownedGeometry.forEach(g=>g.dispose());ownedGeometry.clear();
   ownedTextures.forEach(t=>t.dispose());ownedTextures.clear();
+  renderer?.dispose();
+  renderer?.forceContextLoss();
+  renderer=null;composer=null;
+  scene?.clear();
+  canvas=null;stage=null;observer=null;abort=null;camera=null;
+  bridge=null;house=null;water=null;particles=null;pipoActions={};labels=[];features=[];
+  deckProfile=[];deckHitMesh=null;deckBoards=[];selectedPlace=null;
   scene=null;player=null;pipo=null;terrain=null;sunLight=null;
 }
 async function close() {
@@ -1032,6 +1100,7 @@ async function open(options) {
     }
     if (asset.name === "bridge") {
       bridge = root;
+      prepareDeck(root);
       root.traverse((o) => {
         if (o.isMesh) o.userData.owner = "bridge";
       });
@@ -1121,7 +1190,11 @@ window.DaviForest = {
     pipo?.traverse((o) => { if (o.isMesh && /^Buddy_scarf/.test(o.name) && o.visible) pipoScarfVisible = true; });
     const gl = renderer?.getContext(),
       ext = gl?.getExtension("WEBGL_debug_renderer_info");
-    let renderedGroundY=null;
+    let renderedGroundY=null,renderedBoardY=null;
+    if (player && deckBoards.length && owned('bridge')) {
+      const ray=new T.Raycaster(new T.Vector3(player.position.x,100,player.position.z),new T.Vector3(0,-1,0));
+      renderedBoardY=ray.intersectObjects(deckBoards,false)[0]?.point.y??null;
+    }
     if(terrain&&player){terrain.updateWorldMatrix(true,false);renderedGroundY=new T.Raycaster(new T.Vector3(player.position.x,100,player.position.z),new T.Vector3(0,-1,0)).intersectObject(terrain,false)[0]?.point.y;}
     const geometries=new Set(),textures=new Set();let bufferBytes=0,textureBytes=0,instances=0;
     scene?.traverse(o=>{
@@ -1158,19 +1231,23 @@ window.DaviForest = {
       moving: movingNow,
       features: features.map(f=>({id:f.id,x:f.x,z:f.z,title:f.title,window:f.activity?.window?.state,hasMission:f.activity?.has_mission})),
       navigationValid: player ? walkable(player.position.x,player.position.z) : null,
+      pipoNavigationValid: pipo ? walkable(pipo.position.x,pipo.position.z) : null,
       frameActive: !!frame,
       geometries: renderer?.info.memory.geometries,
       textures: renderer?.info.memory.textures,
       pixelRatio: renderer?.getPixelRatio(),
       shadows: renderer?.shadowMap.enabled,
       animation: clip,
+      animationTime: actions[clip]?.time??null,
       pipoAnimation: pipoClip,
+      pipoAnimationTime: pipoActions[pipoClip]?.time??null,
       target: target ? {...target} : null,
       keys: [...keys],
       angle,
       feetY: player ? new T.Box3().setFromObject(player, true).min.y : null,
       surfaceY: player ? floor(player.position.x,player.position.z) : null,
       renderedGroundY,
+      renderedBoardY,
       screenPosition:screen?.toArray(),
       geometryBufferBytes:bufferBytes,
       estimatedTextureBytes:Math.round(textureBytes),
