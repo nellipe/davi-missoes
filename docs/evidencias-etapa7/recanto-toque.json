@@ -1,0 +1,228 @@
+{
+  "stops": [
+    {
+      "name": "soleira",
+      "seconds": 1,
+      "region": "Soleira da Roda Baixa",
+      "position": [
+        28,
+        0.026487413858041948,
+        14
+      ],
+      "shelter": {
+        "leafUp": false,
+        "beetle": [
+          17.36,
+          0.01763786369905436,
+          -0.21000000000000002
+        ],
+        "pool": [
+          18.49,
+          0.12719933167922776,
+          0.75
+        ],
+        "leaf": [
+          17.7,
+          0.7193179005954496,
+          -0.5
+        ],
+        "leafRoll": -0.43,
+        "wetBasin": 1,
+        "basinFill": [
+          0,
+          1
+        ],
+        "phase": "rest"
+      }
+    },
+    {
+      "name": "folha inicial",
+      "seconds": 20.1,
+      "region": "Bosque das Bainhas",
+      "position": [
+        18.97117854740375,
+        0.04923600810707775,
+        1.3964396919601878
+      ],
+      "shelter": {
+        "leafUp": false,
+        "beetle": [
+          17.36,
+          0.01763786369905436,
+          -0.21000000000000002
+        ],
+        "pool": [
+          18.49,
+          0.12719933167922776,
+          0.75
+        ],
+        "leaf": [
+          17.7,
+          0.7193179005954496,
+          -0.5
+        ],
+        "leafRoll": -0.43,
+        "wetBasin": 1,
+        "basinFill": [
+          0,
+          1
+        ],
+        "phase": "rest"
+      }
+    },
+    {
+      "name": "folha virada",
+      "seconds": 22.8,
+      "region": "Bosque das Bainhas",
+      "position": [
+        18.97117854740375,
+        0.04923600810707775,
+        1.3964396919601878
+      ],
+      "shelter": {
+        "leafUp": true,
+        "beetle": [
+          18.5,
+          0.041212076071423395,
+          0.31999999999999995
+        ],
+        "pool": [
+          17.27,
+          0.11702148856955971,
+          0.5
+        ],
+        "leaf": [
+          17.7,
+          0.7193179005954496,
+          -0.5
+        ],
+        "leafRoll": 0.4,
+        "wetBasin": 0,
+        "basinFill": [
+          1,
+          0
+        ],
+        "phase": "rest"
+      }
+    },
+    {
+      "name": "fora do recanto",
+      "seconds": 26,
+      "region": "Bosque das Bainhas",
+      "position": [
+        22.733176316390097,
+        0.14568339286993037,
+        2.118956831170552
+      ],
+      "shelter": {
+        "leafUp": true,
+        "beetle": [
+          18.5,
+          0.041212076071423395,
+          0.31999999999999995
+        ],
+        "pool": [
+          17.27,
+          0.11702148856955971,
+          0.5
+        ],
+        "leaf": [
+          17.7,
+          0.7193179005954496,
+          -0.5
+        ],
+        "leafRoll": 0.4,
+        "wetBasin": 0,
+        "basinFill": [
+          1,
+          0
+        ],
+        "phase": "rest"
+      }
+    },
+    {
+      "name": "retorno ao tronco",
+      "seconds": 30.9,
+      "region": "Bosque das Bainhas",
+      "position": [
+        18.967931394387637,
+        0.04919575224932363,
+        1.3950028640079477
+      ],
+      "shelter": {
+        "leafUp": true,
+        "beetle": [
+          18.5,
+          0.041212076071423395,
+          0.31999999999999995
+        ],
+        "pool": [
+          17.27,
+          0.11702148856955971,
+          0.5
+        ],
+        "leaf": [
+          17.7,
+          0.7193179005954496,
+          -0.5
+        ],
+        "leafRoll": 0.4,
+        "wetBasin": 0,
+        "basinFill": [
+          1,
+          0
+        ],
+        "phase": "rest"
+      }
+    }
+  ],
+  "samples": [
+    {
+      "scene": "bifurcacao",
+      "p95ms": 16.700000000000728,
+      "calls": 72,
+      "triangles": 136586,
+      "loadMs": 646.7999999970198,
+      "geometryBytes": 5647020,
+      "textureBytes": 3761493,
+      "pixelRatio": 0.83,
+      "low": true
+    },
+    {
+      "scene": "abrigo",
+      "p95ms": 16.80000000000291,
+      "calls": 82,
+      "triangles": 119202,
+      "loadMs": 646.7999999970198,
+      "geometryBytes": 5647020,
+      "textureBytes": 3761493,
+      "pixelRatio": 0.83,
+      "low": true
+    }
+  ],
+  "stages": [],
+  "fork": {
+    "casca": {
+      "x": 138.98690311303733,
+      "y": 418.4772654759977,
+      "visible": true,
+      "groundVisible": true,
+      "free": true
+    },
+    "lajes": {
+      "x": 266.67756265566953,
+      "y": 406.48810959943154,
+      "visible": true,
+      "groundVisible": true,
+      "free": true
+    }
+  },
+  "canvas": {
+    "x": 8,
+    "y": 166,
+    "width": 374,
+    "height": 578
+  },
+  "width": 390,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

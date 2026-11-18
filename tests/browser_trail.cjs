@@ -88,10 +88,8 @@ session(
     assert.equal(old.inventory.length, 0);
     await write('/api/forest/map/move',{x:28,z:14},'put');
     await page.reload();
-    await page.waitForFunction(
-      () =>
-        DaviForest.diagnostics().place === 'trail' && document.querySelector('#forestCanvas[data-ready=true]')
-    );
+    await ready(page);
+    assert.equal((await diag(page)).place,'trail');
     await page.evaluate(() => scrollTo(0, 0));
     await page.waitForTimeout(380);
     await mark('Soleira');

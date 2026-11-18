@@ -133,10 +133,8 @@ session(stem, async ({ page, api, guided, write }) => {
   }
   await write('/api/forest/map/move',{x:28,z:14},'put');
   await page.reload();
-  await page.waitForFunction(() => {
-    const d = DaviForest.diagnostics();
-    return d.place === 'trail' && !!d.position && !!document.querySelector('#forestCanvas[data-ready=true]');
-  });
+  await ready(page);
+  assert.equal((await diag(page)).place,'trail');
   await page.evaluate(() => scrollTo(0, 0));
   await mark('soleira');
   await walk(2.7, 11.5);

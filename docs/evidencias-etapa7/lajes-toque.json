@@ -1,0 +1,65 @@
+{
+  "stops": [
+    {
+      "name": "Soleira",
+      "seconds": 1.2,
+      "position": [
+        28,
+        0.026487413858041948,
+        14
+      ],
+      "region": "Soleira da Roda Baixa"
+    },
+    {
+      "name": "Bifurcação",
+      "seconds": 8.6,
+      "position": [
+        30.397135979229727,
+        0.5677271743608339,
+        4.9866078581125866
+      ],
+      "region": "Bosque das Bainhas"
+    },
+    {
+      "name": "Lajes na ida",
+      "seconds": 15.6,
+      "position": [
+        35.007762490618994,
+        1.4881595845148081,
+        0.274939014769501
+      ],
+      "region": "Bosque das Bainhas"
+    },
+    {
+      "name": "Garganta por cima",
+      "seconds": 27.5,
+      "position": [
+        23.951456349241248,
+        0.4842115888631304,
+        -12.561661912182682
+      ],
+      "region": "Garganta das Duas Margens"
+    },
+    {
+      "name": "Retorno de Agora",
+      "seconds": 28.8,
+      "position": [
+        23.951456349241248,
+        0.446632166338354,
+        -12.561661912182682
+      ],
+      "region": "Garganta das Duas Margens"
+    }
+  ],
+  "overlookVisibleFromStart": false,
+  "samples": 108,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "frameP95ms": 16.700000000000728,
+  "maxGap": 1.068792246391187,
+  "maxFeetError": 0.012538899109755364,
+  "maxCalls": 81,
+  "maxTriangles": 161534,
+  "low": true,
+  "stars": 0,
+  "errors": []
+}

@@ -16,6 +16,10 @@ session('volta-' + name, async ({ page, api, guided, plain, write }) => {
   const hit = p => mobile ? page.touchscreen.tap(p.x,p.y) : page.mouse.click(p.x,p.y);
   const position = async () => (await diag(page)).position;
   const landscape = async () => await (await api.get('/api/forest/map')).json();
+  const finishedDiscovery=()=>page.waitForFunction(()=>{
+    const s=DaviForest.diagnostics().shelter;
+    return s?.phase==='rest'&&s.leafUp&&s.wetBasin===0&&s.basinFill[0]>.98;
+  });
   async function stable() {
     await page.waitForFunction(() => !DaviForest.diagnostics().target, null, { polling:120,timeout:12000 });
   }
@@ -60,8 +64,11 @@ session('volta-' + name, async ({ page, api, guided, plain, write }) => {
     const d=await diag(page);
     const frames=d.frameMs.slice(-30).sort((a,b)=>a-b);
     const visit={label,seconds:Math.round((performance.now()-started)/1000),region:d.region,
-      position:d.position,calls:d.calls,triangles:d.triangles,p95ms:frames[Math.ceil(frames.length*.95)-1],
-      low:d.low,bufferBytes:d.geometryBufferBytes,textureBytes:d.estimatedTextureBytes};
+      position:d.position,calls:d.calls,triangles:d.triangles,
+      fps:frames.length?+(1000*frames.length/frames.reduce((sum,ms)=>sum+ms,0)).toFixed(1):null,
+      medianMs:frames[Math.ceil(frames.length*.5)-1],p95ms:frames[Math.ceil(frames.length*.95)-1],
+      low:d.low,dpr:d.pixelRatio,openingMs:d.readyMs,modelsMs:d.loadMs[0],
+      bufferBytes:d.geometryBufferBytes,textureBytes:d.estimatedTextureBytes};
     visits.push(visit);
     console.log(width,profile,label,d.position);
     await page.screenshot({ path:path.join(out,label+'-'+name+'.png') });
@@ -84,6 +91,15 @@ session('volta-' + name, async ({ page, api, guided, plain, write }) => {
       await page.reload();
       await ready(page);
       await mark(label);
+      if(label==='bosque'){
+        const fork=await page.evaluate(()=>[DaviForest.project(29.25,4.72),DaviForest.project(31.72,4.21)]);
+        assert(fork.every(arm=>arm.groundVisible),'As duas trilhas estão enquadradas');
+      }
+      if(label==='besouro'&&process.env.FOREST_SHELTER_STILLS==='1'){
+        await action('forest-nearby').click();
+        await finishedDiscovery();
+        await page.screenshot({path:path.join(out,'besouro-depois-'+name+'.png')});
+      }
     }
     await action('forest-options').click();
     await action('forest-fallback').click();
@@ -121,7 +137,7 @@ session('volta-' + name, async ({ page, api, guided, plain, write }) => {
   await local([[1.25,4.72],[-1,4.2],[-5.3,2.1],[-7.4,2.6],[-9,1.4]]);
   await page.waitForTimeout(850);
   await action('forest-nearby').click();
-  await page.waitForFunction(()=>DaviForest.diagnostics().shelter?.phase==='rest'&&DaviForest.diagnostics().shelter?.leafUp);
+  await finishedDiscovery();
   await mark('besouro');
   await local([[-7.4,2.6],[-5.3,2.1],[-6,-1.8],[-4,-4.7],[0,-7],[-1.8,-9.6],[-4,-12.5]]);
   await action('forest-nearby').click();
