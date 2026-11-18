@@ -1,0 +1,842 @@
+[
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.899858832359314,
+          -0.2507189214229584,
+          -0.2507189214229584,
+          0.25403571128845215
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.899858832359314,
+          0.2507189214229584,
+          0.2507189214229584,
+          0.25403571128845215
+        ]
+      }
+    },
+    "feet": 0,
+    "pipoClip": "Hover"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.9000500258957613,
+          -0.25090779987570583,
+          -0.25052989974598977,
+          0.2533574740215514
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8996671261368847,
+          0.2505298991135811,
+          0.2509078006513971,
+          0.2547138017809748
+        ]
+      }
+    },
+    "feet": -0.0000022325182227056484,
+    "pipoClip": "Walk"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.9323257616536842,
+          -0.29535116959782254,
+          -0.19618268553543042,
+          0.07105467005907082
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8318453914361956,
+          0.19618264574890104,
+          0.29535114488642195,
+          0.426981686708181
+        ]
+      }
+    },
+    "feet": -0.000572799072479771,
+    "pipoClip": "Hover"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.9211845697067755,
+          -0.2751341943256018,
+          -0.22365402341737795,
+          0.16030923946568487
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8690233441278006,
+          0.2236540180744055,
+          0.27513420630078883,
+          0.34507750777328006
+        ]
+      }
+    },
+    "feet": -0.00226483486777225,
+    "pipoClip": "Walk"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.9211845649878546,
+          -0.27513418774204823,
+          -0.22365403151632368,
+          0.16030926658199562
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8690233542856202,
+          0.22365402617335262,
+          0.27513419971723174,
+          0.345077482192408
+        ]
+      }
+    },
+    "feet": -0.0022648344983681457,
+    "pipoClip": "Walk"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.9164114711477918,
+          -0.26885949686217947,
+          -0.23115909656035638,
+          0.18566115498849786
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8782123178259231,
+          0.23115908653908288,
+          0.2688595142376734,
+          0.3209722332458187
+        ]
+      }
+    },
+    "feet": -0.001943672343301353,
+    "pipoClip": "Walk"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.9095208662434238,
+          -0.2607911146662524,
+          -0.2402247614081761,
+          0.21691442165685476
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8886824159075847,
+          0.24022476702024592,
+          0.26079114207028736,
+          0.29072945821336516
+        ]
+      }
+    },
+    "feet": -0.0011512787710131756,
+    "pipoClip": "Walk"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.9027943345853676,
+          -0.253660485546635,
+          -0.2477424303980651,
+          0.2433977151753889
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8967979807842758,
+          0.24774242699490742,
+          0.25366049343954716,
+          0.26463831459751486
+        ]
+      }
+    },
+    "feet": -0.00024025374447436687,
+    "pipoClip": "Walk"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.9323459478200791,
+          -0.2954069960541232,
+          -0.19609861232582326,
+          0.07078930165424163
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8317238267285529,
+          0.1960985728050305,
+          0.29540697191529514,
+          0.42721843526362957
+        ]
+      }
+    },
+    "feet": -0.000571915321997532,
+    "pipoClip": "Hover"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.9095693313690401,
+          -0.26084480638136365,
+          -0.24016645964882036,
+          0.21671110747327066
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8886174059052372,
+          0.24016646535888536,
+          0.26084483395599173,
+          0.2909281014015543
+        ]
+      }
+    },
+    "feet": -0.0011580974938415617,
+    "pipoClip": "Walk"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.9164425955592239,
+          -0.2688982606654552,
+          -0.23111400281743716,
+          0.18550746097266102
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8781584752454665,
+          0.2311139928709391,
+          0.26889827800340904,
+          0.32111951366650016
+        ]
+      }
+    },
+    "feet": -0.001945017812406663,
+    "pipoClip": "Walk"
+  },
+  {
+    "still": false,
+    "objects": {},
+    "davi": {
+      "Surface_Teal": {
+        "visible": true,
+        "color": "258f8a",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Hat": {
+        "visible": false,
+        "color": "ffffff",
+        "map": 128,
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "Cape": {
+        "visible": false,
+        "color": "b0a1d3",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "pipo": {
+      "Buddy_scarf": {
+        "visible": false,
+        "color": "c66547",
+        "pose": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "LegL": {
+        "visible": true,
+        "pose": [
+          0.916442599310185,
+          -0.2688982653385818,
+          -0.23111399738031402,
+          0.18550744244218054
+        ]
+      },
+      "LegR": {
+        "visible": true,
+        "pose": [
+          0.8781584687524248,
+          0.23111398743381245,
+          0.2688982826765413,
+          0.3211195314228738
+        ]
+      }
+    },
+    "feet": -0.001945017814760544,
+    "pipoClip": "Walk"
+  }
+]

@@ -6,11 +6,15 @@ const mode = process.argv[2] || 'movimento';
 const width = Number(process.argv[3] || 390);
 const height = width < 700 ? 850 : 820;
 const name = mode + '-' + width;
+const record=process.env.FOREST_RECORD==='1';
 
 session(name, async ({ page, write, api, context, browser }) => {
   const action = code => page.locator('[data-action="' + code + '"]').first();
   const click = code => action(code).click();
-  const shot = suffix => page.screenshot({path:path.join(out,name+'-'+suffix+'.png')});
+  async function shot(suffix) {
+    await page.screenshot({path:path.join(out,name+'-'+suffix+'.png')});
+    if(record)await page.waitForTimeout(630);
+  }
   const options = () => click('forest-options');
   const close = () => click('forest-close');
   const interact = () => click('forest-nearby');
@@ -284,6 +288,7 @@ session(name, async ({ page, write, api, context, browser }) => {
   assert.equal(await map.locator('[data-clothes]').getAttribute('fill'),'#477de0');
   for(const id of ['hat','cape','buddy'])
     assert.equal(await map.locator('[data-accessory='+id+']').getAttribute('visibility'),'visible');
+  await shot('mapa-2d');
   await interact();
   await item('equip','hat').click();
   await page.waitForFunction(()=>document.querySelector('[data-accessory=hat]')?.getAttribute('visibility')==='hidden');
@@ -293,5 +298,5 @@ session(name, async ({ page, write, api, context, browser }) => {
   assert.equal((await diag(page)).outfit.hat.length,0);
   assert.equal((await world()).avatar.hat,null);
   save(name,{colors,items,persisted:true,view2dSync:true,missionReturn:true});
-}, process.env.FOREST_RECORD==='1', { viewport:{width,height},videoSize:{width,height},videoFps:24 })
+}, record, { viewport:{width,height},videoSize:{width,height},videoFps:24 })
   .catch(error=>{console.error(error);process.exitCode=1;});
