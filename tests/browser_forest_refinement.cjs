@@ -63,9 +63,14 @@ session(name, async ({ page, write, api, context, browser }) => {
   }
 
   if (mode==='movimento') {
-    assert.deepEqual(await state(),{choice:'full',reduced:false,system:false});
+    const waterPatch=async()=>{
+      const point=await page.evaluate(()=>DaviForest.project(26.62,10.12,.272));
+      assert(point.visible,'O trecho visível da calha fica no quadro');
+      return page.screenshot({clip:{x:point.x-9,y:point.y-6,width:18,height:12}});
+    };
+    assert.deepEqual(await state(),{choice:'system',reduced:false,system:false});
     await options();
-    assert.equal(await page.locator('#forestMotion').inputValue(),'full');
+    assert.equal(await page.locator('#forestMotion').inputValue(),'system');
     assert.equal(await page.locator('#forestMotionStatus').innerText(),'Animações ativadas.');
     await close();
     const walk=[];
@@ -91,6 +96,11 @@ session(name, async ({ page, write, api, context, browser }) => {
     await page.keyboard.up('ArrowLeft');
 
     await checkpoint(28,13.35);
+    await page.waitForTimeout(400);
+    const waterFirst=await waterPatch();
+    await page.waitForTimeout(220);
+    const waterChanges=!waterFirst.equals(await waterPatch());
+    assert(waterChanges,'O trecho de água muda entre capturas');
     const lowBefore=(await diag(page)).living;
     await interact();
     await page.waitForTimeout(650);
@@ -98,6 +108,7 @@ session(name, async ({ page, write, api, context, browser }) => {
     await page.waitForTimeout(3450);
     const lowEnd=(await diag(page)).living;
     assert(Math.abs(lowMiddle.lowWheel-lowBefore.lowWheel)>.20);
+    assert(lowMiddle.lowWater-lowBefore.lowWater>.20,'A fase da corrente avança');
     assert(lowMiddle.lowBoat[2]>lowBefore.lowBoat[2]+.19&&lowEnd.lowBoat[2]>lowMiddle.lowBoat[2]+1.80);
     await shot('soleira');
 
@@ -110,7 +121,7 @@ session(name, async ({ page, write, api, context, browser }) => {
     assert(Math.hypot(...highAfter.highBoat.map((v,i)=>v-highBefore.highBoat[i]))>.85);
     await shot('copa');
 
-    assert.match(await reduced('reduced'),/reduzidas neste navegador/);
+    assert.match(await reduced('reduced'),/reduzido por sua escolha/);
     assert(await page.locator('#forestMotionBadge').isVisible());
     const persisted=await browser.newContext({storageState:await context.storageState(),reducedMotion:'no-preference'});
     try {
@@ -126,11 +137,17 @@ session(name, async ({ page, write, api, context, browser }) => {
     assert((await state()).reduced);
     await checkpoint(28,13.35);
     assert((await state()).reduced);
+    await page.waitForTimeout(400);
+    const quietWater=await waterPatch();
+    await page.waitForTimeout(220);
+    const waterStill=quietWater.equals(await waterPatch());
+    assert(waterStill,'O trecho de água mantém o quadro em movimento reduzido');
     const reducedBefore=(await diag(page)).living;
     await interact();
     await page.waitForTimeout(410);
     const reducedAfter=(await diag(page)).living;
     assert.equal(reducedAfter.lowWheel,reducedBefore.lowWheel);
+    assert.equal(reducedAfter.lowWater,0,'A corrente visual fica parada no modo reduzido');
     assert(reducedAfter.lowBoat[2]-reducedBefore.lowBoat[2]>2.7);
     await options();
     await click('forest-fallback');
@@ -144,18 +161,37 @@ session(name, async ({ page, write, api, context, browser }) => {
     assert((await state()).reduced);
     await click('world-forest');
     await ready(page);
-    assert.match(await reduced('full'),/ativadas/);
+    assert.match(await reduced('system'),/ativadas/);
     await options();
     await page.emulateMedia({reducedMotion:'reduce'});
     await page.waitForFunction(()=>matchMedia('(prefers-reduced-motion: reduce)').matches);
     await page.waitForFunction(()=>DaviForest.diagnostics().motion.reduced);
     assert.match(await page.locator('#forestMotionStatus').innerText(),/preferência do aparelho/);
-    assert.equal(await page.locator('#forestMotion').inputValue(),'full');
+    assert.equal(await page.locator('#forestMotion').inputValue(),'system');
     await shot('preferencia-do-aparelho');
+    await page.locator('#forestMotion').selectOption('full');
+    assert.match(await page.locator('#forestMotionStatus').innerText(),/ativadas por sua escolha.*movimento reduzido no aparelho/);
+    await shot('escolha-manual-ativada');
     await close();
     await page.reload();
     await ready(page);
-    assert.deepEqual(await state(),{choice:'full',reduced:true,system:true});
+    assert.deepEqual(await state(),{choice:'full',reduced:false,system:true});
+    const overrideBefore=(await diag(page)).living;
+    await interact();
+    await page.waitForTimeout(1000);
+    const overrideAfter=(await diag(page)).living;
+    assert(overrideAfter.lowWater>overrideBefore.lowWater+.5);
+    assert(Math.abs(overrideAfter.lowWheel-overrideBefore.lowWheel)>.35);
+    assert(overrideAfter.lowBoat[2]>overrideBefore.lowBoat[2]+.40);
+    await options();
+    await click('forest-fallback');
+    await page.locator('#worldMap[data-ready=true]').waitFor();
+    assert.deepEqual(await state(),{choice:'full',reduced:false,system:true});
+    await click('world-forest');
+    await ready(page);
+    assert.deepEqual(await state(),{choice:'full',reduced:false,system:true});
+    assert.match(await reduced('system'),/preferência do aparelho/);
+    assert((await state()).reduced);
     await page.emulateMedia({reducedMotion:'no-preference'});
     await page.waitForFunction(()=>!DaviForest.diagnostics().motion.reduced);
 
@@ -165,7 +201,14 @@ session(name, async ({ page, write, api, context, browser }) => {
       const clean=await fresh.newPage();
       await clean.goto(page.url());
       await ready(clean);
-      assert.deepEqual((await diag(clean)).motion,{choice:'full',reduced:false,system:false});
+      assert.deepEqual((await diag(clean)).motion,{choice:'system',reduced:false,system:false});
+      await clean.emulateMedia({reducedMotion:'reduce'});
+      await clean.evaluate(()=>{localStorage.setItem('davi-forest-motion','full');});
+      await clean.reload();
+      await ready(clean);
+      assert.deepEqual((await diag(clean)).motion,{choice:'system',reduced:true,system:true});
+      await clean.emulateMedia({reducedMotion:'no-preference'});
+      await clean.evaluate(()=>{localStorage.removeItem('davi-forest-motion');});
       await clean.evaluate(()=>{localStorage.setItem('davi-forest-still','true');});
       await clean.reload();
       await ready(clean);
@@ -173,7 +216,7 @@ session(name, async ({ page, write, api, context, browser }) => {
     } finally {
       await fresh.close();
     }
-    save(name,{walk,lowBefore,lowMiddle,lowEnd,highBefore,highAfter,reducedBefore,reducedAfter});
+    save(name,{walk,waterChanges,waterStill,lowBefore,lowMiddle,lowEnd,highBefore,highAfter,reducedBefore,reducedAfter,overrideBefore,overrideAfter});
     return;
   }
 

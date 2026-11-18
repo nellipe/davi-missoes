@@ -50,7 +50,7 @@ let host,
 let pipoActions = {},
   pipoClip = "Hover";
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
-let motionChoice='full', systemMotionReduced=false;
+let motionChoice='system', systemMotionReduced=false;
 let wardrobeBack=false, outfitPending=null;
 let mixers = [],
   actions = {},
@@ -266,13 +266,16 @@ function store(key, value) {
 }
 function syncMotion() {
   systemMotionReduced=reducedMotion.matches;
-  still=motionChoice==='reduced'||systemMotionReduced;
+  still=motionChoice==='reduced'||(motionChoice==='system'&&systemMotionReduced);
   const status=document.getElementById('forestMotionStatus');
-  if(status)status.textContent=systemMotionReduced
-    ? 'Movimento reduzido pela preferência do aparelho.'
-    : still?'Animações reduzidas neste navegador.':'Animações ativadas.';
+  if(status)status.textContent=still
+    ? (motionChoice==='system'?'Movimento reduzido pela preferência do aparelho.':'Movimento reduzido por sua escolha.')
+    : (motionChoice==='full'&&systemMotionReduced?'Animações ativadas por sua escolha, mesmo com movimento reduzido no aparelho.':'Animações ativadas.');
   const badge=document.getElementById('forestMotionBadge');
-  if(badge)badge.hidden=!still;
+  if(badge){
+    badge.hidden=!still&&!(motionChoice==='full'&&systemMotionReduced);
+    badge.textContent=still?'Movimento reduzido':'Animações ativadas';
+  }
 }
 async function assets() {
   return Promise.all(['forest','bridge','treehouse','davi','pipo','activity'].map(asset));
@@ -1095,7 +1098,14 @@ function renderDialog() {
     body = `<p>Seu saldo: ${data.economy.stars} estrelas. Construções e acessórios continuam guardados entre os aparelhos.</p><div class="f-shop">${data.economy.catalog.map((i) => `<article><h3>${esc(i.name)}</h3><p>${esc(i.description)}</p><strong>${i.removed ? "Removido pelo responsável" : i.owned ? "Já é seu" : i.price + " ✦"}</strong>${!i.owned && !i.removed && i.available ? button("Guardar", "buy", `data-id="${i.id}" ${data.economy.stars < i.price ? "disabled" : ""}`) : i.owned && i.kind !== "building" ? button(data.economy.avatar[i.id] ? "Tirar" : "Usar", "equip", `data-id="${i.id}"`) : ""}</article>`).join("")}</div>`;
   } else {
     title = "Do seu jeito";
-    body = `<label for="forestQuality">Qualidade</label><select id="forestQuality"><option value="auto">Automática</option><option value="low">Econômica</option><option value="high">Detalhada</option></select><label for="forestMotion">Animações do bosque</label><select id="forestMotion" aria-describedby="forestMotionStatus"><option value="full">Ativadas</option><option value="reduced">Reduzidas</option></select><p id="forestMotionStatus" role="status"></p><div class="f-options">${map2d?'':button("Vista 2D da floresta","fallback")}<button type="button" class="f-button" data-action="world-island">Ilha das ideias</button></div>`;
+    body = `<label for="forestQuality">Qualidade</label><select id="forestQuality"><option value="auto">Automática</option><option value="low">Econômica</option><option value="high">Detalhada</option></select>
+      <label for="forestMotion">Animações do bosque</label>
+      <select id="forestMotion" aria-describedby="forestMotionStatus">
+        <option value="system">Seguir o aparelho</option>
+        <option value="full">Ativar neste navegador</option>
+        <option value="reduced">Reduzir neste navegador</option>
+      </select><p id="forestMotionStatus" role="status"></p>
+      <div class="f-options">${map2d?'':button("Vista 2D da floresta","fallback")}<button type="button" class="f-button" data-action="world-island">Ilha das ideias</button></div>`;
   }
   document.getElementById("forestDialogBody").innerHTML =
     `<div class="f-dialog-top"><span>O DIÁRIO DO BOSQUE</span>${button("Fechar ×", "close")}</div><h2 id="forestDialogTitle">${title}</h2>${body}`;
@@ -1114,7 +1124,7 @@ function renderDialog() {
     syncMotion();
     motion.onchange = () => {
       motionChoice=motion.value;
-      store('motion',motionChoice);
+      store('motion-mode',motionChoice);
       syncMotion();
     };
   }
@@ -1357,9 +1367,10 @@ async function open(options) {
   if(token!==generation)return false;
   if(mapModule)map2d=mapModule.createMap();
   quality = preference("quality", "auto");
-  // The old key was written only when the player changed the checkbox.
-  const savedMotion=preference('motion',preference('still','false')==='true'?'reduced':'full');
-  motionChoice=savedMotion==='reduced'?'reduced':'full';
+  // Earlier versions never allowed overriding reduced motion on the device.
+  const previousMotion=preference('motion',preference('still','false')==='true'?'reduced':'system');
+  const savedMotion=preference('motion-mode',previousMotion==='reduced'?'reduced':'system');
+  motionChoice=['system','full','reduced'].includes(savedMotion)?savedMotion:'system';
   syncMotion();
   dirty = false;
   paused = false;
