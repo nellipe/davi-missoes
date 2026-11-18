@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "time": "2026-11-18T01:22:13.402363+00:00",
+  "checks": [
+    "HTTPS com CA explicitamente confiada",
+    "CA de teste ausente do trust global",
+    "Login de teste e pareamento HTTPS",
+    "Sessao infantil sem privilegio de responsavel",
+    "100 estrelas e inventario vazio preservados no reinicio",
+    "Agenda exclusivamente sintetica disponivel",
+    "Hashes de 9 arquivos de producao identicos antes/depois da parada e reinicio de homologacao"
+  ],
+  "productionLifecycleFilesUnchanged": 9,
+  "testCaPemSha256": "9e476b3a3b44d50cab77af44131e5f5f7f9b35e82ae6069746f11c28a5293aee"
+}

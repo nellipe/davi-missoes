@@ -95,6 +95,8 @@ Legislação de referência:
 
 ## Marco visual — Floresta Encantada
 
+Homologação física da PR #17: [instância LAN sintética, medições e roteiro por aparelho](docs/homologacao-floresta-pr17.md). Ambiente separado da publicação familiar, sem merge ou deploy de produção.
+
 Um único mundo 3D em avaliação artística, com GLBs autorais, cenário editável em Blender, Davi/Pipo animados e integrações existentes. Veja o [marco visual](docs/floresta-marco-visual-v16.md) e as [capturas, gameplay e comparação](docs/evidencias-forest-v16/README.md). A ilha 2D e as regras de horário permanecem.
 
 ## Controle do responsável — V0.6D

@@ -1,4 +1,5 @@
 """Caddy real, apenas loopback e CA temporária confiada explicitamente pelo cliente."""
+import datetime as dt
 import http.client
 import json
 import os
@@ -94,21 +95,23 @@ class TlsTests(unittest.TestCase):
                 info=request(trusted,cookie=cookie)[1]
                 self.assertTrue(info['parent'])
                 self.assertEqual(request(trusted,'/api/calendar',cookie=cookie)[0],200)
+                local_now=dt.datetime.now(dt.timezone(dt.timedelta(hours=-3)))
+                day=local_now.date().isoformat()
                 status, event, _ = request(trusted,'/api/events','POST',
-                    {'title':'TLS sintético','time':'08:00','start_date':'2026-11-17'},cookie,info['csrf'])
+                    {'title':'TLS sintético','time':local_now.strftime('%H:%M'),'duration':60,'start_date':day},cookie,info['csrf'])
                 self.assertEqual(status,201)
                 mission_route=f"/api/events/{event['id']}/mission"
                 self.assertEqual(request(trusted,mission_route,'PUT',{'template_id':'taekwondo'},cookie,info['csrf'])[0],200)
-                guided=request(trusted,mission_route+'?date=2026-11-17',cookie=child_cookie.split(';')[0])[1]['mission']
+                guided=request(trusted,mission_route+'?date='+day,cookie=child_cookie.split(';')[0])[1]['mission']
                 self.assertEqual(request(trusted,mission_route+'/steps/'+guided['steps'][0]['id'],'PUT',
-                    {'date':'2026-11-17','template_id':guided['id'],'revision':guided['revision'],'done':True},child_cookie.split(';')[0],child['csrf'])[0],200)
-                self.assertFalse(request(trusted,'/api/calendar?start=2026-11-17&end=2026-11-17',cookie=child_cookie.split(';')[0])[1]['events'][0]['done'])
+                    {'date':day,'template_id':guided['id'],'revision':guided['revision'],'done':True},child_cookie.split(';')[0],child['csrf'])[0],200)
+                self.assertFalse(request(trusted,f'/api/calendar?start={day}&end={day}',cookie=child_cookie.split(';')[0])[1]['events'][0]['done'])
                 self.assertEqual(request(trusted,'/api/missions',cookie=child_cookie.split(';')[0])[0],403)
                 done=f"/api/events/{event['id']}/done"
                 child_cookie=child_cookie.split(';')[0]
-                self.assertEqual(request(trusted,done,'POST',{'date':'2026-11-17'},child_cookie,child['csrf'])[0],200)
-                self.assertEqual(request(trusted,done,'POST',{'date':'2026-11-17'},child_cookie,'forged')[0],403)
-                self.assertEqual(request(trusted,done,'POST',{'date':'2026-11-17'},child_cookie,child['csrf'],headers={'Origin':'http://aventuras.davi.costa'})[0],403)
+                self.assertEqual(request(trusted,done,'POST',{'date':day},child_cookie,child['csrf'])[0],200)
+                self.assertEqual(request(trusted,done,'POST',{'date':day},child_cookie,'forged')[0],403)
+                self.assertEqual(request(trusted,done,'POST',{'date':day},child_cookie,child['csrf'],headers={'Origin':'http://aventuras.davi.costa'})[0],403)
                 self.assertEqual(request(trusted,'/api/settings','PUT',{'name':'Teste'},child_cookie,child['csrf'])[0],403)
                 self.assertEqual(request(trusted,'/api/logout','POST',cookie=cookie,csrf=info['csrf'])[0],200)
                 self.assertEqual(request(trusted,'/api/events',cookie=cookie)[0],403)

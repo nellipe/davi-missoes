@@ -114,7 +114,7 @@ async function assets() {
         name,
         ...(await loader.loadAsync(`/assets/forest/${name}.glb`)),
       })),
-    );
+    ).catch((error) => { assetCache = null; throw error; });
   }
   return assetCache;
 }
@@ -371,8 +371,8 @@ function syncOwned() {
   });
   player.traverse((o) => {
     if (o.isMesh) {
-      if (/^Hat/.test(o.name)) o.visible = owned("hat");
-      if (/^Cape/.test(o.name)) o.visible = owned("cape");
+      if (/^Hat/.test(o.name)) o.visible = owned("hat") && !!data.economy.avatar.hat;
+      if (/^Cape/.test(o.name)) o.visible = owned("cape") && !!data.economy.avatar.cape;
       if (o.material?.name === "Teal")
         o.material.color.set(
           { mint: "#258f8a", sun: "#c79946", sky: "#4c87ad" }[
@@ -382,7 +382,7 @@ function syncOwned() {
     }
   });
   pipo.traverse((o) => {
-    if (o.isMesh && /^Buddy_scarf/.test(o.name)) o.visible = owned("buddy");
+    if (o.isMesh && /^Buddy_scarf/.test(o.name)) o.visible = owned("buddy") && !!data.economy.avatar.buddy;
   });
   const star = document.querySelector(".forest-wallet strong");
   if (star) star.textContent = data.economy.stars;
@@ -665,6 +665,8 @@ function bind() {
   on(canvas, "webglcontextlost", (e) => {
     e.preventDefault();
     paused = true;
+    keys.clear();
+    save();
     message(
       "A floresta pausou neste aparelho. Abra a ilha 2D nas opções para continuar.",
     );
@@ -843,6 +845,7 @@ function close() {
   dispose();
 }
 async function open(options) {
+  const openStarted = performance.now();
   if (renderer) await save();
   dispose();
   host = options;
@@ -999,6 +1002,7 @@ async function open(options) {
   bind();
   updateCamera();
   composer.render();
+  stats.readyMs = performance.now() - openStarted;
   document.getElementById("forestLoading").remove();
   canvas.dataset.ready = "true";
   frame = requestAnimationFrame(tick);
@@ -1009,6 +1013,8 @@ window.DaviForest = {
   close,
   action,
   diagnostics() {
+    let pipoScarfVisible = false;
+    pipo?.traverse((o) => { if (o.isMesh && /^Buddy_scarf/.test(o.name) && o.visible) pipoScarfVisible = true; });
     const gl = renderer?.getContext(),
       ext = gl?.getExtension("WEBGL_debug_renderer_info");
     return {
@@ -1019,7 +1025,10 @@ window.DaviForest = {
       frames: stats.frames,
       frameMs: stats.times.slice(),
       loadMs: stats.loads,
+      readyMs: stats.readyMs,
       position: player?.position.toArray(),
+      pipoPosition: pipo?.position.toArray(),
+      pipoScarfVisible,
       camera: camera?.position.toArray(),
       characterSize: player
         ? new T.Box3().setFromObject(player).getSize(new T.Vector3()).toArray()
@@ -1031,7 +1040,8 @@ window.DaviForest = {
       calls: renderer?.info.render.calls,
       animations: Object.keys(actions),
       pipoAnimations: Object.keys(pipoActions),
-      webgl: !!renderer,
+      webgl: !!renderer && !gl?.isContextLost(),
+      paused,
     };
   },
 };
