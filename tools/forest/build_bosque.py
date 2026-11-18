@@ -14,7 +14,7 @@ material = bpy.data.materials.new("Pigmentos do Bosque")
 material.use_nodes = True
 nodes = material.node_tree.nodes
 primer = nodes.get("Principled BSDF")
-primer.inputs["Roughness"].default_value = .88
+primer.inputs["Roughness"].default_value = .73
 pigment = nodes.new("ShaderNodeVertexColor")
 pigment.layer_name = "Pigmento"
 material.node_tree.links.new(pigment.outputs["Color"], primer.inputs["Base Color"])
@@ -109,17 +109,16 @@ def crown_lobe(model, center, scales, hue, seed, tuft=False):
     x, y, z = center
     sx, sy, sz = scales
     rings, colors = [], []
-    outline = [(-.95, .24), (-.66, .52), (-.53, .80), (-.04, 1.01), (.32, .81), (.65, .89),
-               (.82, .56), (1.00, .28), (.89, .02), (1.01, -.24), (.63, -.58), (.53, -.87),
-               (.10, -.99), (-.23, -.84), (-.61, -.91), (-.74, -.56), (-1.04, -.29)]
+    outline = [(-1, .08), (-.83, .52), (-.54, .86), (-.10, 1), (.38, .91), (.75, .69), (1, .21),
+               (.96, -.28), (.63, -.71), (.16, -.89), (-.35, -.88), (-.80, -.57)]
     rng = random.Random(seed)
-    for j, (h, radius, offset) in enumerate([(-.85,.32,-.12), (-.40,.83,.09), (.16,1,.02),
-                                             (.51,.89,-.13), (.82,.52,-.22), (1,.16,-.27)]):
-        rows = [(x+sx*(u*radius+offset+rng.uniform(-.08,.08)),
-                 y+sy*(v*radius+.13*math.sin(j+2*u)),
-                 z+sz*(h+.14*math.sin(i*2.3+j*.88))) for i, (u,v) in enumerate(outline)]
+    for j, (h, radius, offset) in enumerate([(-.86,.30,-.12), (-.39,.83,.04), (.14,1,.02),
+                                             (.66,.77,-.12), (.97,.30,-.22)]):
+        rows = [(x+sx*(u*radius+offset+rng.uniform(-.032,.032)),
+                 y+sy*(v*radius+.085*math.sin(j+2*u)),
+                 z+sz*(h+.057*math.sin(i*2.3+j*.88))) for i, (u,v) in enumerate(outline)]
         rings.append(list(reversed(rows)))
-        colors.append([paint(hue, .77+j*.067+.08*math.sin(i*1.71+seed)+rng.uniform(-.10,.10))
+        colors.append([paint(hue, .83+j*.084+.042*math.sin(i*1.71+seed)+rng.uniform(-.04,.04))
                        for i in range(len(rows))])
         if tuft and j in (1, 2, 3):
             for i, (px, py, pz) in enumerate(rows):
@@ -132,7 +131,7 @@ def crown_lobe(model, center, scales, hue, seed, tuft=False):
 
 
 def tree(kind, trunk, variant):
-    stem, leaves, tips = (Sculpture(kind + s) for s in ("_Tronco", "_Copa", "_Pontas"))
+    stem, leaves, tips, economy = (Sculpture(kind+s) for s in ("_Tronco","_Copa","_Pontas","_Copa_economica"))
     bark = BARK if variant == 0 else ("99785a", "685343", "b49b70", "5c4d3d", "8e7460")
     stem.grain(trunk, [.64, .38, .30, .23, .15, .047], bark, 16)
     for x,y in [(-1.64,-.30), (1.17,.78), (.60,-1.32), (-.82,1.01), (.10,1.56)]:
@@ -141,14 +140,16 @@ def tree(kind, trunk, variant):
     sway = -.75 if variant else 1
     for line, radii in BOUGHS:
         stem.grain([(x*sway, y, z+variant*.25) for x,y,z in line], radii, bark, 10)
-    colors = ("426f3c", "52844a", "6a9350", "426f51", "548547", "658f48") if variant == 0 else (
-        "53724a", "507a59", "6e9458", "518453", "356b54", "789d5a")
+    colors = ("508157","5b955e","7ca764","508c62","66a362","80af66") if variant == 0 else (
+        "517c62","51906d","6ca57b","57957a","437c66","87ad77")
     for i, (x,y,z,sx,sy,sz) in enumerate(CROWN):
         center = (sway*x, y, z+variant*.36)
         crown_lobe(leaves, center, (sx, sy, sz), colors[i], 90+i)
         crown_lobe(tips, (center[0]+.56, center[1]-.31, center[2]+.23),
                    (sx*.61, sy*.54, sz*.71), colors[(i+2)%6], 52-i, True)
-    for model in stem, leaves, tips:
+        if i in (0,2,3,5):
+            crown_lobe(economy,center,(sx*1.16,sy*1.32,sz*1.12),colors[i],90+i)
+    for model in stem, leaves, tips, economy:
         model.export_mesh()
 
 
@@ -171,7 +172,7 @@ for row, (height, spread, shift, tint) in enumerate([
     tones.append([paint("798951" if (i+row*2)%7 < 2 else tint, .82+.24*math.sin(i*.95+row*.61)**2)
                   for i in range(len(outline))])
 shale.rings(rings, tones)
-shale.export_mesh(False)
+shale.export_mesh()
 
 for name, outline2, hue in [
     ("Passo_Pedra", [(-.7,-.19),(-.47,-.35),(.26,-.37),(.59,-.17),(.54,.20),(.02,.29),(-.45,.20)], "b4b6a3"),

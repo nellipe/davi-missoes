@@ -43,11 +43,12 @@ export function inBosque(x, z) {
 export function installBosque(group, library, layout, floor, edge) {
   const art = new T.Group();
   const details = new T.Group();
+  const economy = new T.Group(), full = new T.Group();
   const blockers = [];
   const crowns = [];
   const trunks = [];
   group.add(art);
-  art.add(details);
+  art.add(details,economy,full);
   const material = library.getObjectByName('Carvalho_Copa').material.clone();
   material.vertexColors = true;
   let seed = 24049;
@@ -55,7 +56,7 @@ export function installBosque(group, library, layout, floor, edge) {
   const get = (name) => library.getObjectByName(name).geometry;
   const batches = new Map();
   function place(name, x, z, sx, sy, sz, turn, { detail = false, solid = false, lift = 0 } = {}) {
-    const parent = detail ? details : art;
+    const parent = detail ? details : name.endsWith('_economica') ? economy : name.endsWith('_Copa') ? full : art;
     const geometry = get(name);
     if (solid) {
       const mesh = new T.Mesh(geometry, material);
@@ -76,6 +77,7 @@ export function installBosque(group, library, layout, floor, edge) {
     const trunk=place(kind + '_Tronco', x, z, size, size, size, turn, { solid: true });
     trunks.push({ trunk, x, z, height: 5.4*size, radius: 1.12*size });
     place(kind + '_Copa', x, z, size, size, size, turn);
+    place(kind + '_Copa_economica', x, z, size, size, size, turn);
     place(kind + '_Pontas', x, z, size, size, size, turn, { detail: true });
   }
   for (const [x, z, sx, sy, sz, turn] of shelves) {
@@ -163,16 +165,19 @@ export function installBosque(group, library, layout, floor, edge) {
         radius: 2.25*sy, hidden: false,
       });
     });
-    mesh.castShadow = parent === art;
+    mesh.castShadow = parent === art || parent === full;
     mesh.receiveShadow = true;
     parent.add(mesh);
   }
+  let economical=false;
   const cameraToHero = new T.Vector3();
   const offset = new T.Vector3();
   const sight = new T.Vector3();
   return {
-    setEconomy(low) { details.visible = !low; },
+    setEconomy(low) { economical=low; details.visible = full.visible = !low; economy.visible=low; },
     clearSight(camera, hero) {
+      art.visible=Math.hypot(hero.x-1,hero.z-3.4)<(economical?12.4:16.5);
+      if(!art.visible)return;
       const dx=hero.x-camera.x, dz=hero.z-camera.z;
       const distanceSq=dx*dx+dz*dz;
       for(const { trunk,x,z,height,radius } of trunks){
@@ -200,7 +205,7 @@ export function installBosque(group, library, layout, floor, edge) {
       }
     },
     blocksTap(ray, hit) {
-      return blockers.some(mesh => mesh.visible && ray.intersectObject(mesh,false)[0]?.distance + .02 < hit.distance);
+      return art.visible && blockers.some(mesh => mesh.visible && ray.intersectObject(mesh,false)[0]?.distance + .02 < hit.distance);
     },
   };
 }

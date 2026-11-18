@@ -10,7 +10,17 @@ export function installRegions(root, library, layout, floor, edge) {
     {x:13,z:8,tree:'Amieiro',stone:'#9fa99b',foliage:'#a6b995',seed:47},
   ];
   const stamp=new T.Object3D();
-  const wood=new T.BoxGeometry(1,1,1);
+  const wood=new T.BoxGeometry(1,1,1,2,2,2);
+  const grain=wood.getAttribute('position'), normals=wood.getAttribute('normal');
+  const point=new T.Vector3(), center=new T.Vector3(), outward=new T.Vector3();
+  for(let i=0;i<grain.count;i++){
+    point.fromBufferAttribute(grain,i);
+    center.copy(point).clampScalar(-.41,.41);
+    outward.subVectors(point,center).normalize();
+    point.copy(center).addScaledVector(outward,.09);
+    grain.setXYZ(i,point.x,point.y,point.z);
+    normals.setXYZ(i,outward.x,outward.y,outward.z);
+  }
   const leaf=new T.OctahedronGeometry(1);
   const metalRing=new T.TorusGeometry(1,.11,7,24);
   const materials=new Map();
@@ -55,29 +65,30 @@ export function installRegions(root, library, layout, floor, edge) {
     parent.add(batch);
   }
   for(const theme of themes) {
-    const group=new T.Group(), detail=new T.Group();
+    const group=new T.Group(), detail=new T.Group(), economy=new T.Group(), full=new T.Group();
     root.add(group);
-    group.add(detail);
+    group.add(detail,economy,full);
     let seed=theme.seed;
     const rnd=()=> (seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296;
     const trees=[], rocks=[], ferns=[], flowers=[];
-    for(let i=0;i<84;i++){
+    for(let i=0;i<67;i++){
       const x=theme.x+(rnd()-.5)*13,z=theme.z+(rnd()-.5)*10;
       if(x<layout.bounds[0]+.35||z< -14.5|| (x>-11&&x<9&&z> -4.2&&z<9.8))continue;
       const rim=edge(x,z), a=rnd()*6.28, s=.48+rnd()*.58;
-      if(rim>1.55&&i<30)trees.push([x,z,s,s,s,a]);
-      else if(rim>.7&&i<46)rocks.push([x,z,s,s*.64,s,a]);
+      if(rim>1.68&&i<24)trees.push([x,z,s,s,s,a]);
+      else if(rim>.7&&i<40)rocks.push([x,z,s,s*.64,s,a]);
       else if(rim>.32&&rim<1.8){
         ferns.push([x,z,s,s,s,a]);
         if(i%2)flowers.push([x+.16,z-.26,s,s,s,a]);
       }
     }
     stamps(group,theme.tree+'_Tronco','#e8decb',trees);
-    stamps(group,theme.tree+'_Copa',theme.foliage,trees);
+    stamps(full,theme.tree+'_Copa',theme.foliage,trees);
+    stamps(economy,theme.tree+'_Copa_economica',theme.foliage,trees);
     stamps(group,'Ardosia',theme.stone,rocks);
     stamps(group,'Samambaia','#c5d49c',ferns);
     stamps(detail,'Flores','#fff1d8',flowers);
-    objects.push({group,detail,...theme});
+    objects.push({group,detail,economy,full,...theme});
   }
   const [margin,gorge,patio,copa,returnPath]=objects.map(item=>item.group);
 
@@ -95,9 +106,12 @@ export function installRegions(root, library, layout, floor, edge) {
   // Terracotta worktable beside a blue fabric awning, with a recognizable utensil wall.
   for(const [x,z] of [[8.9,-12.54],[11.15,-12.54],[8.9,-10.91],[11.15,-10.91]])
     block(patio,'#865a42',x,z,.14,2.36,.14);
-  const awning=block(patio,'#897ba6',10.03,-11.82,2.65,.14,1.95,2.17);
-  awning.rotation.x=.19;
-  for(let i=0;i<5;i++)block(patio,i%2?'#c8926d':'#dcb184',9.06+i*.48,-10.89,.46,.28,.085,1.96);
+  for(let i=0;i<5;i++){
+    const x=9.03+i*.50;
+    const awning=block(patio,i%2?'#ad7d9d':'#c895af',x,-11.82,.55,.19,1.95,2.14);
+    awning.rotation.x=.19;
+    block(patio,i%2?'#d29782':'#ecc7a0',x,-10.89,.49,.28,.09,1.96);
+  }
   for(const x of [9.39,10.34])block(patio,'#79563c',x,-12.24,.16,.85,.49);
   block(patio,'#c29362',9.87,-12.24,1.58,.15,.71,.81);
   for(let i=0;i<3;i++){
@@ -140,7 +154,27 @@ export function installRegions(root, library, layout, floor, edge) {
     board.rotation.y=angle;
   }
   for(const [x,z] of [[18.6,1.22],[18.0,3.0],[17.3,4.7]])block(returnPath,'#b4936b',x,z,1.3,.11,.32);
-  const setEconomy=(low)=>{for(const item of objects)item.detail.visible=!low;};
+  // Repeated beams and tiles are static while the wheels and birds keep their own transforms.
+  for(const parent of [...objects.map(item=>item.group),headwater]){
+    const buckets=new Map();
+    for(const part of parent.children){
+      if(part.geometry!==wood)continue;
+      if(!buckets.has(part.material))buckets.set(part.material,[]);
+      buckets.get(part.material).push(part);
+    }
+    for(const [paint,parts] of buckets){
+      if(parts.length<2)continue;
+      const batch=new T.InstancedMesh(wood,paint,parts.length);
+      parts.forEach((part,i)=>{part.updateMatrix();batch.setMatrixAt(i,part.matrix);part.removeFromParent();});
+      parent.add(batch);
+    }
+  }
+  const setEconomy=(low)=>{
+    for(const item of objects){
+      item.detail.visible=item.full.visible=!low;
+      item.economy.visible=low;
+    }
+  };
   return {
     setEconomy,
     interact(id,t){

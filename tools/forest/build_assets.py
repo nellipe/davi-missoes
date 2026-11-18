@@ -11,11 +11,11 @@ M={};REPORT={};TEXTURES={}
 def color(h):
  h=h.lstrip('#');v=[int(h[i:i+2],16)/255 for i in (0,2,4)]
  return tuple(((x+.055)/1.055)**2.4 if x>.04045 else x/12.92 for x in v)+(1,)
-def texture(kind,size=256):
+def texture(kind,size=128):
  if kind in TEXTURES:return TEXTURES[kind]
  yy,xx=np.mgrid[0:size,0:size].astype(float)/size;rng=np.random.default_rng(16)
  if kind in ('bark','wood'):
-  noise=.07*np.sin(xx*90+np.sin(yy*11)*2)+.025*np.sin(xx*240+yy*11)
+  noise=.039*np.sin(xx*90+np.sin(yy*11)*2)+.012*np.sin(xx*240+yy*11)
   for cx,cy in [(.3,.4),(.7,.8)]:noise+=.08*np.cos(np.sqrt(((xx-cx)*1.8)**2+((yy-cy)*.7)**2)*75)*np.exp(-(((xx-cx)*3)**2+((yy-cy)*2)**2))
   base=np.stack([.92+noise,.84+noise*.7,.69+noise*.4],axis=-1);height=noise
  elif kind=='stone':
@@ -34,9 +34,9 @@ def material(name,h,kind=None,rough=.8,metal=0,emission=0,vertex=False):
  if vertex:
   attr=n.new('ShaderNodeVertexColor');attr.layer_name='Pigment';links.new(attr.outputs['Color'],p.inputs['Base Color'])
  M[name]=m
-for args in [('Bark','#b99b74','bark'),('Warm timber','#d7bb91','wood'),('Dark timber','#a38a67','wood'),('Rock','#b8c2a4','stone'),('Roof moss','#a6b5a2','stone'),('Roof ochre','#c99a66','wood'),('Fabric','#e7ede4','cloth'),('Leaf','#72a847',None),('Fern','#4d8f45',None),('Ground','#53814a',None),('Path','#c5a46a',None),('Skin','#f3bc8c',None),('Hair','#4b3028',None),('Hair light','#835138',None),('Teal','#258f8a','cloth'),('Teal light','#67bbb1',None),('Shorts','#836347','cloth'),('Boot','#b3713e',None),('Sole','#4d4436',None),('Gold','#eabe62',None),('Cream','#f9e9bb',None),('White','#fff9e2',None),('Eye','#183c3c',None),('Iris','#5b8970',None),('Cheek','#e79278',None),('Clay','#c66547',None),('Mushroom','#c46c4a',None),('Lilac','#b0a1d3',None),('Moss','#70924a',None)]:material(*args,vertex=args[0] in ('Leaf','Ground','Path','Moss','Rock'))
+for args in [('Bark','#b99b74','bark'),('Warm timber','#dfaf7e','wood'),('Dark timber','#a38a67','wood'),('Rock','#aebabb','stone'),('Roof moss','#a6b5a2','stone'),('Roof ochre','#be797b','wood'),('Fabric','#e7ede4','cloth'),('Leaf','#72a847',None),('Fern','#4d8f45',None),('Ground','#53814a',None),('Path','#c5a46a',None),('Skin','#f3bc8c',None),('Hair','#4b3028',None),('Hair light','#835138',None),('Teal','#168f9a','cloth'),('Teal light','#65c5bd',None),('Shorts','#666581','cloth'),('Boot','#b3713e',None),('Sole','#4d4436',None),('Gold','#eabe62',None),('Cream','#f9e9bb',None),('White','#fff9e2',None),('Eye','#183c3c',None),('Iris','#28a2a2',None),('Cheek','#e89380',None),('Clay','#c66547',None),('Mushroom','#c46c4a',None),('Lilac','#b0a1d3',None),('Moss','#70924a',None)]:material(*args,vertex=args[0] in ('Leaf','Ground','Path','Moss','Rock'))
 material('Birch','#e8d9ac');material('Bark dark','#68594b');material('Leaf blue','#387e6a',vertex=True);material('Rope','#e1c68b');
-material('Window light','#ffd990',rough=.35,emission=.5);material('Pipo ceramic','#d9edcd',rough=.34);material('Copper','#c08b59',rough=.4,metal=.3);material('Pipo screen','#123a3d',rough=.25,metal=.2);material('Pipo eye','#b5ffdd',rough=.25,emission=.4)
+material('Window light','#ffd990',rough=.35,emission=.5);material('Pipo ceramic','#f0e7ca',rough=.39);material('Copper','#c08b59',rough=.4,metal=.3);material('Pipo screen','#123a3d',rough=.25,metal=.2);material('Pipo eye','#b5ffe4',rough=.32,emission=.45)
 def mesh(name,verts,faces,mat,uv=None,pigment=None):
  me=bpy.data.meshes.new(name);me.from_pydata(verts,[],faces);me.update();ob=bpy.data.objects.new(name,me);bpy.context.collection.objects.link(ob);me.materials.append(M[mat])
  for p in me.polygons:p.use_smooth=True
@@ -152,7 +152,7 @@ for j in range(n):
 skirt=mesh('Distant forest valley',vv,ff,'Ground',pigment=lambda v,i:(*color('#3e633d')[:3],1));skirt.parent=env
 
 def boulder(name,x,y,size=1):
- verts=[];faces=[];seg=10;rows=6
+ verts=[];faces=[];seg=10;rows=5
  for j in range(rows+1):
   a=-pi/2+pi*j/rows
   for i in range(seg+1):
@@ -172,7 +172,7 @@ for side in [-1,1]:
   for j in range(5):
    a=i*6+j;face=(a,a+6,a+7,a+1);ff.append(face if side==1 else tuple(reversed(face)))
  wall=mesh('Creek carved bedrock',vv,ff,'Rock',uu,pigment=lambda v,i:(*np.array(color('#85988f')[:3])*(.78+.16*sin(v[2]*12+v[0]*.4)),1));wall.parent=env
-for i in range(36):
+for i in range(28):
  x=random.uniform(-17,17);y=river(x)+random.choice((-1,1))*random.uniform(2.4,2.9);boulder('Creek stone',x,y,random.uniform(.13,.5))
 for x,y,s in [(-6,-5,1.1),(7,-4,.9),(-8,8,1.5),(11,3,1.2),(-4,11,1.7),(9,10,1.3)]:boulder('Mossy landmark',x,y,s)
 def leaves_mesh(name,defs,mat='Leaf',parent=None):
@@ -185,16 +185,16 @@ def leaves_mesh(name,defs,mat='Leaf',parent=None):
   faces.extend((idx+6,idx+a,idx+(a+1)%6) for a in range(6))
  base=np.array(color('#6c9b3e')[:3]);ob=mesh(name,verts,faces,mat,uv,lambda v,i:(*np.clip(base*(.65+.5*(sin((i//7)*.19)*.5+.5)),0,1),1));ob.parent=parent;return ob
 def crown(name,cx,cy,cz,sx,sy,sz,hue,parent):
- verts=[];faces=[];seg=14;rows=8
+ verts=[];faces=[];seg=12;rows=7
  for j in range(rows+1):
   a=-pi/2+j*pi/rows
   for i in range(seg):
-   b=i/seg*2*pi;r=1+.10*sin(b*5+j*.6)+.055*cos(b*3-j)
+   b=i/seg*2*pi;r=1+.076*sin(b*5+j*.6)+.040*cos(b*3-j)
    verts.append((cx+cos(a)*cos(b)*sx*r,cy+cos(a)*sin(b)*sy*r,cz+sin(a)*sz*(1+.035*sin(b*4))))
  for j in range(rows):
   for i in range(seg):a=j*seg+i;faces.append((a,j*seg+(i+1)%seg,(j+1)*seg+(i+1)%seg,a+seg))
  base=np.array(color(hue)[:3])
- ob=mesh(name,verts,faces,'Leaf',pigment=lambda v,i:(*np.clip(base*(.56+.40*(v[2]-cz+sz)/(2*sz)+.12*(1+sin(i*.31))*.5),0,1),1));ob.parent=parent;return ob
+ ob=mesh(name,verts,faces,'Leaf',pigment=lambda v,i:(*np.clip(base*(.79+.24*(v[2]-cz+sz)/(2*sz)+.052*(1+sin(i*.31))*.5),0,1),1));ob.parent=parent;return ob
 
 def tree_model(kind=0):
  root=empty('Oak model '+str(kind));branches=[];h=[4.1,5.4,5.1][kind]
@@ -226,7 +226,7 @@ def clone_model(model,name,x,y,s=1,rot=0,parent=env):
  return g
 placements=[(-10,-10,1.15),(-10,-3,1.1),(13,-8,1.2),(12,-1,1.25),(-8,3,1.1),(-11,8,1.4),(10,7,1.25),(-4,12,1.25),(4,13,1.2),(11,13,1.4),(-13,13,1.2)]
 for j,(x,y,s) in enumerate(placements):clone_model(models[j%3],'Hero oak',x,y,s,random.random()*6)
-for j in range(20):
+for j in range(13):
  a=random.uniform(0,2*pi);r=random.uniform(15,21);x=cos(a)*r;y=sin(a)*r
  if y < -10 and abs(x)<12:continue
  clone_model(models[j%3],'Forest depth oak',x,y,random.uniform(.9,1.4),random.random()*6)
@@ -362,8 +362,8 @@ loft('Arched door',[(0,-1.56,2.82,.42,.055),(0,-1.56,4.1,.42,.055),(0,-1.56,4.33
 for side in [-1,1]:
  for row in range(6):
   x=side*(row+.3)*.255;z=5.52-(row/5)**1.25*1.05
-  for col in range(9):
-   y=-1.72+col*.32;tile=plank('Hand-cut shingle',(x,y,z+sin(col*.4)*.025),(.34,.38,.075),'Roof ochre',house,angle=sin(col)*.015,bevel=.025);tile.rotation_euler.y=side*.58
+  for col in range(4):
+   y=-1.55+col*.73;tile=plank('Soft roof tile',(x,y,z+sin(col*.6)*.025),(.36,.79,.12),'Roof ochre',house,angle=sin(col)*.017,bevel=.050);tile.rotation_euler.y=side*.58
 gable=mesh('Timber gable',[(-1.2,-1.54,4.75),(1.2,-1.54,4.75),(0,-1.54,5.55)],[(0,1,2)],'Warm timber');gable.parent=house
 curve('Roof ridge',[(0,-1.9,5.58),(0,-.5,5.65),(0,1.3,5.58)],.09,'Dark timber',house);ellipsoid('Window glow',(1.245,-.25,4),(.035,.37,.37),'Window light',house,segments=24,rings=12);curve('Window frame',[(1.3,-.25+cos(a)*.4,4+sin(a)*.4) for a in np.linspace(0,2*pi,33)],.045,'Cream',house);curve('Window mullion',[(1.31,-.25,3.62),(1.31,-.25,4.38)],.023,'Dark timber',house);curve('Window transom',[(1.31,-.62,4),(1.31,.12,4)],.023,'Dark timber',house)
 for x in [-1.6,1.6]:
@@ -372,7 +372,7 @@ for x in [-1.6,1.6]:
 for j in range(13):
  a=-1.9+j*.12;plank('Branch stair',(cos(a)*1.4,sin(a)*1.4,.2+j*.2),(.9,.35,.1),'Warm timber',house,angle=a,bevel=.025)
 defs=[]
-for i in range(300):
+for i in range(154):
  a=random.uniform(0,2*pi);r=random.random()**.5;defs.append(((-.8+cos(a)*2.6*r,1.8+sin(a)*2*r,6.9+random.random()*1.2),(cos(a),sin(a),.4),random.uniform(.7,1.2),.36,.08))
 canopy=leaves_mesh('Treehouse crown',defs,parent=house);canopy['wind']=True;curve('Climbing vine',[(1.4,-1.3,2.8),(1.3,-1.5,3.5),(1.2,-1.5,4.3),(.9,-1.4,4.8)],.025,'Fern',house);export(house,'treehouse.glb')
 # Expressive original child explorer: custom face topology, swept locks, tailored clothing.
@@ -381,8 +381,8 @@ def add(o):parts.append(o);return o
 add(loft('Tailored shirt',[(0,0,.78,.22,.14),(0,0,.9,.24,.15),(0,0,1.12,.28,.16),(0,0,1.3,.26,.13),(0,0,1.36,.13,.1)],'Teal',20,davi,'Spine'));add(loft('Shorts',[(0,0,.63,.22,.15),(0,0,.87,.24,.17)],'Shorts',16,davi,'Root'));add(loft('Neck',[(0,0,1.29,.105,.1),(0,0,1.48,.11,.1)],'Skin',14,davi,'Head'));add(loft('Sculpted face',[(0,0,1.38,.08,.1),(0,-.015,1.42,.21,.18),(0,-.015,1.52,.31,.255),(0,.005,1.68,.345,.275),(0,.02,1.83,.31,.28),(0,.03,1.94,.22,.21),(0,.03,1.99,.03,.035)],'Skin',32,davi,'Head'))
 for side in [-1,1]:
  label='L' if side<0 else 'R';add(ellipsoid('Ear '+label,(side*.325,.005,1.63),(.075,.065,.12),'Skin',davi,'Head',14,10));add(ellipsoid('Ear fold '+label,(side*.355,-.04,1.64),(.035,.025,.065),'Cheek',davi,'Head',10,8));add(ellipsoid('Sclera '+label,(side*.145,-.251,1.697),(.101,.045,.126),'White',davi,'Head',20,14));add(ellipsoid('Iris '+label,(side*.145,-.291,1.69),(.063,.025,.083),'Iris',davi,'Head',18,12));add(ellipsoid('Pupil '+label,(side*.145,-.313,1.69),(.035,.013,.055),'Eye',davi,'Head',16,10));add(ellipsoid('Eye sparkle '+label,(side*.145-.021,-.327,1.728),(.02,.009,.026),'White',davi,'Head',10,6));add(curve('Upper eyelid '+label,[(side*.145-.096,-.265,1.73),(side*.145,-.29,1.81),(side*.145+.09,-.265,1.73)],.011,'Hair',davi,'Head'));add(curve('Soft brow '+label,[(side*.145-.09,-.24,1.855),(side*.145,-.275,1.875),(side*.145+.08,-.24,1.845)],.022,'Hair',davi,'Head'));add(ellipsoid('Warm cheek '+label,(side*.215,-.233,1.57),(.072,.012,.036),'Cheek',davi,'Head',16,8))
- for i in range(3):add(ellipsoid('Freckle '+label,(side*(.18+i*.035),-.248+i*.007,1.59+(i%2)*.018),(.007,.006,.007),'Hair light',davi,'Head',6,4))
-add(ellipsoid('Nose sculpt',(0,-.28,1.59),(.066,.069,.059),'Skin',davi,'Head',18,12));add(curve('Smile lip',[(-.083,-.248,1.51),(0,-.274,1.482),(.083,-.248,1.515)],.013,'Hair light',davi,'Head'))
+ for i in range(2):add(ellipsoid('Freckle '+label,(side*(.18+i*.035),-.248+i*.007,1.59+(i%2)*.018),(.007,.006,.007),'Hair light',davi,'Head',6,4))
+add(ellipsoid('Nose sculpt',(0,-.28,1.59),(.066,.069,.059),'Skin',davi,'Head',18,12));add(ellipsoid('Smile opening',(0,-.270,1.502),(.088,.025,.052),'Hair',davi,'Head',14,8));add(ellipsoid('Smile warmth',(0,-.294,1.48),(.043,.009,.015),'Cheek',davi,'Head',10,6))
 verts=[];faces=[];seg=32;rows=10
 for j in range(rows+1):
  t=j/rows
@@ -391,8 +391,8 @@ for j in range(rows+1):
 for j in range(rows):
  for i in range(seg):a=j*(seg+1)+i;faces.append((a,a+1,a+seg+2,a+seg+1))
 hair=mesh('Swept hair',verts,faces,'Hair');hair.parent=davi;bind(hair,'Head');add(hair)
-for i in range(6):
- x=-.25+i*.09;add(tube('Sculpted hair lock',[(x,.015,2.02),(x+.06,-.12,1.995),(x+.025,-.255,1.89+sin(i)*.025),(x-.06,-.29,1.84+sin(i)*.025)],[.07,.075,.05,.002],'Hair',davi,'Head',12));add(curve('Hair engraving',[(x,.01,2.07),(x+.06,-.14,2.02),(x,-.26,1.9)],.004,'Hair light',davi,'Head'))
+for i in range(5):
+ x=-.24+i*.107;add(tube('Rounded swept lock',[(x,.055,2.014),(x+.07,-.092,2.009),(x+.038,-.25,1.93+sin(i)*.037),(x-.059,-.287,1.84+sin(i)*.027)],[.079,.090,.068,.010],'Hair' if i%2 else 'Hair light',davi,'Head',12))
 add(curve('Scarf collar',[(-.14,-.08,1.33),(0,-.17,1.3),(.14,-.08,1.33)],.035,'Gold',davi,'Spine'))
 scarf=mesh('Folded scarf',[(-.06,-.19,1.29),(.08,-.19,1.29),(.1,-.205,1.05),(-.025,-.22,1.11),(0,-.235,1.25)],[(0,1,4),(1,2,4),(2,3,4),(3,0,4)],'Gold');scarf.parent=davi;bind(scarf,'Spine');add(scarf)
 for side in [-1,1]:
@@ -402,6 +402,23 @@ for side in [-1,1]:
 add(loft('Backpack',[(0,.17,.84,.19,.08),(0,.2,1,.21,.13),(0,.19,1.23,.17,.1),(0,.17,1.28,.09,.05)],'Dark timber',18,davi,'Spine'))
 for side in [-1,1]:add(curve('Pack strap',[(side*.14,.18,1.25),(side*.2,-.13,1.22),(side*.16,-.17,.94)],.022,'Warm timber',davi,'Spine'))
 add(ellipsoid('Compass badge',(-.15,-.174,1.16),(.055,.018,.055),'Gold',davi,'Spine',14,10));hat=loft('Hat',[(0,.02,1.98,.45,.38),(0,.02,2.02,.45,.38),(0,.02,2.06,.3,.27),(0,.02,2.27,.27,.24),(0,.02,2.32,.18,.17)],'Warm timber',24,davi,'Head');cape=loft('Cape',[(0,.23,.68,.29,.025),(0,.25,.95,.25,.035),(0,.2,1.28,.16,.03)],'Lilac',18,davi,'Spine')
+# Warp the surfaces and their rest rig together, keeping the existing clips and names.
+def chibi_point(point, pilot):
+ x,y,z=point
+ if pilot=='Davi':
+  body=min(1,max(0,(z-1.31)/.075))
+  height=float(np.interp(z,[0,.24,.70,1.30,1.385,2.35],[0,.164,.46,.884,.976,2.26]))
+  return Vector((x*(1.18+.34*body),y*(1.13+.18*body),height))
+ body=min(1,max(0,(z-.51)/.068))
+ height=float(np.interp(z,[0,.24,.55,.62,1.17],[0,.172,.39,.49,1.18]))
+ return Vector((x*(1.12+.24*body),y*(1.12+.21*body),height))
+def chibi_shapes(parts, pilot):
+ for obj in parts:
+  matrix=obj.matrix_basis.copy(); inverse=matrix.inverted()
+  for v in obj.data.vertices:v.co=inverse @ chibi_point(matrix @ v.co,pilot)
+def chibi_bones(bones,pilot):
+ return [(name,chibi_point(head,pilot),chibi_point(tail,pilot),parent) for name,head,tail,parent in bones]
+
 def merge_skin(parts,root):
  groups={};accessories=[]
  for ob in parts:
@@ -431,9 +448,9 @@ def rig_character(root,parts,bones,clips):
       if name.startswith('Foot'):p.rotation_euler.x=max(0,sin(phase+(0 if name.endswith('L') else pi)))*.18
       if name.startswith('Arm'):p.rotation_euler.x=sin(phase+(pi if name.endswith('L') else 0))*.37;p.rotation_euler.y=.05*(1 if name.endswith('L') else -1)
       if name=='Root':p.location.z=abs(sin(phase))*.025;p.rotation_euler.y=sin(phase)*.035
-      if name=='Head':p.rotation_euler.z=sin(phase)*.025
+      if name=='Head':p.rotation_euler.z=sin(phase)*.038
      elif clip=='Wave':
-      if name=='ArmR':p.rotation_euler.y=-1.9;p.rotation_euler.x=sin(phase*2)*.2
+      if name=='ArmR':p.rotation_euler.y=-1.74;p.rotation_euler.x=sin(phase*2)*.32
       if name=='Head':p.rotation_euler.y=.1*sin(phase)
      else:
       if name=='Spine':p.rotation_euler.x=.015*sin(phase)
@@ -448,12 +465,13 @@ def rig_character(root,parts,bones,clips):
   arm.animation_data.action=None;track=arm.animation_data.nla_tracks.new();track.name=clip;track.strips.new(clip,1,action)
  bpy.context.scene.frame_set(1);return arm
 bones=[('Root',(0,0,.72),(0,0,.9),None),('Spine',(0,0,.9),(0,0,1.32),'Root'),('Head',(0,0,1.32),(0,0,1.8),'Spine'),('LegL',(-.115,0,.7),(-.115,0,.24),'Root'),('LegR',(.115,0,.7),(.115,0,.24),'Root'),('FootL',(-.115,0,.24),(-.115,-.2,.08),'LegL'),('FootR',(.115,0,.24),(.115,-.2,.08),'LegR'),('ArmL',(-.27,0,1.27),(-.4,0,.85),'Spine'),('ArmR',(.27,0,1.27),(.4,0,.85),'Spine')]
-rig_character(davi,merge_skin(parts+[hat,cape],davi),bones,[('Idle',91),('Walk',25),('Wave',61)]);export(davi,'davi.glb',True)
+chibi_shapes(parts+[hat,cape],'Davi')
+rig_character(davi,merge_skin(parts+[hat,cape],davi),chibi_bones(bones,'Davi'),[('Idle',91),('Walk',25),('Wave',61)]);export(davi,'davi.glb',True)
 pipo=empty('Pipo');parts=[]
 add(loft('Pipo sculpted torso',[(0,0,.17,.09,.08),(0,0,.21,.18,.14),(0,0,.4,.22,.16),(0,0,.6,.15,.12)],'Teal light',24,pipo,'Root'));add(loft('Pipo head shell',[(0,0,.56,.12,.11),(0,0,.59,.29,.2),(0,0,.8,.32,.22),(0,0,.94,.24,.19),(0,0,.98,.07,.06)],'Pipo ceramic',28,pipo,'Head'));add(loft('Pipo eye visor',[(0,-.18,.64,.22,.045),(0,-.2,.76,.24,.055),(0,-.17,.86,.2,.04)],'Pipo screen',24,pipo,'Head'))
 for side in [-1,1]:
  label='L' if side<0 else 'R';add(ellipsoid('Pipo expressive eye '+label,(side*.115,-.255,.76),(.052,.015,.072),'Pipo eye',pipo,'Head',16,10));add(ellipsoid('Pipo eye highlight '+label,(side*.115-.012,-.271,.786),(.014,.007,.018),'White',pipo,'Head',8,6));add(ellipsoid('Pipo ear joint '+label,(side*.3,0,.74),(.065,.08,.09),'Copper',pipo,'Head',14,10));wing=leaves_mesh('Pipo leaf fin '+label,[((side*.22,.01,.48),(side*.7,.1,.55),.42,.105,.025)],'Teal',pipo);bind(wing,'Wing'+label);add(wing);add(tube('Pipo articulated foot '+label,[(side*.1,0,.25),(side*.14,-.03,.11),(side*.15,-.09,.07)],[.045,.04,.025],'Copper',pipo,'Leg'+label,10))
-add(ellipsoid('Pipo lantern heart',(0,-.15,.4),(.095,.035,.1),'Window light',pipo,'Root',16,10));add(curve('Pipo antenna',[(0,0,.94),(.04,0,1.1),(.11,0,1.15)],.018,'Copper',pipo,'Head'));add(ellipsoid('Pipo antenna seed',(.11,0,1.15),(.05,.045,.06),'Gold',pipo,'Head',14,10));parts.append(loft('Buddy scarf',[(0,0,.57,.2,.15),(0,0,.6,.22,.16)],'Clay',20,pipo,'Root'));rig_character(pipo,merge_skin(parts,pipo),[('Root',(0,0,.3),(0,0,.55),None),('Head',(0,0,.55),(0,0,.9),'Root'),('WingL',(-.2,0,.45),(-.45,0,.7),'Root'),('WingR',(.2,0,.45),(.45,0,.7),'Root'),('LegL',(-.1,0,.25),(-.15,-.09,.07),'Root'),('LegR',(.1,0,.25),(.15,-.09,.07),'Root')],[('Hover',73),('Walk',25)]);export(pipo,'pipo.glb',True)
+add(ellipsoid('Pipo lantern heart',(0,-.15,.4),(.095,.035,.1),'Window light',pipo,'Root',16,10));add(curve('Pipo antenna',[(0,0,.94),(.04,0,1.1),(.11,0,1.15)],.018,'Copper',pipo,'Head'));add(ellipsoid('Pipo antenna seed',(.11,0,1.15),(.05,.045,.06),'Gold',pipo,'Head',14,10));parts.append(loft('Buddy scarf',[(0,0,.57,.2,.15),(0,0,.6,.22,.16)],'Clay',20,pipo,'Root'));add(ellipsoid('Pipo smile',(0,-.232,.684),(.058,.021,.025),'Pipo eye',pipo,'Head',12,8));chibi_shapes(parts,'Pipo');rig_character(pipo,merge_skin(parts,pipo),chibi_bones([('Root',(0,0,.3),(0,0,.55),None),('Head',(0,0,.55),(0,0,.9),'Root'),('WingL',(-.2,0,.45),(-.45,0,.7),'Root'),('WingR',(.2,0,.45),(.45,0,.7),'Root'),('LegL',(-.1,0,.25),(-.15,-.09,.07),'Root'),('LegR',(.1,0,.25),(.15,-.09,.07),'Root')],'Pipo'),[('Hover',73),('Walk',25)]);export(pipo,'pipo.glb',True)
 # Editable authoring scene as well as the reproducible source and exported game assets.
 for root in [env,bridge,house,davi,pipo]:
  for ob in children(root):ob.hide_set(False);ob.hide_render=False
@@ -463,5 +481,6 @@ davi.location=(0,-4.5,height(0,-4.5));pipo.location=(-.8,-4.8,height(-.8,-4.8))
 camera_data=bpy.data.cameras.new('Art review camera');camera=bpy.data.objects.new('Art review camera',camera_data);bpy.context.collection.objects.link(camera);camera.location=(6.8,-14.4,15.2);camera.rotation_euler=(Vector((0,-3.3,.9))-camera.location).to_track_quat('-Z','Y').to_euler();camera_data.lens=42;bpy.context.scene.camera=camera
 light_data=bpy.data.lights.new('Afternoon sun','AREA');light=bpy.data.objects.new('Afternoon sun',light_data);bpy.context.collection.objects.link(light);light.location=(-12,-10,24);light.rotation_euler=(Vector((0,0,0))-light.location).to_track_quat('-Z','Y').to_euler();light_data.energy=2100;light_data.shape='DISK';light_data.size=8;light_data.color=(1,.87,.64)
 bpy.context.scene.render.resolution_x=1366;bpy.context.scene.render.resolution_y=900;bpy.context.scene.render.engine='CYCLES';bpy.context.scene.cycles.samples=32
+bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'forest-authoring.blend'),compress=True)
 (OUT/'asset-report.json').write_text(json.dumps({'generator':'Blender '+bpy.app.version_string,'seed':1607,'assets':REPORT},indent=2),encoding='utf-8');print('ASSET_PIPELINE_COMPLETE',flush=True)

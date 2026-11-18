@@ -25,8 +25,8 @@ export function createMap() {
         <g stroke-linecap="round" stroke-linejoin="round" fill="none">${routes}</g>
         ${circles}
         <path id="forest2dBridge" d="M0 -5.5V1.4" fill="none" stroke="#9b714f" stroke-width="1.8"/>
-        <g id="forest2dShelter" transform="translate(${trailOffset-10.45} 0)">
-          <ellipse cx="-1.15" cy="1" rx=".5" ry=".27" fill="#78634b"/><ellipse cx=".2" cy="1.25" rx=".5" ry=".27" fill="#78634b"/>
+        <g id="forest2dShelter" transform="translate(${trailOffset-9.71} -.46)">
+          <ellipse cx="-1.02" cy="1" rx=".5" ry=".27" fill="#78634b"/><ellipse cx=".2" cy="1.25" rx=".5" ry=".27" fill="#78634b"/>
           <g id="forest2dWet"><ellipse rx=".35" ry=".18" fill="#5ac9c7"/></g>
         </g>
         ${features.map(f=>`<g transform="translate(${f.x} ${f.z})" ${['house','portal'].includes(f.id)?`data-owned-mark="${f.id}"`:''}><circle r=".62" fill="#314e45" stroke="#f5e5ae" stroke-width=".07"/><text y=".25" text-anchor="middle" font-size=".78" fill="#ffebbf">${esc(f.icon)}</text></g>`).join('')}
@@ -47,7 +47,7 @@ export function createMap() {
       davi.setAttribute('transform',`translate(${player.x} ${player.z})`);
       pipo.setAttribute('transform',`translate(${buddy.x} ${buddy.z})`);
       bridge.style.visibility=data.economy.inventory.includes('bridge')?'visible':'hidden';
-      shelter.setAttribute('transform',data.leaf_up?'translate(-1.15 1)':'translate(.2 1.25)');
+      shelter.setAttribute('transform',data.leaf_up?'translate(-1.02 1)':'translate(.2 1.25)');
       for(const mark of ownedMarks)
         mark.setAttribute('opacity',data.economy.inventory.includes(mark.dataset.ownedMark)?1:.65);
     },

@@ -1,14 +1,15 @@
 # Arte original — Floresta Encantada
 
-Modelos, texturas e animações criados para Aventuras do Davi. A imagem `modelo.png` indicada pelo responsável foi consultada como referência de qualidade e atmosfera; não está incorporada nos assets nem é redistribuída aqui. Não foram usados modelos, personagens, mapas, texturas de jogos ou bibliotecas de assets de terceiros.
+Modelos, texturas e animações criados para Aventuras do Davi. A referência Cartoon Chibi foi usada para estudar proporções, silhuetas arredondadas e acabamento de brinquedo. As imagens de referência do responsável ficam fora dos assets distribuídos. Modelos, materiais e animações desta pasta são autorais.
 
 Os arquivos deste diretório são disponibilizados sob CC0-1.0: https://creativecommons.org/publicdomain/zero/1.0/ . Three.js e seus módulos têm licença MIT, preservada em vendor/three/LICENSE.
 
 - `forest.glb`: terreno esculpido, leito rochoso, vegetação com folhas/frondes modeladas, placas, baú e lanternas.
 - `bridge.glb`: tábuas curvas com grão de madeira, pegas, cordas amarradas e vigas.
 - `treehouse.glb`: tronco/raízes, varanda, escada, painéis, telhas, porta, janela e copa.
-- `davi.glb`: personagem original, malhas com pesos, vestuário e expressões modeladas; clips Idle, Walk e Wave.
-- `pipo.glb`: companheiro original com corpo cerâmico, antena, barbatanas e pernas articuladas; clips Hover (repouso) e Walk.
+- `davi.glb`: personagem original, cabeça ampliada, olhos em relevo, vestuário e botinas modeladas. O esqueleto acompanha as novas proporções e mantém os clips Idle, Walk e Wave.
+- `pipo.glb`: companheiro original com corpo cerâmico, visor expressivo, antena, barbatanas e pernas articuladas. Clips Hover (repouso) e Walk.
+- `bosque.glb` e `bosque-authoring.blend`: copas, troncos, rochas e vegetação compartilhada entre as regiões. A versão econômica reutiliza o mesmo tronco e usa copas esculpidas com menos vértices.
 - `forest-authoring.blend`: cena editável, câmera, materiais, rig e animações.
 - PNGs locais: fontes de albedo e normais embutidas nos GLBs.
 
@@ -18,6 +19,7 @@ Gerar em uma cópia de desenvolvimento:
 
 ```
 blender --background --factory-startup --python-exit-code 1 --python tools/forest/build_assets.py
+blender --background --factory-startup --python-exit-code 1 --python tools/forest/build_bosque.py
 ```
 
 `asset-report.json` registra tamanho e triângulos da exportação. Geometrias estáticas são agrupadas por material no navegador; copas permanecem separadas para abrir passagem à câmera. Texturas e geometrias são locais e reutilizadas ao retornar de missões.

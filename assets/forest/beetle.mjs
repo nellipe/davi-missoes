@@ -6,7 +6,7 @@ const CARRY_END = 2.42;
 
 export function buildShelter(floor, leafUp) {
   const group = new T.Group();
-  group.position.set(-10.45, floor(-10.45, -.06), -.06);
+  group.position.set(-9.71, floor(-9.71, -.52), -.52);
   const sphere = new T.SphereGeometry(1, 14, 9);
   const stick = new T.BoxGeometry(1, 1, 1);
   const drop = new T.OctahedronGeometry(1);
@@ -55,7 +55,7 @@ export function buildShelter(floor, leafUp) {
   ring.rotateX(-Math.PI / 2);
   const ripple = part(group, ring, glint, [0, 0, 0], [.18, 1, .14]);
   const splash = [-1, 0, 1].map(() => part(group, drop, glint, [0, 0, 0], [.033, .05, .028]));
-  const left = createBasin(-1.33, 1.02, -.55);
+  const left = createBasin(-1.02, 1.02, -.55);
   const right = createBasin(.20, 1.27, .58);
   const basins = [left, right];
 
@@ -118,10 +118,32 @@ export function buildShelter(floor, leafUp) {
     antenna.rotation.z = -side * .45;
     part(feeler, sphere, '#e79857', [side * .087, .177, 0], [.049, .046, .042]);
   }
+  // The face and the painted shell marks share their materials. Antennae
+  // remain separate so they can react while the beetle carries the leaf.
+  const surfaces=new Map();
+  for(const part of beetle.children){
+    if(part.geometry!==sphere)continue;
+    if(!surfaces.has(part.material))surfaces.set(part.material,[]);
+    surfaces.get(part.material).push(part);
+  }
+  for(const [paint,parts] of surfaces){
+    const instance=new T.InstancedMesh(sphere,paint,parts.length);
+    parts.forEach((part,i)=>{
+      part.updateMatrix();
+      instance.setMatrixAt(i,part.matrix);
+      part.removeFromParent();
+    });
+    beetle.add(instance);
+  }
   const feet = [];
+  const feetMesh=new T.InstancedMesh(sphere,materials.get(dark),6);
+  feetMesh.frustumCulled=false;
+  beetle.add(feetMesh);
   for (const side of [-1, 1]) {
     for (let i = 0; i < 3; i++) {
-      const foot = part(beetle, sphere, dark, [side * .252, .084, .14 - i * .188], [.152, .039, .039]);
+      const foot=new T.Object3D();
+      foot.position.set(side*.252,.084,.14-i*.188);
+      foot.scale.set(.152,.046,.042);
       foot.rotation.y = (i - 1) * side * .48;
       feet.push({ foot, side, index: i, restingZ: foot.position.z });
     }
@@ -149,7 +171,7 @@ export function buildShelter(floor, leafUp) {
   const splashPoint = new T.Vector3();
   const leafInlet = new T.Vector3();
   function shelter(target) {
-    const x = target ? .48 : -1.18;
+    const x = target ? .48 : -.93;
     const z = target ? .12 : .31;
     return [x, floor(group.position.x + x, group.position.z + z) - group.position.y + .015, z];
   }
@@ -224,11 +246,14 @@ export function buildShelter(floor, leafUp) {
     carriedLeaf.position.y = .51 + look * .07 + (stepping ? .041 * Math.cos(gait * 2) : 0);
     for(const { feeler, side } of antennae)
       feeler.rotation.z = still ? 0 : side * (.07 + .12*Math.sin(time*(stepping?9:2.7)));
-    for (const { foot, restingZ, side, index } of feet) {
+    for (const [i,{ foot, restingZ, side, index }] of feet.entries()) {
       const footfall = stepping ? Math.sin(gait + (index + Number(side > 0)) * Math.PI) : 0;
       foot.position.y = .084 + Math.max(0,footfall) * .06;
       foot.position.z = restingZ + footfall * .071;
+      foot.updateMatrix();
+      feetMesh.setMatrixAt(i,foot.matrix);
     }
+    feetMesh.instanceMatrix.needsUpdate=true;
   }
   update(0, true);
   return {

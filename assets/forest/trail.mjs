@@ -12,7 +12,8 @@ export function configure(map, seamHeight) {
   const [xmin,xmax,zmin,zmax] = bounds;
   for(let j=0;j<=grid.n;j++) for(let i=0;i<=grid.n;i++){
     const x=xmin+(xmax-xmin)*i/grid.n, z=zmin+(zmax-zmin)*j/grid.n;
-    const blend=T.MathUtils.smoothstep(x,xmin,xmin+3.1);
+    const seamWidth=T.MathUtils.lerp(.52,3.1,T.MathUtils.smoothstep(z,3.45,4.7));
+    const blend=T.MathUtils.smoothstep(x,xmin,xmin+seamWidth);
     grid.heights.push(T.MathUtils.lerp(seamHeight(z),height(x,z),blend));
   }
 }
@@ -95,12 +96,12 @@ export function build(scene, leafUp, library, grain) {
   const random = () => (seed = (Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296;
   const group = new T.Group();
   scene.add(group);
-  const material = new T.MeshStandardMaterial({ roughness: 1, flatShading: true });
+  const material = new T.MeshStandardMaterial({ roughness: .83 });
   const shapes = {
     slab: new T.BoxGeometry(1, 1, 1),
-    stone: new T.DodecahedronGeometry(1),
-    crown: new T.IcosahedronGeometry(1, 0),
-    trunk: new T.CylinderGeometry(0.8, 1, 1, 7),
+    stone: library.getObjectByName('Ardosia').geometry.clone().center().scale(.82,.93,1.03).deleteAttribute('color'),
+    crown: new T.SphereGeometry(1,10,6),
+    trunk: new T.CylinderGeometry(.74,1,1,9),
     ring: new T.TorusGeometry(1, 0.19, 6, 16),
     leaf: new T.OctahedronGeometry(1),
   };
@@ -209,7 +210,7 @@ export function build(scene, leafUp, library, grain) {
   ].forEach(([x, z, w, h, d], i) => {
     if (!inBosque(x,z)) rock(x,z,w,h,d,['#677e73','#7e9381','#597674'][i%3],i*.65);
   });
-  for (let i = 0; i < 320; i++) {
+  for (let i = 0; i < 235; i++) {
     const x = random() * 36 - 18,
       z = random() * 36 - 18;
     if (inBosque(x,z) || (x>6&&z<-2.5) || (x>13&&z<5) || z < -13 || edge(x, z) < 1.4 || Math.hypot(x, z - 14) < 4 || Math.hypot(x + 8, z - 2) < 3) continue;
@@ -225,7 +226,7 @@ export function build(scene, leafUp, library, grain) {
         random() * 6
       );
   }
-  for (let i = 0; i < 530; i++) {
+  for (let i = 0; i < 380; i++) {
     const x = random() * 26 - 13,
       z = random() * 32 - 15;
     if (inBosque(x,z) || z < -13 || Math.abs(edge(x, z) - 0.44) > 0.72) continue;
@@ -251,21 +252,24 @@ export function build(scene, leafUp, library, grain) {
   wheel.position.set(-1.28, floor(-1.28, 13) + 0.83, 13);
   group.add(wheel);
   const moving = (parent, shape, tint, x, y, z, sx, sy, sz) => {
-    const mesh = new T.Mesh(shapes[shape], new T.MeshStandardMaterial({ color: tint, flatShading: true }));
+    const mesh = new T.Mesh(shapes[shape], new T.MeshStandardMaterial({ color: tint, roughness:.72 }));
     mesh.position.set(x, y, z);
     mesh.scale.set(sx, sy, sz);
     parent.add(mesh);
     return mesh;
   };
   moving(wheel, 'ring', '#895534', 0, 0, 0, 0.81, 0.81, 0.54);
-  for (let k = 0; k < 6; k++) {
-    const a = (k * Math.PI) / 6;
-    moving(wheel, 'slab', '#b47840', 0, 0, 0, 0.085, 1.65, 0.11).rotation.z = a;
-  }
-  for (let k = 0; k < 10; k++) {
-    const a = (k * Math.PI) / 5;
-    moving(wheel, 'slab', '#d3a367', Math.cos(a) * 0.82, Math.sin(a) * 0.82, 0, 0.16, 0.25, 0.43).rotation.z =
-      a;
+  for (const [count,tint,scale,radius] of [[6,'#bc8a59',[.088,1.65,.11],0],[10,'#e2b97d',[.19,.26,.43],.82]]) {
+    const ringParts=new T.InstancedMesh(shapes.slab,new T.MeshStandardMaterial({color:tint,roughness:.70}),count);
+    for(let i=0;i<count;i++){
+      const a=i*(radius?Math.PI*2:Math.PI)/count;
+      dummy.position.set(Math.cos(a)*radius,Math.sin(a)*radius,0);
+      dummy.scale.set(...scale);
+      dummy.rotation.set(0,0,a);
+      dummy.updateMatrix();
+      ringParts.setMatrixAt(i,dummy.matrix);
+    }
+    wheel.add(ringParts);
   }
   piece('trunk', '#5b5142', -1.28, wheel.position.y, 13, 0.16, 1.35, 0.16, Math.PI / 2);
   for (const x of [-1.84, -0.92]) piece('slab', '#97744e', x, 0.08, 11.15, 0.13, 0.46, 5.7);

@@ -10,6 +10,12 @@ const localCamera=new T.Vector3(), localHero=new T.Vector3();
 const trailX=(x)=>x-data.map.trailOffset;
 const beyondSeam=(x)=>x>=data.map.seam;
 let buddyHead=null, reactUntil=0;
+let shadows=[], lossTimer;
+const contextEvents=[];
+function recordContext(type) {
+  contextEvents.push({type,at:Date.now()});
+  if(contextEvents.length>64)contextEvents.shift();
+}
 let leafPending=null;
 const headBase=new T.Quaternion();
 let generation = 0, savePending = null, path = [], movingNow = false;
@@ -115,9 +121,17 @@ function walkable(x, z) {
   return Trail.pathGap(x,z,data.map.connection)<=0 &&
     !data.obstacles.some(([a,b,r])=>Math.hypot(x-a,z-b)<r+.23);
 }
+function bankHeight(x,z) {
+  const ground=terrainHeight(data.terrain,x,z);
+  // The banks meet at the passage. Beside the shelter, the slope rolls down
+  // to the trail instead of presenting the clearing's cut edge as a wall.
+  const transition=T.MathUtils.smoothstep(x,data.map.seam-2.6,data.map.seam)*
+    T.MathUtils.smoothstep(z,-4,-2)*(1-T.MathUtils.smoothstep(z,2,3.45));
+  return T.MathUtils.lerp(ground,.07*Math.sin(z*.64),transition);
+}
 function floor(x, z) {
   if(beyondSeam(x))return Trail.floor(trailX(x),z);
-  const land = terrainHeight(data.terrain,x,z);
+  const land = bankHeight(x,z);
   if (deckProfile.length && owned('bridge') && Math.abs(x)<=1.12 && z>=deckProfile[0].z && z<=deckProfile.at(-1).z) {
     const i = deckProfile.findIndex((p,i) => i>0 && z<=p.z);
     const a=deckProfile[i-1],b=deckProfile[i];
@@ -144,13 +158,20 @@ function paintBank() {
     const earth=new T.Color('#bca072');
     const point=new T.Vector3();
     terrain.updateWorldMatrix(true,false);
+    const inverse=terrain.matrixWorld.clone().invert();
     for(let i=0;i<positions.count;i++){
       point.fromBufferAttribute(positions,i).applyMatrix4(terrain.matrixWorld);
       const edge=Trail.pathGap(point.x,point.z,data.map.connection);
       const mix=1-T.MathUtils.smoothstep(edge+Math.sin(point.x*4.4+point.z*6.1)*.10,-.6,.36);
       if(mix>0)color.setXYZ(i,T.MathUtils.lerp(source.getX(i),earth.r,mix),
         T.MathUtils.lerp(source.getY(i),earth.g,mix),T.MathUtils.lerp(source.getZ(i),earth.b,mix));
+      if(point.x>data.map.seam-2.6 && point.z>-4 && point.z<3.45){
+        point.y=bankHeight(point.x,point.z);
+        point.applyMatrix4(inverse);
+        positions.setXYZ(i,point.x,point.y,point.z);
+      }
     }
+    geometry.computeVertexNormals();
     terrain.geometry=geometry;
     ownedGeometry.add(geometry);
   }
@@ -227,6 +248,7 @@ function asset(name) {
 }
 function loadTrail(token) {
   if(trailLoading)return trailLoading;
+  const started=performance.now();
   trailLoading=Promise.all([
     asset('bosque'),
     new T.TextureLoader().loadAsync('/assets/forest/bosque-solo.png').catch(()=>null),
@@ -242,6 +264,7 @@ function loadTrail(token) {
     trailScene.group.position.x=data.map.trailOffset;
     trailScene.group.traverse(o=>{if(o.isMesh){ownedGeometry.add(o.geometry);ownedMaterials.add(o.material);}});
     trailScene.setEconomy(low);
+    stats.trailLoadMs=performance.now()-started;
   });
   return trailLoading;
 }
@@ -581,6 +604,24 @@ function syncOwned() {
   const star = document.querySelector(".forest-wallet strong");
   if (star) star.textContent = data.economy.stars;
 }
+function createContactShadows() {
+  const geometry=new T.CircleGeometry(1,20);
+  geometry.rotateX(-Math.PI/2);
+  const material=new T.ShaderMaterial({
+    transparent:true,depthWrite:false,
+    vertexShader:`varying vec2 tex;void main(){tex=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying vec2 tex;void main(){float r=length(tex*2.-1.);gl_FragColor=vec4(.14,.20,.18,.25*(1.-smoothstep(.12,1.,r)));}`,
+  });
+  ownedGeometry.add(geometry);
+  ownedMaterials.add(material);
+  shadows=[player,pipo].map((actor,i)=>{
+    const contact=new T.Mesh(geometry,material);
+    contact.scale.set(i ? .32 : .48,1,i ? .25 : .37);
+    contact.position.set(actor.position.x,floor(actor.position.x,actor.position.z)+.023,actor.position.z);
+    scene.add(contact);
+    return contact;
+  });
+}
 function resize() {
   if (!renderer || !stage) return;
   const w = stage.clientWidth,
@@ -596,10 +637,11 @@ function setQuality() {
     (quality === "auto" &&
       (innerWidth < 700 || navigator.hardwareConcurrency <= 4 || adaptiveLow));
   if(!renderer)return;
-  renderer.setPixelRatio(Math.min(devicePixelRatio, low ? 1 : 1.5));
+  renderer.setPixelRatio(low ? Math.max(.65,Math.min(.94,devicePixelRatio*.83)) : Math.min(devicePixelRatio,1.35));
+  if(scene.fog)scene.fog.far=low?22:29;
   renderer.shadowMap.enabled = !low;
   renderer.shadowMap.type = T.PCFSoftShadowMap;
-  const size = low ? 1024 : 2048;
+  const size = low ? 768 : 1536;
   if (sunLight && sunLight.shadow.mapSize.x !== size) {
     sunLight.shadow.map?.dispose();
     sunLight.shadow.map = null;
@@ -782,7 +824,8 @@ function tick(now) {
     updateCamera(dt);
     // Keep the bank visible while looking back through the passage. Beyond the
     // bend the clearing is outside the ordinary view and its assets stay cached.
-    legacy.visible=player.position.x<(Math.sin(angle)>.48?31:24);
+    const west=Math.sin(angle);
+    legacy.visible=player.position.x<(low?(west>.68?23:17.8):(west>.48?28:21.4));
     if(player.position.x>=6 && !trailLoading){
       const token=generation;
       loadTrail(token).catch(error=>{
@@ -810,6 +853,10 @@ function tick(now) {
     if(!low && Math.abs(sunLight.target.position.x-player.position.x)>5){
       sunLight.target.position.x=player.position.x;
       sunLight.position.x=player.position.x-12;
+    }
+    for(const [i,contact] of shadows.entries()){
+      const foot=i?pipo.position:player.position;
+      contact.position.set(foot.x,floor(foot.x,foot.z)+.023,foot.z);
     }
     renderer.info.reset();
     renderer.render(scene,camera);
@@ -957,12 +1004,21 @@ function bind() {
     e.preventDefault();
     paused = true;
     keys.clear();
+    target=null;path=[];
+    recordContext('webgl-lost');
+    clearTimeout(lossTimer);
+    lossTimer=setTimeout(()=>{
+      recordContext('fallback');
+      host.run(()=>action('forest-fallback',{}));
+    },5000);
     save();
     message(
       "A floresta pausou neste aparelho. Abra a vista 2D nas opções para continuar.",
     );
   });
   on(canvas, "webglcontextrestored", () => {
+    clearTimeout(lossTimer);
+    recordContext('webgl-restored');
     paused = false;
     last = 0;
   });
@@ -1158,6 +1214,8 @@ async function action(a, b) {
     dialog(name);
 }
 function dispose() {
+  clearTimeout(lossTimer);
+  shadows=[];
   cancelAnimationFrame(frame);
   frame=0;
   abort?.abort();
@@ -1220,7 +1278,7 @@ async function open(options) {
   if(token!==generation)return false;
   Trail=await import('/assets/forest/trail.mjs');
   if(token!==generation)return false;
-  Trail.configure(data.layout,z=>terrainHeight(data.terrain,data.map.seam,z));
+  Trail.configure(data.layout,z=>bankHeight(data.map.seam,z));
   const mapModule=host.mode==='2d'?await import('/assets/forest/map-2d.mjs'):null;
   if(token!==generation)return false;
   if(mapModule)map2d=mapModule.createMap();
@@ -1263,27 +1321,28 @@ async function open(options) {
       preserveDrawingBuffer: false,
     });
   } catch {
+    recordContext('webgl-creation');
     dispose();
     return false;
   }
   renderer.localClippingEnabled=true;
   renderer.outputColorSpace = T.SRGBColorSpace;
-  renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMapping = T.NeutralToneMapping;
+  renderer.toneMappingExposure = .93;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   renderer.info.autoReset = false;
   scene = new T.Scene();
-  scene.background=new T.Color('#9cbcb6');
-  scene.fog=new T.Fog('#9cbcb6',11,29);
+  scene.background=new T.Color('#bddbd4');
+  scene.fog=new T.Fog('#bddbd4',9.6,29);
   legacy=new T.Group();
   scene.add(legacy);
   camera = new T.PerspectiveCamera(44, 1, 0.1, 120);
-  scene.add(new T.HemisphereLight("#fff0cc", "#365943", 1.65));
-  const sun = new T.DirectionalLight("#ffe8be", 2.35);
+  scene.add(new T.HemisphereLight("#fff1de", "#82aba0", 1.80));
+  const sun = new T.DirectionalLight("#ffe4b7", 1.75);
   sun.position.set(-12, 24, 10);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(1536, 1536);
   Object.assign(sun.shadow.camera, {
     left: -19,
     right: 19,
@@ -1298,7 +1357,7 @@ async function open(options) {
   scene.add(sun);
   scene.add(sun.target);
   sunLight = sun;
-  const rim = new T.DirectionalLight("#badbd2", 0.7);
+  const rim = new T.DirectionalLight("#d6ebed", .72);
   rim.position.set(10, 8, -13);
   scene.add(rim);
   const started = performance.now();
@@ -1344,6 +1403,8 @@ async function open(options) {
         if(surface)surface.material.clippingPlanes=[seamPlane];
       }
       batch(root);
+      // Bare terrain meets the shelter even after culling the clearing props.
+      scene.attach(terrain);
     }
     if (asset.name === "bridge") {
       bridge = root;
@@ -1399,6 +1460,7 @@ async function open(options) {
   pipo.position.copy(player.position).add(new T.Vector3(-.7,0,.55));
   if(!walkable(pipo.position.x,pipo.position.z))pipo.position.copy(player.position);
   pipo.position.y=floor(pipo.position.x,pipo.position.z)-supportHeight(pipoSupport,pipoActions);
+  createContactShadows();
   look.copy(player.position).add(new T.Vector3(0, 0.9, 0));
   syncOwned();
   createFeatures();
@@ -1427,6 +1489,18 @@ window.DaviForest = {
   open,
   close,
   action,
+  telemetry() {
+    return {
+      view:map2d?'2d':renderer?'3d':'agenda',
+      region:currentRegion||null,
+      quality, effective:map2d?'2d':renderer?(low?'econômico':'detalhado'):null,
+      paused, frames:stats.frames, frameMs:stats.times.slice(),
+      readyMs:canvas?.dataset.ready==='true'?(stats.readyMs??null):null, assetsMs:stats.loads.at(0)??null,
+      trailMs:stats.trailLoadMs??null, dpr:renderer?.getPixelRatio()??null,
+      calls:renderer?.info.render.calls??null, triangles:renderer?.info.render.triangles??null,
+      events:contextEvents.slice(),
+    };
+  },
   project(x,z,y=floor(x,z)) {
     if(map2d)return map2d.project(x,z);
     const p=new T.Vector3(x,y,z).project(camera),rect=canvas.getBoundingClientRect();
