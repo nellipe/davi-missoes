@@ -13,7 +13,17 @@ const diag = (page) => page.evaluate(() => DaviForest.diagnostics());
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]);
 const save = (name, value) =>
   fs.writeFileSync(path.join(out, name + '.json'), JSON.stringify(value, null, 2) + '\n');
-async function session(name, run, record = true) {
+async function session(
+  name,
+  run,
+  record = true,
+  {
+    stars = 40,
+    viewport = { width: 1100, height: 820 },
+    videoSize = { width: 880, height: 656 },
+    videoFps = 12,
+  } = {}
+) {
   fs.mkdirSync(out, { recursive: true });
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'forest-regression-'));
   const socket = net.createServer();
@@ -35,7 +45,11 @@ async function session(name, run, record = true) {
     'server.initialize()',
     'server.set_setting("password",server.hash_password(os.environ["FIXTURE_PASSWORD"]))',
     'with server.db() as c:',
-    ' c.execute("INSERT INTO world_ledger(id,delta,label,day) VALUES(?,?,?,?)",("qa",40,"Sintético","2026-11-17"))',
+    ...(stars
+      ? [
+          ` c.execute("INSERT INTO world_ledger(id,delta,label,day) VALUES(?,?,?,?)",("qa",${Number(stars)},"Sintético","2026-11-17"))`,
+        ]
+      : []),
     ' c.execute("UPDATE world_state SET x=530,y=445")',
     'server.main()',
   ].join('\n');
@@ -81,11 +95,11 @@ async function session(name, run, record = true) {
     });
     const context = await browser.newContext({
       baseURL: base,
-      viewport: { width: 1100, height: 820 },
+      viewport,
       hasTouch: true,
       locale: 'pt-BR',
       extraHTTPHeaders: { Origin: base },
-      ...(record ? { recordVideo: { dir: temp, size: { width: 880, height: 656 } } } : {}),
+      ...(record ? { recordVideo: { dir: temp, size: videoSize } } : {}),
     });
     assert(
       (
@@ -123,7 +137,7 @@ async function session(name, run, record = true) {
           '-crf',
           '30',
           '-r',
-          '12',
+          String(videoFps),
           '-pix_fmt',
           'yuv420p',
           '-movflags',

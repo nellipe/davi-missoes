@@ -4,6 +4,10 @@ import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "/vendor/three/addons/utils/SkeletonUtils.js";
 import { mergeGeometries } from "/vendor/three/addons/utils/BufferGeometryUtils.js";
 import { walkable as validPosition, terrainHeight, route, advance } from '/assets/forest/navigation.mjs';
+let Trail;
+let onTrail=false, trailScene=null, currentRegion='';
+let buddyHead=null, reactUntil=0;
+const headBase=new T.Quaternion();
 let generation = 0, savePending = null, path = [], movingNow = false;
 let ownedMaterials = new Set(), ownedGeometry = new Set(), ownedTextures = new Set();
 const supportCache = new Map();
@@ -59,7 +63,7 @@ let staticGroups = [],
   blinkUntil = 0,
   waving = 0,
   stats = { frames: 0, times: [], loads: [] },
-  assetCache = null;
+  assetCache = new Map();
 const esc = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -102,9 +106,10 @@ function prepareDeck(root) {
   deckHitMesh = new T.Mesh(geometry,material);
 }
 function walkable(x, z) {
-  return validPosition(x, z, data.economy.inventory, data.obstacles);
+  return onTrail ? Trail.walkable(x,z) : validPosition(x, z, data.economy.inventory, data.obstacles);
 }
 function floor(x, z) {
+  if(onTrail)return Trail.floor(x,z);
   const land = terrainHeight(data.terrain,x,z);
   if (owned('bridge') && Math.abs(x)<=1.12 && z>=deckProfile[0].z && z<=deckProfile.at(-1).z) {
     const i = deckProfile.findIndex((p,i) => i>0 && z<=p.z);
@@ -116,9 +121,9 @@ function floor(x, z) {
 function destination(x,z) {
   keys.clear();
   selectedPlace=null;
-  path = route({x:player.position.x,z:player.position.z},{x,z},walkable);
+  path = route({x:player.position.x,z:player.position.z},{x,z},walkable,onTrail?[13,17]:undefined);
   target = path.shift() || null;
-  if(!target) message('Pipo: Vamos pelo caminho. Talvez seja preciso construir a ponte.');
+  if(!target && !onTrail) message('Pipo: Vamos pelo caminho. Talvez seja preciso construir a ponte.');
 }
 // Sample the actual skinned asset once at load, not its bounding box on every frame.
 // This compensates for the raised stance foot in the existing walk rig.
@@ -161,16 +166,13 @@ function store(key, value) {
   } catch {}
 }
 async function assets() {
-  if (!assetCache) {
-    const loader = new GLTFLoader();
-    assetCache = Promise.all(
-      ["forest", "bridge", "treehouse", "davi", "pipo", "activity"].map(async (name) => ({
-        name,
-        ...(await loader.loadAsync(`/assets/forest/${name}.glb`)),
-      })),
-    ).catch((error) => { assetCache = null; throw error; });
-  }
-  return assetCache;
+  const loader=new GLTFLoader();
+  const names=onTrail?['davi','pipo']:['forest','bridge','treehouse','davi','pipo','activity'];
+  return Promise.all(names.map(name=>{
+    if(!assetCache.has(name))assetCache.set(name,loader.loadAsync('/assets/forest/'+name+'.glb')
+      .then(asset=>({name,...asset})).catch(error=>{assetCache.delete(name);throw error;}));
+    return assetCache.get(name);
+  }));
 }
 function prepare(root) {
   root.traverse((o) => {
@@ -397,12 +399,38 @@ function motes() {
   scene.add(particles);
 }
 function layout() {
-  host.layout(
-    `<section class="forest-shell"><header class="forest-title"><div><span>UM CAMINHO DE DESCOBERTAS</span><h1>Floresta Encantada</h1></div><div class="forest-tools">${button("✦ <strong>" + data.economy.stars + "</strong>", "shop", 'aria-label="Oficina, ' + data.economy.stars + ' estrelas"', "forest-wallet")}${button("▣ Minhas missões", "missions")}${button("☷", "options", 'aria-label="Opções do mundo"')}</div></header><div class="forest-stage" id="forestStage"><canvas id="forestCanvas" tabindex="0" aria-label="Floresta Encantada. Ande com setas ou WASD; E para interagir." aria-describedby="forestInstructions"></canvas><div id="forestLabels" class="forest-labels"></div><div class="forest-chapter"><span>01</span><div>O BOSQUE DO RIACHO<small>Davi & Pipo</small></div></div><div class="forest-camera">${button("↶", "rotate", 'data-turn="-1" aria-label="Girar câmera à esquerda"')}${button("⌖", "camera", 'aria-label="Centralizar câmera"')}${button("↷", "rotate", 'data-turn="1" aria-label="Girar câmera à direita"')}</div><div class="forest-dpad" role="group" aria-label="Andar"><button data-forest-dir="up" aria-label="Andar para frente">↑</button><button data-forest-dir="left" aria-label="Andar à esquerda">←</button><button data-forest-dir="down" aria-label="Andar para trás">↓</button><button data-forest-dir="right" aria-label="Andar à direita">→</button></div>${button("⌘ Caminhos", "paths", 'aria-label="Lugares do bosque"', "forest-route")}<button id="forestInteract" class="forest-interact" data-action="forest-nearby">Explorar · E</button><div id="forestLoading" class="forest-loading">Abrindo o caminho da floresta…</div></div><div class="forest-pipo"><span class="forest-pipo-icon" aria-hidden="true">✧</span><p id="forestMessage" role="status">Pipo: O riacho guarda um caminho novo. Vamos descobrir juntos?</p>${button("Ver agenda", "calendar")}</div><p id="forestInstructions" class="forest-instructions">Toque no caminho · setas ou WASD para andar · E para explorar</p></section><dialog id="forestDialog" class="forest-dialog" aria-labelledby="forestDialogTitle"><div id="forestDialogBody"></div></dialog>`,
-  );
+  const now = '<button class="f-button forest-now" type="button" data-action="child-now">Agora</button>';
+  const options = button("☷","options",'aria-label="Opções do mundo"');
+  const tools = now + button("✦ <strong>"+data.economy.stars+"</strong>","shop",'aria-label="Oficina, '+data.economy.stars+' estrelas"',"forest-wallet")
+    +button("▣ Minhas missões","missions")+options;
+  const header = onTrail ? '' : `<header class="forest-title"><div><h1>Floresta Encantada</h1></div><div class="forest-tools">${tools}</div></header>`;
+  const chapter = onTrail
+    ? `<header class="trail-hud"><div><small>Floresta Encantada</small><h1 id="forestRegion">Soleira da Roda Baixa</h1></div><div class="forest-tools">${now}${options}</div></header>`
+    : '<div class="forest-chapter">Bosque do Riacho</div>';
+  const cameraTools = button("↶","rotate",'data-turn="-1" aria-label="Girar câmera à esquerda"')
+    +button("⌖","camera",'aria-label="Centralizar câmera"')+button("↷","rotate",'data-turn="1" aria-label="Girar câmera à direita"');
+  const directions = [["up","↑","frente"],["left","←","esquerda"],["down","↓","trás"],["right","→","direita"]]
+    .map(([dir,icon,label])=>`<button data-forest-dir="${dir}" aria-label="Andar para ${label}">${icon}</button>`).join('');
+  const speech = '<p id="forestMessage" role="status">'+(onTrail?'Pipo observa o barquinho passar.':'Pipo: O riacho guarda um caminho novo. Vamos descobrir juntos?')+'</p>';
+  host.layout(`<section class="forest-shell ${onTrail?'trail-shell':''}">${header}
+    <div class="forest-stage" id="forestStage">
+      <canvas id="forestCanvas" tabindex="0" aria-label="Floresta Encantada. Ande com setas ou WASD; E para interagir." aria-describedby="forestInstructions"></canvas>
+      <div id="forestLabels" class="forest-labels"></div>${chapter}
+      <div class="forest-camera">${cameraTools}</div>
+      ${onTrail?speech:''}
+      <div class="forest-dpad" role="group" aria-label="Andar">${directions}</div>
+      ${onTrail?button("Perguntar a Pipo","hint","","forest-route"):button("⌘ Caminhos","paths",'aria-label="Lugares do bosque"',"forest-route")}
+      <button id="forestInteract" class="forest-interact" data-action="forest-nearby">Explorar · E</button>
+      <div id="forestLoading" class="forest-loading">Abrindo o caminho da floresta…</div>
+    </div>
+    <div class="forest-pipo">${onTrail?'':speech}
+      ${onTrail?button("Voltar ao bosque do riacho","leave-trail"):button("Seguir os barquinhos","enter-trail")}
+      ${button("Ver agenda","calendar")}
+    </div><p id="forestInstructions" class="forest-instructions">Toque no caminho · setas ou WASD para andar · E para explorar</p>
+    </section><dialog id="forestDialog" class="forest-dialog" aria-labelledby="forestDialogTitle"><div id="forestDialogBody"></div></dialog>`);
   document.body.classList.add("forest-view");
-  stage = document.getElementById("forestStage");
-  canvas = document.getElementById("forestCanvas");
+  stage=document.getElementById("forestStage");
+  canvas=document.getElementById("forestCanvas");
 }
 function createFeatures() {
   features=[
@@ -457,8 +485,8 @@ function syncOwned() {
     if (obj.userData.owner)
       obj.visible = owned(obj.userData.owner) || !!obj.userData.permanent;
   }
-  bridge.visible = owned("bridge");
-  house.traverse((o) => {
+  if(bridge)bridge.visible = owned("bridge");
+  house?.traverse((o) => {
     if (!o.isMesh) return;
     o.visible =
       owned("house") || /Ancient|House_roots|Treehouse_crown/.test(o.name);
@@ -515,7 +543,7 @@ async function save() {
   saving = true;
   dirty = false;
   const api=host.api,position={x:player.position.x,z:player.position.z};
-  savePending=api('/api/forest/move','PUT',position);
+  savePending=api(onTrail?'/api/forest/trail/move':'/api/forest/move','PUT',position);
   try {
     await savePending;
   } catch (e) {
@@ -538,7 +566,7 @@ function updateCamera(dt = 1) {
   look.lerp(follow, Math.min(1, dt * 5));
   const offset = new T.Vector3(
     Math.sin(angle) * distance,
-    distance * .82,
+    distance * (onTrail ? 0.69 : 0.82),
     Math.cos(angle) * distance,
   );
   camera.position.lerp(follow.clone().add(offset), Math.min(1, dt * 4));
@@ -625,7 +653,13 @@ function tick(now) {
     pipoClip = buddyClip;
   }
   animateClip(moving ? "Walk" : waving > clock ? "Wave" : "Idle");
+  if(buddyHead)buddyHead.quaternion.copy(headBase);
   mixers.forEach((m) => m.update(still && !moving && !buddyMoving ? 0 : dt));
+  if(buddyHead){
+    headBase.copy(buddyHead.quaternion);
+    const remaining=reactUntil-clock;
+    if(remaining>0&&!still)buddyHead.rotateZ(.26*Math.sin(Math.PI*remaining/1.5));
+  }
   player.position.y = floor(player.position.x, player.position.z)-supportHeight(playerSupport,actions);
   pipo.position.y = floor(pipo.position.x, pipo.position.z)-supportHeight(pipoSupport,pipoActions);
   if(buddyMoving){const rot=Math.atan2(buddy.x-oldBuddy.x,buddy.z-oldBuddy.z);pipo.quaternion.slerp(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),rot),Math.min(1,dt*7));}
@@ -642,10 +676,18 @@ function tick(now) {
   });
   for (const shader of wind)
     shader.uniforms.forestTime.value = still ? 0 : clock;
-  water.material.uniforms.time.value = still ? 0 : clock;
+  if(water)water.material.uniforms.time.value = still ? 0 : clock;
   if (particles && !still) particles.rotation.y = Math.sin(clock * 0.1) * 0.035;
   updateCamera(dt);
-  updateLabels();
+  if(onTrail){
+    const {x,z}=player.position, region=Trail.region(x,z);
+    if(region!==currentRegion){
+      currentRegion=region;reactUntil=clock+1.5;
+      document.getElementById('forestRegion').textContent=region;
+      message(region.startsWith('Garganta')?'Pipo para para olhar a espuma.':region.startsWith('Bosque')?'Pipo espia por baixo do pano.':'Pipo observa o barquinho passar.');
+    }
+    trailScene.tick(clock,still,camera.position,player.position);
+  }else updateLabels();
   renderer.info.reset();
   renderer.render(scene,camera);
   stats.frames++;
@@ -678,7 +720,7 @@ function tick(now) {
     b.disabled = near.d > 1.8;
     b.textContent =
       near.d < 1.8
-        ? `${near.icon} ${near.title} · E`
+        ? onTrail?near.title:`${near.icon} ${near.title} · E`
         : "Explorar por perto · E";
   }
   canvas.dataset.frames = stats.frames;
@@ -768,13 +810,13 @@ function bind() {
     if(rect.width<=0||rect.height<=0)return;
     camera.updateMatrixWorld(true);terrain.updateWorldMatrix(true,false);
     ray.setFromCamera(p, camera);
-    const surfaces = owned('bridge') ? [terrain,deckHitMesh] : [terrain];
+    const surfaces = deckHitMesh && owned('bridge') ? [terrain,deckHitMesh] : [terrain];
     const hit = ray.intersectObjects(surfaces, false)[0];
-    if (hit && walkable(hit.point.x, hit.point.z))
+    if (hit && walkable(hit.point.x, hit.point.z) && !(onTrail&&trailScene.blocksTap(ray,hit)))
       destination(hit.point.x,hit.point.z);
     else {
       target=null;path=[];
-      message("Pipo: Siga o caminho. A ponte nos leva à outra margem.");
+      message(onTrail?"O chão firme acompanha a trilha.":"Pipo: Siga o caminho. A ponte nos leva à outra margem.");
     }
   });
   on(canvas, "webglcontextlost", (e) => {
@@ -856,7 +898,7 @@ function dialog(name) {
   document.getElementById("forestDialog").showModal();
 }
 async function refresh() {
-  data = await host.api("/api/forest");
+  data = await host.api(onTrail?"/api/forest/trail":"/api/forest");
   syncOwned();
   if (!walkable(player.position.x, player.position.z)) {
     player.position.set(data.position.x, 0, data.position.z);
@@ -865,6 +907,13 @@ async function refresh() {
 }
 async function action(a, b) {
   const name = a.replace("forest-", "");
+  if(name==='enter-trail'||name==='leave-trail'){
+    await close();
+    store('place',name==='enter-trail'?'trail':'forest');
+    if(!await open(host))await host.onFallback();
+    return;
+  }
+  if(name==='hint'){message('Pipo: '+Trail.hint(player.position.x,player.position.z));return;}
   if (name === "calendar") {
     await save();
     await host.onCalendar();
@@ -906,8 +955,8 @@ async function action(a, b) {
     return;
   }
   if (name === "camera") {
-    angle = 0.55;
-    distance = 13;
+    angle = onTrail ? 0.18 : 0.55;
+    distance = onTrail?8.3:13;
     return;
   }
   if (name === "close") {
@@ -918,6 +967,12 @@ async function action(a, b) {
   }
   if (name === "nearby") {
     const near = nearest();
+    if(onTrail&&near.d<1.8){
+      reactUntil=clock+1.5;
+      message(trailScene.interact(near.id,clock));
+      if(near.id==='leaf'||near.id==='echo')pipo.rotation.y=Math.atan2(near.x-pipo.position.x,near.z-pipo.position.z);
+      return;
+    }
     if (near.d < 1.8) { if(near.id==='calendar')await action('forest-calendar',{});else dialog(near.id); }
     return;
   }
@@ -983,6 +1038,8 @@ function dispose() {
   ownedMaterials.forEach(m=>m.dispose());ownedMaterials.clear();
   ownedGeometry.forEach(g=>g.dispose());ownedGeometry.clear();
   ownedTextures.forEach(t=>t.dispose());ownedTextures.clear();
+  trailScene?.group.traverse(o=>{if(o.isInstancedMesh)o.dispose();});
+  trailScene=null;currentRegion='';buddyHead=null;reactUntil=0;
   renderer?.dispose();
   renderer?.forceContextLoss();
   renderer=null;composer=null;
@@ -1006,8 +1063,14 @@ async function open(options) {
   if(token!==generation)return false;
   dispose();
   host = options;
-  data = await host.api("/api/forest");
+  onTrail=preference('place','forest')==='trail';
+  data = await host.api(onTrail?"/api/forest/trail":"/api/forest");
   if(token!==generation)return false;
+  if(onTrail){
+    Trail=await import('/assets/forest/trail.mjs');
+    if(token!==generation)return false;
+    Trail.configure(data.layout);
+  }
   quality = preference("quality", "auto");
   still =
     preference("still", "false") === "true" ||
@@ -1017,7 +1080,7 @@ async function open(options) {
   last = 0;
   clock = 0;
   lastCalendarRefresh=performance.now();calendarPending=false;
-  angle=.55;distance=12.5;waving=0;blinkAt=3.2;blinkUntil=0;lastSave=0;movingNow=false;
+  angle=onTrail ? 0.18 : 0.55;distance=onTrail?8.3:12.5;waving=0;blinkAt=3.2;blinkUntil=0;lastSave=0;movingNow=false;
   adaptiveLow = false;
   clip = "Idle";
   pipoClip = "Hover";
@@ -1044,6 +1107,12 @@ async function open(options) {
   scene = new T.Scene();
   scene.background = new T.Color("#608580");
   scene.fog = new T.FogExp2("#6e9188", 0.014);
+  if(onTrail){
+    scene.background=new T.Color('#adc8b7');
+    scene.fog=new T.Fog('#adc8b7',8,23);
+    trailScene=Trail.build(scene);terrain=trailScene.terrain;
+    trailScene.group.traverse(o=>{if(o.isMesh){ownedGeometry.add(o.geometry);ownedMaterials.add(o.material);}});
+  }
   camera = new T.PerspectiveCamera(44, 1, 0.1, 120);
   scene.add(new T.HemisphereLight("#fff0cc", "#365943", 1.7));
   const sun = new T.DirectionalLight("#ffe8be", 2.7);
@@ -1141,6 +1210,7 @@ async function open(options) {
       if (pipoActions.Walk) pipoActions.Walk.timeScale = 3.2;
       pipoSupport=supportTable('pipo',root,mixer,pipoActions);
       pipoActions.Hover?.reset().play();mixer.update(0);
+      if(onTrail){buddyHead=root.getObjectByName('Head');if(buddyHead)headBase.copy(buddyHead.quaternion);}
     }
   }
   player.position.set(
@@ -1153,7 +1223,7 @@ async function open(options) {
   pipo.position.y=floor(pipo.position.x,pipo.position.z)-supportHeight(pipoSupport,pipoActions);
   look.copy(player.position).add(new T.Vector3(0, 0.9, 0));
   syncOwned();
-  createFeatures();
+  if(onTrail)features=Trail.places;else createFeatures();
   const marker=loaded.find(a=>a.name==='activity');
   if(marker) {
     const markers=new T.Group(),materials=new Map();scene.add(markers);
@@ -1164,9 +1234,7 @@ async function open(options) {
     }
     prepare(markers);batch(markers);
   }
-  createWater();
-  cascade();
-  motes();
+  if(!onTrail){createWater();cascade();motes();}
   setQuality();
   bind();
   updateCamera();
@@ -1183,7 +1251,14 @@ window.DaviForest = {
   action,
   project(x,z) {
     const p=new T.Vector3(x,floor(x,z),z).project(camera),rect=canvas.getBoundingClientRect();
-    return {x:rect.left+(p.x*.5+.5)*rect.width,y:rect.top+(-p.y*.5+.5)*rect.height,visible:Math.abs(p.x)<1&&Math.abs(p.y)<1&&Math.abs(p.z)<1};
+    const visible=Math.abs(p.x)<1&&Math.abs(p.y)<1&&Math.abs(p.z)<1;
+    let groundVisible=visible;
+    if(onTrail&&visible){
+      const ray=new T.Raycaster();ray.setFromCamera(new T.Vector2(p.x,p.y),camera);
+      const hit=ray.intersectObject(terrain,false)[0];
+      groundVisible=!!hit && Math.hypot(hit.point.x-x,hit.point.z-z)<.2 && !trailScene.blocksTap(ray,hit);
+    }
+    return {x:rect.left+(p.x*.5+.5)*rect.width,y:rect.top+(-p.y*.5+.5)*rect.height,visible,groundVisible};
   },
   diagnostics() {
     let pipoScarfVisible = false;
@@ -1208,6 +1283,7 @@ window.DaviForest = {
         ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
         : gl?.getParameter(gl.RENDERER),
       vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : null,
+      place:onTrail?"trail":"forest",region:currentRegion,
       frames: stats.frames,
       frameMs: stats.times.slice(),
       loadMs: stats.loads,

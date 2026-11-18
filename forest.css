@@ -497,3 +497,32 @@
 .f-dialog-top > span {
   color: #4d633f;
 }
+
+.trail-hud {
+  margin:0; padding:0; width:auto; max-width:none; flex-wrap:nowrap;
+  position:absolute; inset:12px 14px auto; display:flex; align-items:flex-start;
+  justify-content:space-between; gap:8px; pointer-events:none;
+}
+.trail-hud > div:first-child, .trail-shell #forestMessage {
+  background:#23483ef0; color:#fff8df; padding:8px 12px; border-radius:12px;
+}
+.trail-hud small { font-size:.72rem; color:#e7d796; }
+.trail-hud h1 { margin:2px 0 0; color:inherit; font-size:clamp(.95rem,2vw,1.32rem); line-height:1.15; }
+.trail-hud .forest-tools { pointer-events:auto; }
+.trail-shell .forest-camera { top:68px; right:14px; }
+.trail-shell #forestMessage {
+  position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+  max-width:40%; margin:0; font-size:.92rem; line-height:1.35; pointer-events:none;
+}
+.trail-shell .forest-interact:disabled { visibility:hidden; }
+.forest-tools .forest-now { color:#fff9dc; background:#326147; border-color:#31543c; }
+@media(max-width:700px) {
+  .forest-shell:not(.trail-shell) .forest-title { flex-wrap:wrap; }
+  .forest-shell:not(.trail-shell) .forest-title > div:first-child { flex-basis:100%; }
+  .forest-shell:not(.trail-shell) .forest-title h1 { max-width:none; }
+  .trail-shell #forestMessage {
+    top:76px; left:12px; bottom:auto; transform:none; max-width:51%;
+    font-size:.8rem; padding:6px 9px;
+  }
+  .trail-hud { inset:10px 10px auto; }
+}

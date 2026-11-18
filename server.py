@@ -347,6 +347,8 @@ class Handler(BaseHTTPRequestHandler):
                         return self.send(200,{'history':rows})
                     match=re.fullmatch(r'/api/missions/([a-zA-Z0-9_-]{1,80})',path)
                     if match: return self.send(200,missions.template(c,match.group(1)))
+            if path=='/api/forest/trail':
+                with db() as c:return self.send(200,forest.trail_scene(c))
             if path=='/api/forest':
                 with db() as c:return self.send(200,forest.scene(c))
             if path.startswith('/api/world'):
@@ -411,6 +413,9 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/schedule/config' and method=='PUT':
                 if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c: result=timing.configure(c,body)
+                return self.send(200,result)
+            if path=='/api/forest/trail/move' and method=='PUT':
+                with LOCK, db() as c:result=forest.trail_move(c,body)
                 return self.send(200,result)
             if path=='/api/forest/move' and method=='PUT':
                 with LOCK, db() as c:result=forest.move(c,body)

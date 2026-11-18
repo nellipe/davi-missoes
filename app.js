@@ -404,6 +404,23 @@ function nextMission(e, hasEvents, earlierCount = 0) {
     "</div></div></section>"
   );
 }
+async function childNow() {
+  const me=await api('/api/me');
+  const {events}=await api('/api/calendar?start='+me.today+'&end='+me.today);
+  const pending=events.filter(e=>!e.done);
+  const available=pending.filter(e=>e.window?.state==='open');
+  state.date=me.today;
+  if(available.length===1 && available[0].has_mission){
+    await openMission(available[0].id,me.today);
+    return;
+  }
+  const upcoming=pending.find(e=>e.window?.state==='upcoming');
+  const choices=available.length?available:upcoming?[upcoming]:[];
+  state.view='child-now';
+  layout('<button data-action="world-home">← Meu mundo</button><section class="panel"><h1>Agora</h1>'+
+    (choices.length?choices.map(e=>eventHtml(e,false,calendarClock())).join(''):'<p>Dia livre. Não há atividade aberta.</p>')+
+    '<button data-action="child-now-calendar">Ver agenda</button></section>');
+}
 async function child() {
   state.me = await api('/api/me');
   if (!state.me.authorized) {
@@ -844,7 +861,9 @@ async function action(e) {
     id = Number(b.dataset.id),
     day = b.dataset.date;
   await safe(async () => {
-    if (a==='world-home') {state.childSurface='world';await child();}
+    if (a==='child-now') await childNow();
+    else if (a==='child-now-calendar'){state.childSurface='calendar';await child();}
+    else if (a==='world-home') {state.childSurface='world';await child();}
     else if(a.startsWith('forest-')) await DaviForest.action(a,b);
     else if(a==='world-forest'){state.forestMode='3d';try{localStorage.setItem('davi-forest-mode','3d');}catch{}await child();}
     else if (a==='world-settings') await worldSettings();

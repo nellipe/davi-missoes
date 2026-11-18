@@ -29,3 +29,44 @@ def move(c,body):
  inventory=world.scene(c)['inventory']
  if not walkable(x,z,inventory):raise ValueError('Siga o caminho da floresta. A ponte abre a outra margem.')
  return world.move(c,{'x':530+x*12,'y':370+z*12})
+
+
+TRAIL = json.loads(NAVIGATION_PATH.with_name('trail-layout.json').read_text())
+
+
+def trail_walkable(x, z):
+    if type(x) not in (int, float) or type(z) not in (int, float):
+        return False
+    xmin, xmax, zmin, zmax = TRAIL['bounds']
+    if not (xmin <= x <= xmax and zmin <= z <= zmax):
+        return False
+    if any(a < x < b and c < z < d for a, b, c, d in TRAIL['blocked']):
+        return False
+    if any(math.hypot(x-a, z-b) <= r for a, b, r in TRAIL['clearings']):
+        return True
+    for path in TRAIL['paths']:
+        points = path['points']
+        for (a, b), (c, d) in zip(points, points[1:]):
+            dx, dz = c-a, d-b
+            t = max(0, min(1, ((x-a)*dx+(z-b)*dz)/(dx*dx+dz*dz)))
+            if math.hypot(x-a-t*dx, z-b-t*dz) <= path['width']:
+                return True
+    return False
+
+
+def trail_scene(c):
+    row = c.execute("SELECT value FROM settings WHERE key='trail_position'").fetchone()
+    position = json.loads(row[0]) if row else TRAIL['spawn']
+    if not trail_walkable(position['x'], position['z']):
+        position = TRAIL['spawn']
+    return {'economy': world.scene(c), 'layout': TRAIL, 'position': position}
+
+
+def trail_move(c, body):
+    x, z = body.get('x'), body.get('z')
+    if not trail_walkable(x, z):
+        raise ValueError('O chão firme acompanha a trilha.')
+    position = json.dumps({'x': x, 'z': z})
+    c.execute("INSERT INTO settings(key,value) VALUES('trail_position',?) "
+              "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (position,))
+    return {'ok': True}

@@ -25,7 +25,7 @@ export function segmentClear(a,b,valid) {
   for(let i=1;i<=count;i++) if(!valid(a.x+(b.x-a.x)*i/count,a.z+(b.z-a.z)*i/count)) return false;
   return true;
 }
-export function route(start, goal, valid) {
+export function route(start, goal, valid, bounds=[17,11.5]) {
   if (!valid(goal.x,goal.z)) return [];
   if (segmentClear(start,goal,valid)) return [{...goal}];
   const size=.4, cell=p=>[Math.round(p.x/size),Math.round(p.z/size)], key=(x,z)=>`${x},${z}`;
@@ -37,7 +37,7 @@ export function route(start, goal, valid) {
     if(Math.hypot(node.x-gx,node.z-gz)<1.5&&segmentClear({x:node.x*size,z:node.z*size},goal,valid)){found=node;break;}
     for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]) {
       const x=node.x+dx,z=node.z+dz,point={x:x*size,z:z*size},g=node.g+Math.hypot(dx,dz),k=key(x,z);
-      if(Math.abs(x*size)>17||Math.abs(z*size)>11.5||g>=(cost.get(k)??Infinity)||!segmentClear({x:node.x*size,z:node.z*size},point,valid))continue;
+      if(Math.abs(x*size)>bounds[0]||Math.abs(z*size)>bounds[1]||g>=(cost.get(k)??Infinity)||!segmentClear({x:node.x*size,z:node.z*size},point,valid))continue;
       cost.set(k,g);parents.set(k,node);open.push({x,z,g,f:g+Math.hypot(x-gx,z-gz)});
     }
   }

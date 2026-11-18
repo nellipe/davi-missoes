@@ -23,6 +23,23 @@ class ForestTests(HttpFixture):
   eid=self.parent.request('/api/events','POST',{'title':'Evento sintético futuro','time':'11:00','start_date':'2026-11-18'})[1]['id']
   self.assertEqual(self.child.request(f'/api/events/{eid}/done','POST',{'date':'2026-11-18'})[0],409)
   self.assertEqual(self.parent.request(f'/api/events/{eid}/done','POST',{'date':'2026-11-18'})[0],200)
+ def test_trail_checkpoint_shared_without_moving_island_or_spending(self):
+  api='/api/forest/trail'
+  old=self.child.request('/api/world')[1]
+  scene=self.child.request(api)[1]
+  self.assertEqual(scene['position'],scene['layout']['spawn'])
+  for path in scene['layout']['paths']:
+   for (x,z),(a,b) in zip(path['points'],path['points'][1:]):
+    for step in range(11):
+     self.assertTrue(forest.trail_walkable(x+(a-x)*step/10,z+(b-z)*step/10))
+  position={'x':-9,'z':1.4}
+  self.assertEqual(self.child.request(api+'/move','PUT',position)[0],200)
+  self.assertEqual(self.parent.request(api)[1]['position'],position)
+  for blocked in [{'x':0,'z':0},{'x':False,'z':14},{'x':-4,'z':-15},{'x':-1.38,'z':13}]:
+   self.assertEqual(self.child.request(api+'/move','PUT',blocked)[0],400)
+  self.assertEqual(self.child.request(api+'/move','PUT',position,**{'X-CSRF-Token':''})[0],403)
+  self.assertEqual(self.child.request(api)[1]['position'],position)
+  self.assertEqual(self.child.request('/api/world')[1],old)
  def test_assets_are_local_and_path_traversal_is_rejected(self):
   # Binary assets are read through HTTP without using Client's JSON decoder.
   import http.client
