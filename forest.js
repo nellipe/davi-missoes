@@ -824,8 +824,10 @@ function tick(now) {
     updateCamera(dt);
     // Keep the bank visible while looking back through the passage. Beyond the
     // bend the clearing is outside the ordinary view and its assets stay cached.
-    const west=Math.sin(angle);
-    legacy.visible=player.position.x<(low?(west>.68?23:17.8):(west>.48?28:21.4));
+    const west=Math.sin(angle)>.68;
+    const atPassage=player.position.z>3.3 && player.position.z<8.1;
+    const bankLimit=west?(low?23:27):(atPassage?19.5:17.8);
+    legacy.visible=player.position.x<bankLimit;
     if(player.position.x>=6 && !trailLoading){
       const token=generation;
       loadTrail(token).catch(error=>{

@@ -10,11 +10,15 @@ export function configure(map, seamHeight) {
   const bounds = [map.bounds[0], 29, -21, 22];
   grid = { n: 116, bounds, heights: [] };
   const [xmin,xmax,zmin,zmax] = bounds;
-  for(let j=0;j<=grid.n;j++) for(let i=0;i<=grid.n;i++){
-    const x=xmin+(xmax-xmin)*i/grid.n, z=zmin+(zmax-zmin)*j/grid.n;
+  for(let j=0;j<=grid.n;j++){
+    const z=zmin+(zmax-zmin)*j/grid.n;
+    const bank=seamHeight(z);
     const seamWidth=T.MathUtils.lerp(.52,3.1,T.MathUtils.smoothstep(z,3.45,4.7));
-    const blend=T.MathUtils.smoothstep(x,xmin,xmin+seamWidth);
-    grid.heights.push(T.MathUtils.lerp(seamHeight(z),height(x,z),blend));
+    for(let i=0;i<=grid.n;i++){
+      const x=xmin+(xmax-xmin)*i/grid.n;
+      const blend=T.MathUtils.smoothstep(x,xmin,xmin+seamWidth);
+      grid.heights.push(T.MathUtils.lerp(bank,height(x,z),blend));
+    }
   }
 }
 export const places = [
@@ -51,9 +55,9 @@ export function pathGap(x, z, trail) {
       dx = c - a,
       dz = d - b;
     const t = T.MathUtils.clamp(((x - a) * dx + (z - b) * dz) / (dx * dx + dz * dz), 0, 1);
-    nearest = Math.min(nearest, Math.hypot(x - a - dx * t, z - b - dz * t));
+    nearest = Math.min(nearest, (x - a - dx * t)**2 + (z - b - dz * t)**2);
   }
-  return nearest - trail.width;
+  return Math.sqrt(nearest) - trail.width;
 }
 function edge(x, z) {
   return Math.min(

@@ -171,8 +171,8 @@ export function buildShelter(floor, leafUp) {
   const splashPoint = new T.Vector3();
   const leafInlet = new T.Vector3();
   function shelter(target) {
-    const x = target ? .48 : -.93;
-    const z = target ? .12 : .31;
+    const x = target ? .21 : -.93;
+    const z = target ? .84 : .31;
     return [x, floor(group.position.x + x, group.position.z + z) - group.position.y + .015, z];
   }
   const shelters = [shelter(true), shelter(false)];
