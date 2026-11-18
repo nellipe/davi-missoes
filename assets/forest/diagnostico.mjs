@@ -18,16 +18,31 @@ function sample() {
 export function beginDiagnostics(build) {
   const panel=document.createElement('details');
   panel.id='forestFamilyDiagnostics';
-  panel.innerHTML='<summary>Diagnóstico em andamento</summary><output></output><div><button type="button">Baixar JSON</button> <button type="button">Encerrar</button></div>';
+  panel.innerHTML=`<summary>Diagnóstico em andamento</summary>
+    <output></output>
+    <label>Aparelho
+      <select>
+        <option value="">Selecionar</option>
+        <option>Amazon Fire HD 8 (2022)</option>
+        <option>Xiaomi Redmi 8</option>
+        <option>LG All in One</option>
+        <option>Outro</option>
+      </select>
+    </label>
+    <div><button type="button">Baixar JSON</button> <button type="button">Encerrar</button></div>`;
   const [download,close]=panel.querySelectorAll('button');
   const display=panel.querySelector('output');
+  const device=panel.querySelector('select');
   const samples=[], start=Date.now();
-  let firstOpeningMs=null;
+  let firstOpeningMs=null, firstOpeningView=null;
   document.body.append(panel);
   function measure() {
     if(document.hidden)return;
     const point={seconds:+((Date.now()-start)/1000).toFixed(2),...sample()};
-    if(firstOpeningMs===null && point.view==='3d' && point.openingMs!==null)firstOpeningMs=point.openingMs;
+    if(firstOpeningMs===null && point.view!=='agenda' && point.openingMs!==null){
+      firstOpeningMs=point.openingMs;
+      firstOpeningView=point.view;
+    }
     samples.push(point);
     if(samples.length>MAX_SAMPLES)samples.shift();
     display.textContent=`${point.view} · ${point.region||'—'} · ${point.fps??'—'} FPS · p95 ${point.p95Ms??'—'} ms · ${point.effective??'—'}`;
@@ -41,10 +56,12 @@ export function beginDiagnostics(build) {
     const report={
       build,
       device:{
+        model:device.value||null,
         browser:navigator.userAgent, platform:navigator.userAgentData?.platform??navigator.platform,
         screen:[screen.width,screen.height], pixelRatio:devicePixelRatio
       },
       firstOpeningMs,
+      firstOpeningView,
       contextEvents:(window.DaviForest?.telemetry().events??[]).filter(event=>event.at>=start)
         .map(event=>({type:event.type,seconds:+((event.at-start)/1000).toFixed(2)})),
       samples,

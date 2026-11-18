@@ -1311,6 +1311,7 @@ async function open(options) {
     map2d.draw(player.position,pipo.position,data);
     bind();
     document.getElementById('forestLoading').remove();
+    stats.readyMs=performance.now()-openStarted;
     canvas.dataset.ready='true';
     frame=requestAnimationFrame(tick);
     return true;
