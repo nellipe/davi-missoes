@@ -1,0 +1,2994 @@
+{
+  "profile": "low",
+  "width": 1366,
+  "visits": [
+    {
+      "name": "soleira",
+      "rotation": 0,
+      "position": [
+        28,
+        0.04928907201902548,
+        13.35
+      ],
+      "camera": [
+        29.45955728880467,
+        7.213289072019025,
+        21.986440127256657
+      ],
+      "calls": 96,
+      "triangles": 144764,
+      "objects": [
+        {
+          "name": "Bosque:Aveleira_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.34999990463257,
+            0.1232994794845581,
+            8.149999618530273
+          ],
+          "scale": [
+            0.9600000101079874,
+            0.9599999785423279,
+            0.9600000101079874
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Bosque:Aveleira_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.35,
+            0.12329947982604005,
+            8.15
+          ],
+          "scale": [
+            0.9599999999999999,
+            0.96,
+            0.9599999999999999
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            27.1,
+            -0.01787913347499988,
+            8.5
+          ],
+          "scale": [
+            1.57,
+            1.41,
+            1.13
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 4,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.798136711120605,
+            0.10453694313764572,
+            15.206670761108398
+          ],
+          "scale": [
+            0.7658086723139785,
+            0.7658087015151978,
+            0.7658086723139785
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Região:Amieiro_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 4,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "9fb18a",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.798136711120605,
+            0.10453694313764572,
+            15.206670761108398
+          ],
+          "scale": [
+            0.7658086723139785,
+            0.7658087015151978,
+            0.7658086723139785
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.86,
+            0.48913961798350425,
+            5.7
+          ],
+          "scale": [
+            1.1,
+            1.31,
+            1.4799999999999998
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 9,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            38.026668548583984,
+            0.3437364399433136,
+            4.861582279205322
+          ],
+          "scale": [
+            1.0243842728634314,
+            1.0243842601776123,
+            1.0243842728634314
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Bosque:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            24.7,
+            -0.023411635673143572,
+            8.9
+          ],
+          "scale": [
+            1.1,
+            1.6988,
+            1.18
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Região:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": 2,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "d6dfc8",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            20.164403438568115,
+            0.04158419743180275,
+            14.477166175842285
+          ],
+          "scale": [
+            1.0512427312545243,
+            0.8725314736366272,
+            1.0512427312545243
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Trilha:Ardosia_centrada",
+          "geometry": "BufferGeometry",
+          "instance": 10,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "739269",
+          "vertexColors": false,
+          "world": [
+            22.174428939819336,
+            0.273383766412735,
+            16.14419174194336
+          ],
+          "scale": [
+            0.6503925334446822,
+            0.5201076972980255,
+            0.5499999812906434
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Região:Amieiro_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "9fb18a",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.604150772094727,
+            0.18623009324073792,
+            15.134932518005371
+          ],
+          "scale": [
+            1.0176492487425888,
+            1.0176492929458618,
+            1.0176492487425888
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Amieiro_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 3,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "9fb18a",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            17.982332229614258,
+            1.1642934083938599,
+            12.215962409973145
+          ],
+          "scale": [
+            0.5290340703466054,
+            0.5290340185165405,
+            0.5290340703466054
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Pedra_fendida",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            16.34000015258789,
+            -0.04791969433426857,
+            -1.6200000047683716
+          ],
+          "scale": [
+            0.7199999847869171,
+            0.550000011920929,
+            0.740000006491216
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Samambaia",
+          "geometry": "BufferGeometry",
+          "instance": 16,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.20363140106201,
+            -0.05569014698266983,
+            -2.1662654876708984
+          ],
+          "scale": [
+            0.7081755283244637,
+            0.7081755102169959,
+            0.708175510367141
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            25.8,
+            -0.032234471200181955,
+            7.5
+          ],
+          "scale": [
+            1.08,
+            1.08,
+            1.08
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Samambaia",
+          "geometry": "BufferGeometry",
+          "instance": 11,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            28.73408055305481,
+            1.544034481048584,
+            2.518017292022705
+          ],
+          "scale": [
+            1.1441596153587896,
+            1.1441595999348106,
+            1.1441595980513988
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Aveleira_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            37.42,
+            0.8991045464722982,
+            -0.71
+          ],
+          "scale": [
+            1.09,
+            1.09,
+            1.09
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.25,
+            0.4252373273569975,
+            5.15
+          ],
+          "scale": [
+            0.91,
+            0.91,
+            0.91
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Passo_Casca",
+          "geometry": "BufferGeometry",
+          "instance": 11,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            22.9775390625,
+            0.1353980004787445,
+            2.3568074703216553
+          ],
+          "scale": [
+            1.198238497597083,
+            0.860000003283022,
+            0.7113201052311935
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": 1,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            30.569999933242798,
+            1.0660691261291504,
+            3.299999952316284
+          ],
+          "scale": [
+            0.6199999902906257,
+            0.446399986743927,
+            0.8199999781201985
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            36.66,
+            0.6688256268653114,
+            4.15
+          ],
+          "scale": [
+            1.2,
+            1.364,
+            1.1
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": 1,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "d6dfc8",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            17.806533813476562,
+            1.2333183288574219,
+            9.859528541564941
+          ],
+          "scale": [
+            0.9153347984090463,
+            0.7597278952598572,
+            0.9153347984090463
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "bcc2aa",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            18.350000381469727,
+            0.9653024673461914,
+            8.270000457763672
+          ],
+          "scale": [
+            0.6199999965691704,
+            0.4699999988079071,
+            0.6900000115732374
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            22.75,
+            -0.022883914123871838,
+            5.9
+          ],
+          "scale": [
+            1.07,
+            1.07,
+            1.07
+          ],
+          "pixels": 1
+        }
+      ]
+    },
+    {
+      "name": "soleira",
+      "rotation": 1,
+      "position": [
+        28,
+        0.04928907201902548,
+        13.35
+      ],
+      "camera": [
+        33.417999740586055,
+        7.213289072019025,
+        20.114173691925174
+      ],
+      "calls": 96,
+      "triangles": 142252,
+      "objects": [
+        {
+          "name": "Bosque:Aveleira_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.34999990463257,
+            0.1232994794845581,
+            8.149999618530273
+          ],
+          "scale": [
+            0.9600000101079874,
+            0.9599999785423279,
+            0.9600000101079874
+          ],
+          "pixels": 8
+        },
+        {
+          "name": "Bosque:Aveleira_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.35,
+            0.12329947982604005,
+            8.15
+          ],
+          "scale": [
+            0.9599999999999999,
+            0.96,
+            0.9599999999999999
+          ],
+          "pixels": 6
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            27.1,
+            -0.01787913347499988,
+            8.5
+          ],
+          "scale": [
+            1.57,
+            1.41,
+            1.13
+          ],
+          "pixels": 5
+        },
+        {
+          "name": "Região:Amieiro_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 4,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "9fb18a",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.798136711120605,
+            0.10453694313764572,
+            15.206670761108398
+          ],
+          "scale": [
+            0.7658086723139785,
+            0.7658087015151978,
+            0.7658086723139785
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            25.8,
+            -0.032234471200181955,
+            7.5
+          ],
+          "scale": [
+            1.08,
+            1.08,
+            1.08
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Trilha:trunk",
+          "geometry": "CylinderGeometry",
+          "instance": 5,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "977e60",
+          "vertexColors": false,
+          "world": [
+            16.85691261291504,
+            2.893651247024536,
+            16.19035530090332
+          ],
+          "scale": [
+            0.23999999782040984,
+            2.696610283675493,
+            0.25
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.604150772094727,
+            0.18623009324073792,
+            15.134932518005371
+          ],
+          "scale": [
+            1.0176492487425888,
+            1.0176492929458618,
+            1.0176492487425888
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Trilha:crown",
+          "geometry": "SphereGeometry",
+          "instance": 10,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "4d8467",
+          "vertexColors": false,
+          "world": [
+            16.85691261291504,
+            4.490328311920166,
+            16.19035530090332
+          ],
+          "scale": [
+            1.1354148423329222,
+            1.3837867975234985,
+            1.0644514022126699
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            23.8,
+            0.286521378097209,
+            -0.11
+          ],
+          "scale": [
+            0.94,
+            0.79,
+            0.81
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Samambaia",
+          "geometry": "BufferGeometry",
+          "instance": 12,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            27.22528439760208,
+            1.7683156728744507,
+            1.602129578590393
+          ],
+          "scale": [
+            0.8625784374516322,
+            0.8625784301500152,
+            0.8625784387239553
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Pedra_fendida",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            28.1,
+            2.4478222741516817,
+            0.1
+          ],
+          "scale": [
+            2.02,
+            1.62,
+            1.73
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Trilha:Ardosia_centrada",
+          "geometry": "BufferGeometry",
+          "instance": 33,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "739269",
+          "vertexColors": false,
+          "world": [
+            16.012971878051758,
+            1.685187578201294,
+            11.871973991394043
+          ],
+          "scale": [
+            0.581685374772383,
+            0.5207936158714319,
+            0.5499999997407159
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Cascalho",
+          "geometry": "BufferGeometry",
+          "instance": 51,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            18.23717498779297,
+            1.0311106443405151,
+            8.743102073669434
+          ],
+          "scale": [
+            0.384958153621129,
+            0.28854036940278366,
+            0.3619251178326376
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Samambaia",
+          "geometry": "BufferGeometry",
+          "instance": 14,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            20.866697311401367,
+            0.03640631586313248,
+            4.378209114074707
+          ],
+          "scale": [
+            0.9288021230934181,
+            0.9288021350108533,
+            0.9288021212706857
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Samambaia",
+          "geometry": "BufferGeometry",
+          "instance": 11,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            28.73408055305481,
+            1.544034481048584,
+            2.518017292022705
+          ],
+          "scale": [
+            1.1441596153587896,
+            1.1441595999348106,
+            1.1441595980513988
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 1,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            17.695236206054688,
+            1.310584306716919,
+            13.491372108459473
+          ],
+          "scale": [
+            0.6877054881269558,
+            0.6877055168151855,
+            0.6877054881269558
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": 1,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "bcc2aa",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.81999969482422,
+            0.052824657410383224,
+            8
+          ],
+          "scale": [
+            0.7999999796706646,
+            0.7099999785423279,
+            0.5699999902174219
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Passo_Casca",
+          "geometry": "BufferGeometry",
+          "instance": 6,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            26.060540676116943,
+            0.5090743899345398,
+            3.7633631229400635
+          ],
+          "scale": [
+            0.9120826308533293,
+            0.8600000238654935,
+            0.792146726893293
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 2,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            18.825037956237793,
+            0.689187228679657,
+            15.817634582519531
+          ],
+          "scale": [
+            0.7437711670631909,
+            0.7437711954116821,
+            0.7437711670631909
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            24.7,
+            -0.023411635673143572,
+            8.9
+          ],
+          "scale": [
+            1.1,
+            1.6988,
+            1.18
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Passo_Casca",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            30.04657244682312,
+            0.4966031014919281,
+            4.956454753875732
+          ],
+          "scale": [
+            1.0043203602401076,
+            0.8600000189786574,
+            0.8798681514252318
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Passo_Pedra",
+          "geometry": "BufferGeometry",
+          "instance": 4,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            33.17433500289917,
+            1.0744123458862305,
+            3.5297749042510986
+          ],
+          "scale": [
+            0.9716207338479395,
+            0.8600000260009918,
+            0.7550711128486386
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.86,
+            0.48913961798350425,
+            5.7
+          ],
+          "scale": [
+            1.1,
+            1.31,
+            1.4799999999999998
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": 2,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "d6dfc8",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            20.164403438568115,
+            0.04158419743180275,
+            14.477166175842285
+          ],
+          "scale": [
+            1.0512427312545243,
+            0.8725314736366272,
+            1.0512427312545243
+          ],
+          "pixels": 1
+        }
+      ]
+    },
+    {
+      "name": "soleira",
+      "rotation": -1,
+      "position": [
+        28,
+        0.04928907201902548,
+        13.35
+      ],
+      "camera": [
+        25.17798767907675,
+        7.213289072019025,
+        21.584970601155025
+      ],
+      "calls": 96,
+      "triangles": 142332,
+      "objects": [
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            22.75,
+            -0.022883914123871838,
+            5.9
+          ],
+          "scale": [
+            1.07,
+            1.07,
+            1.07
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            27.1,
+            -0.01787913347499988,
+            8.5
+          ],
+          "scale": [
+            1.57,
+            1.41,
+            1.13
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Bosque:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            24.7,
+            -0.023411635673143572,
+            8.9
+          ],
+          "scale": [
+            1.1,
+            1.6988,
+            1.18
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Região:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": 2,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "d6dfc8",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            20.164403438568115,
+            0.04158419743180275,
+            14.477166175842285
+          ],
+          "scale": [
+            1.0512427312545243,
+            0.8725314736366272,
+            1.0512427312545243
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Bosque:Aveleira_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.35,
+            0.12329947982604005,
+            8.15
+          ],
+          "scale": [
+            0.9599999999999999,
+            0.96,
+            0.9599999999999999
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            43.70388889312744,
+            0.04930821433663368,
+            10.642182350158691
+          ],
+          "scale": [
+            0.8855503990980245,
+            0.8855503797531128,
+            0.8855503990980245
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.86,
+            0.48913961798350425,
+            5.7
+          ],
+          "scale": [
+            1.1,
+            1.31,
+            1.4799999999999998
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Região:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": 1,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "bcc2aa",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.81999969482422,
+            0.052824657410383224,
+            8
+          ],
+          "scale": [
+            0.7999999796706646,
+            0.7099999785423279,
+            0.5699999902174219
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Região:Amieiro_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "9fb18a",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.604150772094727,
+            0.18623009324073792,
+            15.134932518005371
+          ],
+          "scale": [
+            1.0176492487425888,
+            1.0176492929458618,
+            1.0176492487425888
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Trilha:Ardosia_centrada",
+          "geometry": "BufferGeometry",
+          "instance": 12,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "9ca889",
+          "vertexColors": false,
+          "world": [
+            19.56640625,
+            0.38921260833740234,
+            -7.804862022399902
+          ],
+          "scale": [
+            0.8766592779874243,
+            0.4212306192393098,
+            0.5499999812010019
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            25.57,
+            0.6068573164782566,
+            -3.33
+          ],
+          "scale": [
+            0.77,
+            0.77,
+            0.77
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Samambaia",
+          "geometry": "BufferGeometry",
+          "instance": 11,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            28.73408055305481,
+            1.544034481048584,
+            2.518017292022705
+          ],
+          "scale": [
+            1.1441596153587896,
+            1.1441595999348106,
+            1.1441595980513988
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Passo_Pedra",
+          "geometry": "BufferGeometry",
+          "instance": 6,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            33.876933097839355,
+            1.377907633781433,
+            2.3526556491851807
+          ],
+          "scale": [
+            1.043310302135807,
+            0.8599999988862238,
+            0.6869386643666066
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Aveleira_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.34999990463257,
+            0.1232994794845581,
+            8.149999618530273
+          ],
+          "scale": [
+            0.9600000101079874,
+            0.9599999785423279,
+            0.9600000101079874
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 10,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            41.93192768096924,
+            0.202760711312294,
+            4.077970504760742
+          ],
+          "scale": [
+            0.918872217017952,
+            0.9188722372055054,
+            0.918872217017952
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            20.58,
+            -0.05068871559350477,
+            -2.83
+          ],
+          "scale": [
+            0.83,
+            0.83,
+            0.83
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 9,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            38.026668548583984,
+            0.3437364399433136,
+            4.861582279205322
+          ],
+          "scale": [
+            1.0243842728634314,
+            1.0243842601776123,
+            1.0243842728634314
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Pedra_fendida",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "9fa99b",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            40.50308322906494,
+            0.038204509764909744,
+            6.123539924621582
+          ],
+          "scale": [
+            0.7168783148990666,
+            0.465970903635025,
+            0.7168783148990666
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            15.619999885559082,
+            -0.004306480288505554,
+            -0.3700000047683716
+          ],
+          "scale": [
+            0.44999999027226883,
+            0.3700000047683716,
+            0.39999998894790884
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Tronco_Oco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            20.22,
+            0.8944649621529254,
+            0.24
+          ],
+          "scale": [
+            0.9999999999999999,
+            1,
+            0.9999999999999999
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Samambaia",
+          "geometry": "BufferGeometry",
+          "instance": 13,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            24.089145183563232,
+            0.10617664456367493,
+            4.478855609893799
+          ],
+          "scale": [
+            1.1502065251797269,
+            1.1502065255802054,
+            1.150206514307562
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Passo_Casca",
+          "geometry": "BufferGeometry",
+          "instance": 5,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            26.74667251110077,
+            0.5945302844047546,
+            3.9621901512145996
+          ],
+          "scale": [
+            0.8909862107447296,
+            0.8599999707724335,
+            0.8160760600741729
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 4,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            42.9047908782959,
+            0.07888948172330856,
+            11.772943496704102
+          ],
+          "scale": [
+            1.0568119293203462,
+            1.0568119287490845,
+            1.0568119293203462
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.25,
+            0.4252373273569975,
+            5.15
+          ],
+          "scale": [
+            0.91,
+            0.91,
+            0.91
+          ],
+          "pixels": 1
+        }
+      ]
+    },
+    {
+      "name": "bosque",
+      "rotation": 0,
+      "position": [
+        30.68,
+        0.1931876777307374,
+        6.5
+      ],
+      "camera": [
+        32.139557288804674,
+        7.357187677730737,
+        15.136440127256655
+      ],
+      "calls": 101,
+      "triangles": 149266,
+      "objects": [
+        {
+          "name": "Bosque:Aveleira_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.35,
+            0.12329947982604005,
+            8.15
+          ],
+          "scale": [
+            0.9599999999999999,
+            0.96,
+            0.9599999999999999
+          ],
+          "pixels": 14
+        },
+        {
+          "name": "Bosque:Carvalho_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            25.799999952316284,
+            -0.032234471291303635,
+            7.5
+          ],
+          "scale": [
+            1.0800000209560743,
+            1.0800000429153442,
+            1.0800000209560743
+          ],
+          "pixels": 10
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            27.1,
+            -0.01787913347499988,
+            8.5
+          ],
+          "scale": [
+            1.57,
+            1.41,
+            1.13
+          ],
+          "pixels": 10
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.86,
+            0.48913961798350425,
+            5.7
+          ],
+          "scale": [
+            1.1,
+            1.31,
+            1.4799999999999998
+          ],
+          "pixels": 5
+        },
+        {
+          "name": "Bosque:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            24.7,
+            -0.023411635673143572,
+            8.9
+          ],
+          "scale": [
+            1.1,
+            1.6988,
+            1.18
+          ],
+          "pixels": 5
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            36.32,
+            1.0368608198459301,
+            2.62
+          ],
+          "scale": [
+            1.02,
+            1.02,
+            1.02
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Bosque:Amieiro_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 3,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            37.38000011444092,
+            0.3397601246833801,
+            5.349999904632568
+          ],
+          "scale": [
+            0.9600000008098035,
+            0.9599999785423279,
+            0.9600000008098035
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            19.25,
+            0.4252373273569975,
+            5.15
+          ],
+          "scale": [
+            0.91,
+            0.91,
+            0.91
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Região:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": 2,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "bcc2aa",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            23.699999809265137,
+            0.03977377712726593,
+            10.449999809265137
+          ],
+          "scale": [
+            0.8800000267308923,
+            0.7200000286102295,
+            0.749999986572242
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Bosque:Pedra_fendida",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            28.1,
+            2.4478222741516817,
+            0.1
+          ],
+          "scale": [
+            2.02,
+            1.62,
+            1.73
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            25.8,
+            -0.032234471200181955,
+            7.5
+          ],
+          "scale": [
+            1.08,
+            1.08,
+            1.08
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            22.75,
+            -0.022883914123871838,
+            5.9
+          ],
+          "scale": [
+            1.07,
+            1.07,
+            1.07
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 9,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            38.026668548583984,
+            0.3437364399433136,
+            4.861582279205322
+          ],
+          "scale": [
+            1.0243842728634314,
+            1.0243842601776123,
+            1.0243842728634314
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 1,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            39.92606163024902,
+            0.08129336684942245,
+            5.818767547607422
+          ],
+          "scale": [
+            1.015767814645745,
+            1.0157678127288818,
+            1.015767814645745
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Bosque:Tronco_Oco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            20.22,
+            0.8944649621529254,
+            0.24
+          ],
+          "scale": [
+            0.9999999999999999,
+            1,
+            0.9999999999999999
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            27.95,
+            1.9441587040712478,
+            1.65
+          ],
+          "scale": [
+            0.89,
+            0.89,
+            0.89
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Bosque:Pedra_fendida",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            32.9,
+            1.5290071656578854,
+            1.45
+          ],
+          "scale": [
+            1.06,
+            0.9,
+            0.69
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 8,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            38.32170009613037,
+            0.34652748703956604,
+            4.598479747772217
+          ],
+          "scale": [
+            0.8112902002573512,
+            0.8112902045249939,
+            0.8112902002573512
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            37.38,
+            0.3397601374726268,
+            5.35
+          ],
+          "scale": [
+            0.96,
+            0.96,
+            0.96
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Trilha:slab",
+          "geometry": "BoxGeometry",
+          "instance": 2,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "76b9af",
+          "vertexColors": false,
+          "world": [
+            26.62000000476837,
+            0.20999999344348907,
+            11.149999618530273
+          ],
+          "scale": [
+            0.8199999928474426,
+            0.11999999731779099,
+            5.699999809265137
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            30,
+            2.044503044531819,
+            -0.6
+          ],
+          "scale": [
+            1.5499999999999998,
+            1.76,
+            1.4899999999999998
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": 1,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "aab4ae",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            32.69999980926514,
+            0.17408087849617004,
+            -8.850000381469727
+          ],
+          "scale": [
+            1.4499999925760458,
+            1.5399999618530273,
+            1.0000000196215841
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Varal",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            30.95,
+            1.1724370902582975,
+            2.95
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            32.55,
+            0.9691654277975068,
+            -3.58
+          ],
+          "scale": [
+            0.9100000000000001,
+            0.91,
+            0.9100000000000001
+          ],
+          "pixels": 1
+        }
+      ]
+    },
+    {
+      "name": "bosque",
+      "rotation": 1,
+      "position": [
+        30.68,
+        0.1931876777307374,
+        6.5
+      ],
+      "camera": [
+        36.09795145393869,
+        7.357187677730737,
+        13.264196530571992
+      ],
+      "calls": 103,
+      "triangles": 155546,
+      "objects": [
+        {
+          "name": "Bosque:Aveleira_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.35,
+            0.12329947982604005,
+            8.15
+          ],
+          "scale": [
+            0.9599999999999999,
+            0.96,
+            0.9599999999999999
+          ],
+          "pixels": 15
+        },
+        {
+          "name": "Bosque:Amieiro_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 3,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            37.38000011444092,
+            0.3397601246833801,
+            5.349999904632568
+          ],
+          "scale": [
+            0.9600000008098035,
+            0.9599999785423279,
+            0.9600000008098035
+          ],
+          "pixels": 10
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            27.1,
+            -0.01787913347499988,
+            8.5
+          ],
+          "scale": [
+            1.57,
+            1.41,
+            1.13
+          ],
+          "pixels": 9
+        },
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            37.38,
+            0.3397601374726268,
+            5.35
+          ],
+          "scale": [
+            0.96,
+            0.96,
+            0.96
+          ],
+          "pixels": 7
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            25.8,
+            -0.032234471200181955,
+            7.5
+          ],
+          "scale": [
+            1.08,
+            1.08,
+            1.08
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Trilha:slab",
+          "geometry": "BoxGeometry",
+          "instance": 2,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "76b9af",
+          "vertexColors": false,
+          "world": [
+            26.62000000476837,
+            0.20999999344348907,
+            11.149999618530273
+          ],
+          "scale": [
+            0.8199999928474426,
+            0.11999999731779099,
+            5.699999809265137
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Bosque:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            36.66,
+            0.6688256268653114,
+            4.15
+          ],
+          "scale": [
+            1.2,
+            1.364,
+            1.1
+          ],
+          "pixels": 4
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            30,
+            2.044503044531819,
+            -0.6
+          ],
+          "scale": [
+            1.5499999999999998,
+            1.76,
+            1.4899999999999998
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            36.32,
+            1.0368608198459301,
+            2.62
+          ],
+          "scale": [
+            1.02,
+            1.02,
+            1.02
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.86,
+            0.48913961798350425,
+            5.7
+          ],
+          "scale": [
+            1.1,
+            1.31,
+            1.4799999999999998
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Trilha:slab",
+          "geometry": "BoxGeometry",
+          "instance": 1,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "97744e",
+          "vertexColors": false,
+          "world": [
+            27.0799999833107,
+            0.07999999821186066,
+            11.149999618530273
+          ],
+          "scale": [
+            0.12999999523162842,
+            0.46000000834465027,
+            5.699999809265137
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 9,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            38.026668548583984,
+            0.3437364399433136,
+            4.861582279205322
+          ],
+          "scale": [
+            1.0243842728634314,
+            1.0243842601776123,
+            1.0243842728634314
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Bosque:Pedra_fendida",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            28.1,
+            2.4478222741516817,
+            0.1
+          ],
+          "scale": [
+            2.02,
+            1.62,
+            1.73
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Região:Amieiro_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 9,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "a6b995",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            38.026668548583984,
+            0.3437364399433136,
+            4.861582279205322
+          ],
+          "scale": [
+            1.0243842728634314,
+            1.0243842601776123,
+            1.0243842728634314
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Trilha:trunk",
+          "geometry": "CylinderGeometry",
+          "instance": 16,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "5b5142",
+          "vertexColors": false,
+          "world": [
+            26.72000002861023,
+            0.9046071767807007,
+            13
+          ],
+          "scale": [
+            0.1599999964237213,
+            1.350000023841858,
+            0.1599999964237213
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Bosque:Carvalho_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            25.799999952316284,
+            -0.032234471291303635,
+            7.5
+          ],
+          "scale": [
+            1.0800000209560743,
+            1.0800000429153442,
+            1.0800000209560743
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Trilha:Ardosia_centrada",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "597674",
+          "vertexColors": false,
+          "world": [
+            30.40000009536743,
+            2.042137622833252,
+            -9.699999809265137
+          ],
+          "scale": [
+            1.399999953908118,
+            3.1079999514047603,
+            1.6000000417645441
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Trilha:Ardosia_centrada",
+          "geometry": "BufferGeometry",
+          "instance": 6,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "739269",
+          "vertexColors": false,
+          "world": [
+            13.364603996276855,
+            1.6038849353790283,
+            9.191795349121094
+          ],
+          "scale": [
+            0.9152465939643055,
+            0.34888156932311365,
+            0.5500000037081388
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Tronco_Oco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            20.22,
+            0.8944649621529254,
+            0.24
+          ],
+          "scale": [
+            0.9999999999999999,
+            1,
+            0.9999999999999999
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            20.58,
+            -0.05068871559350477,
+            -2.83
+          ],
+          "scale": [
+            0.83,
+            0.83,
+            0.83
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Varal",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            30.95,
+            1.1724370902582975,
+            2.95
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "aab4ae",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            30,
+            0.23883840441703796,
+            -8.449999809265137
+          ],
+          "scale": [
+            1.200000054995782,
+            1.0099999904632568,
+            0.9100000125885607
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Trilha:Ardosia_centrada",
+          "geometry": "BufferGeometry",
+          "instance": 7,
+          "material": "MeshStandardMaterial",
+          "materialColor": "ffffff",
+          "instanceColor": "9ca889",
+          "vertexColors": false,
+          "world": [
+            15.890881538391113,
+            1.6277222633361816,
+            10.633710861206055
+          ],
+          "scale": [
+            0.6720267047939907,
+            0.43342862214316524,
+            0.550000017954697
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Mirtilo",
+          "geometry": "BufferGeometry",
+          "instance": 3,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            29.066553831100464,
+            1.6945888996124268,
+            2.170253038406372
+          ],
+          "scale": [
+            1.0493976989716565,
+            1.0493977233893304,
+            1.0493977013691023
+          ],
+          "pixels": 1
+        }
+      ]
+    },
+    {
+      "name": "bosque",
+      "rotation": -1,
+      "position": [
+        30.68,
+        0.1931876777307374,
+        6.5
+      ],
+      "camera": [
+        27.857992919518754,
+        7.357187677730737,
+        14.73496807526669
+      ],
+      "calls": 88,
+      "triangles": 143228,
+      "objects": [
+        {
+          "name": "Bosque:Carvalho_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            25.799999952316284,
+            -0.032234471291303635,
+            7.5
+          ],
+          "scale": [
+            1.0800000209560743,
+            1.0800000429153442,
+            1.0800000209560743
+          ],
+          "pixels": 22
+        },
+        {
+          "name": "Bosque:Aveleira_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 0,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.34999990463257,
+            0.1232994794845581,
+            8.149999618530273
+          ],
+          "scale": [
+            0.9600000101079874,
+            0.9599999785423279,
+            0.9600000101079874
+          ],
+          "pixels": 18
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            27.1,
+            -0.01787913347499988,
+            8.5
+          ],
+          "scale": [
+            1.57,
+            1.41,
+            1.13
+          ],
+          "pixels": 11
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            25.8,
+            -0.032234471200181955,
+            7.5
+          ],
+          "scale": [
+            1.08,
+            1.08,
+            1.08
+          ],
+          "pixels": 10
+        },
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            22.75,
+            -0.022883914123871838,
+            5.9
+          ],
+          "scale": [
+            1.07,
+            1.07,
+            1.07
+          ],
+          "pixels": 7
+        },
+        {
+          "name": "Bosque:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            24.7,
+            -0.023411635673143572,
+            8.9
+          ],
+          "scale": [
+            1.1,
+            1.6988,
+            1.18
+          ],
+          "pixels": 6
+        },
+        {
+          "name": "Bosque:Varal",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            30.95,
+            1.1724370902582975,
+            2.95
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Região:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": 1,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "e8decb",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            39.92606163024902,
+            0.08129336684942245,
+            5.818767547607422
+          ],
+          "scale": [
+            1.015767814645745,
+            1.0157678127288818,
+            1.015767814645745
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Bosque:Aveleira_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.35,
+            0.12329947982604005,
+            8.15
+          ],
+          "scale": [
+            0.9599999999999999,
+            0.96,
+            0.9599999999999999
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.86,
+            0.48913961798350425,
+            5.7
+          ],
+          "scale": [
+            1.1,
+            1.31,
+            1.4799999999999998
+          ],
+          "pixels": 3
+        },
+        {
+          "name": "Bosque:Pedra_fendida",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            32.9,
+            1.5290071656578854,
+            1.45
+          ],
+          "scale": [
+            1.06,
+            0.9,
+            0.69
+          ],
+          "pixels": 2
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            30,
+            2.044503044531819,
+            -0.6
+          ],
+          "scale": [
+            1.5499999999999998,
+            1.76,
+            1.4899999999999998
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Aveleira_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            37.42,
+            0.8991045464722982,
+            -0.71
+          ],
+          "scale": [
+            1.09,
+            1.09,
+            1.09
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Região:Amieiro_Copa_economica",
+          "geometry": "BufferGeometry",
+          "instance": 3,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "a6b995",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            41.21043682098389,
+            0.16300317645072937,
+            4.472658634185791
+          ],
+          "scale": [
+            0.6614822038550991,
+            0.6614822149276733,
+            0.6614822038550991
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Carvalho_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            36.32,
+            1.0368608198459301,
+            2.62
+          ],
+          "scale": [
+            1.02,
+            1.02,
+            1.02
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Passo_Pedra",
+          "geometry": "BufferGeometry",
+          "instance": 7,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            34.32936668395996,
+            1.4501487016677856,
+            1.8616284132003784
+          ],
+          "scale": [
+            0.9382776390390971,
+            0.8600000254388815,
+            0.8731463025438775
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Samambaia",
+          "geometry": "BufferGeometry",
+          "instance": 11,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            28.73408055305481,
+            1.544034481048584,
+            2.518017292022705
+          ],
+          "scale": [
+            1.1441596153587896,
+            1.1441595999348106,
+            1.1441595980513988
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Passo_Pedra",
+          "geometry": "BufferGeometry",
+          "instance": 5,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            33.69035053253174,
+            1.2289687395095825,
+            3.0004570484161377
+          ],
+          "scale": [
+            1.1063729218482465,
+            0.86000002665381,
+            0.8064402212143044
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Ardosia",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            23.8,
+            0.286521378097209,
+            -0.11
+          ],
+          "scale": [
+            0.94,
+            0.79,
+            0.81
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Seixo_musgo",
+          "geometry": "BufferGeometry",
+          "instance": 1,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            30.569999933242798,
+            1.0660691261291504,
+            3.299999952316284
+          ],
+          "scale": [
+            0.6199999902906257,
+            0.446399986743927,
+            0.8199999781201985
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Pedra_fendida",
+          "geometry": "BufferGeometry",
+          "instance": 2,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            31.359999895095825,
+            1.0041167736053467,
+            3.490000009536743
+          ],
+          "scale": [
+            0.43999999102011667,
+            0.25999999046325684,
+            0.579999979696732
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Amieiro_Tronco",
+          "geometry": "BufferGeometry",
+          "instance": null,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            37.38,
+            0.3397601374726268,
+            5.35
+          ],
+          "scale": [
+            0.96,
+            0.96,
+            0.96
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Samambaia",
+          "geometry": "BufferGeometry",
+          "instance": 13,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            24.089145183563232,
+            0.10617664456367493,
+            4.478855609893799
+          ],
+          "scale": [
+            1.1502065251797269,
+            1.1502065255802054,
+            1.150206514307562
+          ],
+          "pixels": 1
+        },
+        {
+          "name": "Bosque:Samambaia",
+          "geometry": "BufferGeometry",
+          "instance": 6,
+          "material": "Pigmentos do Bosque",
+          "materialColor": "ffffff",
+          "instanceColor": null,
+          "vertexColors": true,
+          "world": [
+            25.175863027572632,
+            0.104036845266819,
+            5.250331401824951
+          ],
+          "scale": [
+            1.1857995141549864,
+            1.185799431750998,
+            1.185799496361937
+          ],
+          "pixels": 1
+        }
+      ]
+    }
+  ]
+}
