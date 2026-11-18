@@ -24,7 +24,8 @@ session(
     await page.locator('#worldMap').waitFor({ timeout: 12000 });
     const events = await page.evaluate(() => ForestQA.events.map((e) => e.type));
     assert(events.includes('fallback'));
-    assert.equal((await diag(page)).frameActive, false);
+    assert.equal((await diag(page)).view, '2d');
+    assert.equal((await diag(page)).webgl, false);
     await page.locator('[data-action=world-forest]').click();
     await ready(page);
     assert(distance(at, (await diag(page)).position) < 0.025);
@@ -39,7 +40,7 @@ session(
     });
     await noGL.goto('/');
     await noGL.locator('#worldMap').waitFor();
-    await noGL.locator('[data-action=world-calendar]').first().click();
+    await noGL.locator('[data-action=forest-calendar]').first().click();
     await noGL.locator('[data-action=world-home]').waitFor();
     assert((await noGL.locator('#content').innerText()).includes('História de teste'));
     assert.deepEqual(noGLErrors, []);

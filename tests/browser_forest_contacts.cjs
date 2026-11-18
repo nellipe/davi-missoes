@@ -5,7 +5,7 @@ session(
   'contacts',
   async ({ page, write, api }) => {
     const place = async (x, z) => {
-      await write('/api/forest/move', { x, z }, 'put');
+      await write('/api/forest/map/move', { x, z }, 'put');
       await page.reload();
       await ready(page);
       await page.waitForTimeout(300);

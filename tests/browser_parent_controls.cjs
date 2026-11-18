@@ -55,6 +55,7 @@ async function main() {
     assert.equal(audit.violations.length,0,JSON.stringify(audit.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))));
     await page.screenshot({path:path.join(evidence,`${name}-${width}.png`),fullPage:true});
   };
+  await page.addInitScript(()=>localStorage.setItem('davi-forest-mode','island'));
   await page.goto(base);await idle();
   await page.locator('#childDate').fill('2026-11-17');await page.locator('#childDate').dispatchEvent('change');await idle();
   for(const width of [1366,360]) {

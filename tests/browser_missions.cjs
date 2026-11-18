@@ -111,6 +111,7 @@ async function main() {
     if(await childPage.locator('#worldMap').count()){await childPage.locator('.w-hud [data-action="world-calendar"]').click();await childIdle();}
     await childPage.locator('[data-action="mission-open"]').first().click();await childIdle();
   };
+  await childPage.addInitScript(()=>localStorage.setItem('davi-forest-mode','island'));
   await childPage.goto(base);
   await openFirst();
   await childGame('do');

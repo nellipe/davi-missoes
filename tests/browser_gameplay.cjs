@@ -71,6 +71,7 @@ async function main() {
     assert.equal(audit.violations.length,0,JSON.stringify(audit.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))));
     await page.screenshot({path:path.join(worldEvidence,`${name}-${width}.png`),fullPage:true});
   }
+  await page.addInitScript(()=>localStorage.setItem('davi-forest-mode','island'));
   await page.goto(base);await idle();await worldCapture('ilha-inicial',1366);
   for(const event of events) {
     await enter(event);

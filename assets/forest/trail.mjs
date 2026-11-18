@@ -2,30 +2,47 @@ import * as T from '/vendor/three/three.module.min.js';
 import { terrainHeight } from './navigation.mjs';
 import { buildShelter } from './beetle.mjs';
 import { inBosque, installBosque } from './bosque.mjs';
+import { installRegions } from './regions.mjs';
 
-let layout;
-export function configure(map) {
+let layout, grid;
+export function configure(map, seamHeight) {
   layout = map;
+  const bounds = [map.bounds[0], 29, -21, 22];
+  grid = { n: 116, bounds, heights: [] };
+  const [xmin,xmax,zmin,zmax] = bounds;
+  for(let j=0;j<=grid.n;j++) for(let i=0;i<=grid.n;i++){
+    const x=xmin+(xmax-xmin)*i/grid.n, z=zmin+(zmax-zmin)*j/grid.n;
+    const blend=T.MathUtils.smoothstep(x,xmin,xmin+3.1);
+    grid.heights.push(T.MathUtils.lerp(seamHeight(z),height(x,z),blend));
+  }
 }
 export const places = [
   { id: 'wheel', x: 0, z: 13, title: 'Soltar um barquinho' },
   { id: 'leaf', x: -9, z: 1.4, title: 'Virar a folha' },
   { id: 'echo', x: 7, z: 0.3, title: 'Bater na laje' },
   { id: 'falls', x: -4, z: -12.5, title: 'Olhar pela janela' },
+  { id: 'patio-shop', action:'shop', x:9.9, z:-11.4, title:'Bancada dos Remendos', icon:'⚒' },
+  { id: 'carving', x:10.8, z:-10.4, title:'Olhar os recortes' },
+  { id: 'source', x:18.8, z:-5.8, title:'Acompanhar a roda alta' },
+  { id: 'lookout', x:17.4, z:2.3, title:'Olhar o vale' },
 ];
 export function region(x, z) {
-  if (z > 8) return 'Soleira da Roda Baixa';
+  if (x >= 13.25 && z < 7.8) return 'Copa da Nascente';
+  if (x >= 6 && z < -7.15) return 'Pátio dos Remendos';
+  if (z > 8 || (x < -6 && z > 5)) return 'Soleira da Roda Baixa';
   if (z < -6.5) return 'Garganta das Duas Margens';
   return 'Bosque das Bainhas';
 }
 export function hint(x, z) {
+  if (x > 13.25 && z < 3) return 'A roda alta tem uma saída pela encosta. Procure as pequenas bandeiras claras.';
+  if (x > 6 && z < -7.15) return 'A água passa por cima da bancada. Acompanhe a calha até a subida.';
   if (z > 8) return 'A água chega pelo vão da sebe. A roda fica aqui na volta.';
   if (z < -6.5) return 'As lajes e a casca voltam ao varal. A roda fica depois dele.';
   if (x < -3) return 'Vi duas patinhas perto da ponta prateada.';
   if (x > 4.5) return 'Esta pedra tem uma irmã do outro lado do vale. Quer ouvir a resposta?';
   return 'Vejo casca de um lado e lajes do outro. Qual chão você quer experimentar?';
 }
-function gap(x, z, trail) {
+export function pathGap(x, z, trail) {
   let nearest = Infinity;
   for (let i = 1; i < trail.points.length; i++) {
     const [a, b] = trail.points[i - 1],
@@ -39,9 +56,19 @@ function gap(x, z, trail) {
 }
 function edge(x, z) {
   return Math.min(
-    ...layout.paths.map((p) => gap(x, z, p)),
+    ...layout.paths.map((p) => pathGap(x, z, p)),
     ...layout.clearings.map(([a, b, r]) => Math.hypot(x - a, z - b) - r)
   );
+}
+export function description(id) {
+  return {
+    wheel:'Um barquinho de folha passa sob a roda.',
+    echo:'Toc! A pedra responde do outro lado.',
+    falls:'A água cai pela janela de pedra e segue em direção à roda.',
+    source:'As pás da roda apanham folhas na nascente e as soltam na calha.',
+    lookout:'As bandeiras claras acompanham a descida até a roda baixa.',
+    carving:'As duas peças formam um pássaro quando vistas pelo lado da bancada.',
+  }[id]??'';
 }
 export function walkable(x, z) {
   const [xmin, xmax, zmin, zmax] = layout.bounds;
@@ -55,14 +82,12 @@ function height(x, z) {
     0.07 * Math.sin(z * 0.64) +
     1.55 * bell(x, z, 6, 0, 4.5, 5.5) +
     2.2 * bell(x, z, 0, -0.4, 2.9, 3.8) +
-    0.65 * bell(x, z, -3, -11, 4, 4) -
-    2.3 * T.MathUtils.smoothstep(-z, 13.7, 15.8)
+    0.65 * bell(x, z, -3, -11, 4, 4) +
+    3.05 * bell(x,z,18.5,-5.3,5,6) +
+    3.3 * bell(x,z,23,-18.2,6,4.5) -
+    2.3 * T.MathUtils.smoothstep(-z, 13.7, 15.8) * (1-T.MathUtils.smoothstep(x,2,7))
   );
 }
-const grid = { n: 112, bounds: [-24, 24, -24, 24], heights: [] };
-for (let j = 0; j <= grid.n; j++)
-  for (let i = 0; i <= grid.n; i++)
-    grid.heights.push(height(-24 + (48 * i) / grid.n, -24 + (48 * j) / grid.n));
 export const floor = (x, z) => terrainHeight(grid, x, z) + 0.012;
 
 export function build(scene, leafUp, library, grain) {
@@ -90,7 +115,7 @@ export function build(scene, leafUp, library, grain) {
     if (!batches.has(shape)) batches.set(shape, []);
     batches
       .get(shape)
-      .push({ matrix: dummy.matrix.clone(), color, shield, x, y, z, r: Math.max(sx, sz) * 0.85 });
+      .push({ matrix: dummy.matrix.clone(), color, shield, x, y, z, top:y+sy*.65, r: Math.max(sx, sz) * 0.85 });
   }
   const positions = [],
     colors = [],
@@ -102,8 +127,9 @@ export function build(scene, leafUp, library, grain) {
     moss = new T.Color('#426e55');
   for (let j = 0; j <= grid.n; j++)
     for (let i = 0; i <= grid.n; i++) {
-      const x = -24 + (i * 48) / grid.n,
-        z = -24 + (j * 48) / grid.n,
+      const [xmin,xmax,zmin,zmax] = grid.bounds;
+      const x = xmin + (i * (xmax-xmin)) / grid.n,
+        z = zmin + (j * (zmax-zmin)) / grid.n,
         y = grid.heights[j * (grid.n + 1) + i],
         border = edge(x, z);
       const c = grass.clone().lerp(moss, 0.28 + 0.23 * Math.sin(x * 0.55 + z * 0.35));
@@ -122,6 +148,9 @@ export function build(scene, leafUp, library, grain) {
         const taper = T.MathUtils.smoothstep(Math.min(x+13.2,10.7-x,z+4.2,9.8-z),0,2);
         c.lerp(soil,taper);
       }
+      if(x>6&&z<-7.6)c.lerp(new T.Color('#c99873'),(1-T.MathUtils.smoothstep(border,-.8,.55))*.69);
+      if(x>13&&z>-10)c.lerp(new T.Color('#9da882'),(1-T.MathUtils.smoothstep(border,-.6,.45))*.55);
+      if(x<-6&&z>5)c.lerp(new T.Color('#c1a674'),(1-T.MathUtils.smoothstep(border,-.6,.44))*.66);
       colors.push(c.r, c.g, c.b);
       positions.push(x, y, z);
       uv.push(x/3.4,z/3.4);
@@ -183,7 +212,7 @@ export function build(scene, leafUp, library, grain) {
   for (let i = 0; i < 320; i++) {
     const x = random() * 36 - 18,
       z = random() * 36 - 18;
-    if (inBosque(x,z) || z < -13 || edge(x, z) < 1.4 || Math.hypot(x, z - 14) < 4 || Math.hypot(x + 8, z - 2) < 3) continue;
+    if (inBosque(x,z) || (x>6&&z<-2.5) || (x>13&&z<5) || z < -13 || edge(x, z) < 1.4 || Math.hypot(x, z - 14) < 4 || Math.hypot(x + 8, z - 2) < 3) continue;
     if (random() < 0.46) tree(x, z, 2.8 + random() * 3.8);
     else
       rock(
@@ -282,6 +311,7 @@ export function build(scene, leafUp, library, grain) {
     }
   }
   const art = installBosque(group, library, layout, floor, edge);
+  const regions = installRegions(group, library, layout, floor, edge);
   const shelter = buildShelter(floor, leafUp);
   group.add(shelter.group);
   for (let i = 0; i < 3; i++) rock(8 + 0.22 * i, 0.9 - 0.65 * i, 0.43, 0.8 + i * 0.3, 0.35, '#abac94');
@@ -321,7 +351,7 @@ export function build(scene, leafUp, library, grain) {
     group,
     terrain,
     shelter,
-    setEconomy: art.setEconomy,
+    setEconomy(low) { art.setEconomy(low); regions.setEconomy(low); },
     blocksTap(ray, hit) {
       if (art.blocksTap(ray,hit)) return true;
       return blockers.some(({ mesh, list }) =>
@@ -341,10 +371,12 @@ export function build(scene, leafUp, library, grain) {
         boatAt = t;
         return 'O barquinho entra na calha. Pipo olha por onde ele passou.';
       }
-      return 'Pela abertura, a água se desfaz em espuma. A corrente segue em direção à roda.';
+      regions.interact(id,t);
+      return description(id);
     },
     tick(t, still, camera, hero) {
       art.clearSight(camera,hero);
+      regions.tick(t,still,hero,camera);
       if (!still) wheel.rotation.z = -t * 0.65;
       boat.position.z = 9.0 + (still ? 0.76 : ((t - boatAt) % 7) / 7) * 4.5;
       const age = t - echoAt;
@@ -363,7 +395,7 @@ export function build(scene, leafUp, library, grain) {
           k > 0 &&
           k < 1.12 &&
           Math.hypot(hero.x + k * dx - p.x, hero.z + k * dz - p.z) < p.r + 1.45 &&
-          p.y + p.r >= hero.y - 0.7 + k * (camera.y - hero.y);
+          p.top >= hero.y - 0.7 + k * (camera.y - hero.y);
         if (obscures !== p.hidden) {
           p.mesh.setMatrixAt(p.i, obscures ? hideMatrix : p.matrix);
           p.mesh.instanceMatrix.needsUpdate = true;

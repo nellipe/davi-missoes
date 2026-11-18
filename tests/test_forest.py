@@ -57,3 +57,27 @@ class ForestTests(HttpFixture):
    self.assertEqual(self.child.request(change,'PUT',{'leaf_up':value})[:2], (200,{'leaf_up':value}))
    self.assertIs(self.parent.request(trail)[1]['leaf_up'],value)
   self.assertEqual(self.child.request('/api/world')[1],before)
+
+ def test_continuous_map_resumes_old_positions_and_connects_all_regions_without_bridge(self):
+  endpoint='/api/forest/map'
+  old={'x':-9,'z':1.4}
+  self.assertEqual(self.child.request('/api/forest/trail/move','PUT',old)[0],200)
+  self.assertEqual(self.child.request(endpoint+'?resume=trail')[1]['position'],{'x':19,'z':1.4})
+  self.assertEqual(self.child.request(endpoint)[1]['position'],self.child.request('/api/forest')[1]['position'])
+  self.assertEqual(self.child.request(endpoint+'/move','PUT',{'x':0,'z':-3})[0],400)
+  self.assertEqual(self.child.request(endpoint+'/move','PUT',{'x':48,'z':15})[0],400)
+  paths=[forest.FOREST['connection'],*[
+   {'width':path['width'],'points':[(x+forest.OFFSET,z) for x,z in path['points']]}
+   for path in [*forest.TRAIL['paths'],*forest.FOREST['paths']]
+  ]]
+  for path in paths:
+   for (x,z),(a,b) in zip(path['points'],path['points'][1:]):
+    for i in range(21):
+     at=(x+(a-x)*i/20,z+(b-z)*i/20)
+     self.assertTrue(forest.map_walkable(*at,[]),at)
+  before=self.child.request('/api/world')[1]
+  position={'x':46.5,'z':-5.3}
+  self.assertEqual(self.child.request(endpoint+'/move','PUT',position)[0],200)
+  self.assertEqual(self.parent.request(endpoint+'?resume=trail')[1]['position'],position)
+  self.assertEqual(self.child.request('/api/world')[1],before)
+  self.assertEqual(self.child.request('/api/forest/trail')[1]['position'],old)

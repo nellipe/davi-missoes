@@ -256,7 +256,7 @@ export function buildShelter(floor, leafUp) {
       return {
         leafUp: up,
         beetle: beetle.getWorldPosition(new T.Vector3()).toArray(),
-        pool: basins[streamSide].impact.clone().add(group.position).toArray(),
+        pool: group.localToWorld(basins[streamSide].impact.clone()).toArray(),
         leaf: hinge.getWorldPosition(new T.Vector3()).toArray(),
         leafRoll: hinge.rotation.z,
         wetBasin: streamSide,

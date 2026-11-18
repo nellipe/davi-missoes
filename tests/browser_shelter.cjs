@@ -12,7 +12,7 @@ const shortRevisit = process.env.FOREST_SHORT_REVISIT === '1';
 const suffix = width + (profile ? '-' + profile : '');
 const stem = 'besouro-' + suffix;
 
-session(stem, async ({ page, api, guided }) => {
+session(stem, async ({ page, api, guided, write }) => {
   const start = performance.now();
   const stops = [];
   const samples = [];
@@ -21,14 +21,15 @@ session(stem, async ({ page, api, guided }) => {
   const press = (name) => mobile ? action(name).tap() : action(name).click();
   const rotate = () => page.locator('[data-action=forest-rotate][data-turn="1"]').evaluate(button => button.click());
   const point = (x, z) => page.evaluate(([a, b]) => {
-    const p = DaviForest.project(a, b);
+    const p = DaviForest.project(a+28, b);
     return { ...p, free: document.elementFromPoint(p.x, p.y)?.id === 'forestCanvas' };
   }, [x, z]);
   const touch = (p) => mobile ? page.touchscreen.tap(p.x, p.y) : page.mouse.click(p.x, p.y);
   async function walk(x, z) {
     for (let n = 0; n < 20; n++) {
       const before = await diag(page);
-      const [a, , b] = before.position;
+      const [globalX, , b] = before.position;
+      const a=globalX-28;
       const len = Math.hypot(x - a, z - b);
       if (len < .19) return;
       let target;
@@ -130,7 +131,8 @@ session(stem, async ({ page, api, guided }) => {
     await page.locator('#forestQuality').selectOption(profile);
     await press('forest-close');
   }
-  await press('forest-enter-trail');
+  await write('/api/forest/map/move',{x:28,z:14},'put');
+  await page.reload();
   await page.waitForFunction(() => {
     const d = DaviForest.diagnostics();
     return d.place === 'trail' && !!d.position && !!document.querySelector('#forestCanvas[data-ready=true]');
@@ -149,7 +151,7 @@ session(stem, async ({ page, api, guided }) => {
     await touch(fork.lajes);
     await page.waitForFunction(() => {
       const d = DaviForest.diagnostics();
-      return !d.target && Math.hypot(d.position[0]-3.72,d.position[2]-4.21)<.18;
+      return !d.target && Math.hypot(d.position[0]-31.72,d.position[2]-4.21)<.18;
     });
     await walk(2.68, 6.5);
   }

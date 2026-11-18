@@ -172,6 +172,7 @@ async function main() {
   const code = (await page.locator('#pairResult').textContent()).split(' ')[1];
   const childContext = await browser.newContext({extraHTTPHeaders:{Origin:base}});
   const childPage = await childContext.newPage();
+  await childPage.addInitScript(()=>localStorage.setItem('davi-forest-mode','island'));
   await childPage.goto(base);
   await childPage.locator('#pairForm').waitFor();
   assert.equal((await childContext.request.get(base+'/api/calendar')).status(),403);

@@ -24,7 +24,7 @@ session('percurso', async ({ page, api, context, guided, plain, errors }) => {
     'house',
     'chest',
   ];
-  assert.deepEqual(order.slice().sort(), features.map((f) => f.id).sort());
+  for(const id of order)assert(features.some(f=>f.id===id), 'Destino anterior preservado '+id);
   const titles = {
     wardrobe: 'Seu jeito de explorar',
     portal: 'Portal dos jogos',

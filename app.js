@@ -435,11 +435,14 @@ async function child() {
   if (state.childSurface!=='calendar' && typeof DaviWorld!=='undefined') {
     state.view='child-world';
     if(!state.forestMode){try{state.forestMode=localStorage.getItem('davi-forest-mode')||'3d';}catch{state.forestMode='3d';}}
-    if(state.forestMode!=='2d'){
+    if(state.forestMode!=='island'){
       await DaviWorld.close();
-      try{const forest=await import('/forest.js');const ready=await forest.open({layout,api,run:safe,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,
-        onCalendar:async()=>{state.childSurface='calendar';await child();},
-        onFallback:async()=>{state.forestMode='2d';try{localStorage.setItem('davi-forest-mode','2d');}catch{}await child();}});if(ready)return;
+      try{const forest=await import('/forest.js');
+        const options={layout,api,run:safe,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,
+          onCalendar:async()=>{state.childSurface='calendar';await child();},
+          onFallback:async()=>{state.forestMode='2d';try{localStorage.setItem('davi-forest-mode','2d');}catch{}await child();}};
+        const ready=await forest.open({...options,mode:state.forestMode});
+        if(ready || (state.forestMode!=='2d' && await forest.open({...options,mode:'2d'})))return;
       }catch(e){if(typeof DaviForest!=='undefined')await DaviForest.close();console.warn('Ilha 2D disponível:',e.message);}
     }
     if(typeof DaviForest!=='undefined') await DaviForest.close();
@@ -866,6 +869,7 @@ async function action(e) {
     else if (a==='world-home') {state.childSurface='world';await child();}
     else if(a.startsWith('forest-')) await DaviForest.action(a,b);
     else if(a==='world-forest'){state.forestMode='3d';try{localStorage.setItem('davi-forest-mode','3d');}catch{}await child();}
+    else if(a==='world-island'){state.forestMode='island';try{localStorage.setItem('davi-forest-mode','island');}catch{}await child();}
     else if (a==='world-settings') await worldSettings();
     else if (a==='parent-revoke') {
       const h=state.worldConfig.history.find(h=>h.id===b.dataset.credit);

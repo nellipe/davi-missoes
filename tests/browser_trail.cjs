@@ -6,7 +6,7 @@ const mobile = process.argv.includes('--mobile');
 const width = mobile ? 390 : 1366;
 session(
   mobile ? 'trilha-retrato' : 'volta-dos-barquinhos',
-  async ({ page, api, errors }) => {
+  async ({ page, api, errors, write }) => {
     const started = performance.now(),
       stops = [],
       samples = [];
@@ -31,7 +31,8 @@ session(
     const walk = async (x, z) => {
       let d = await diag(page);
       for (let i = 0; i < 12; i++) {
-        const [a, , b] = d.position,
+        const [globalX, , b] = d.position,
+          a=globalX-28,
           len = Math.hypot(x - a, z - b);
         if (len < 0.18) return;
         let p;
@@ -39,7 +40,7 @@ session(
           const t = Math.min(step / len, 1);
           const point = await page.evaluate(
             ([u, v]) => {
-              const p = DaviForest.project(u, v);
+              const p = DaviForest.project(u+28, v);
               return { ...p, free: document.elementFromPoint(p.x, p.y)?.id === 'forestCanvas' };
             },
             [a + (x - a) * t, b + (z - b) * t]
@@ -74,7 +75,7 @@ session(
           if (d.target) await page.waitForTimeout(170);
         } while (d.target && count++ < 45);
         assert(
-          !d.target && Math.hypot(d.position[0] - a, d.position[2] - b) > 0.07,
+          !d.target && Math.hypot(d.position[0] - 28 - a, d.position[2] - b) > 0.07,
           'sem avanço em ' + d.position + ' para ' + [x, z]
         );
       }
@@ -85,7 +86,8 @@ session(
     const old = await world();
     assert.equal(old.stars, 0);
     assert.equal(old.inventory.length, 0);
-    await click('forest-enter-trail');
+    await write('/api/forest/map/move',{x:28,z:14},'put');
+    await page.reload();
     await page.waitForFunction(
       () =>
         DaviForest.diagnostics().place === 'trail' && document.querySelector('#forestCanvas[data-ready=true]')
@@ -94,7 +96,7 @@ session(
     await page.waitForTimeout(380);
     await mark('Soleira');
     await shot('soleira-' + width);
-    const entrance = await page.evaluate(() => DaviForest.project(-4, -12.5));
+    const entrance = await page.evaluate(() => DaviForest.project(24, -12.5));
     assert(!entrance.groundVisible, 'mirante visível da entrada');
     await click('forest-nearby');
     await page.waitForTimeout(600);
@@ -196,9 +198,9 @@ session(
     const end = await world();
     assert.equal(end.stars, 0);
     assert.deepEqual(end.avatar, old.avatar);
-    await click('forest-leave-trail');
+    await write('/api/forest/map/move',{x:0,z:7.5},'put');
+    await page.reload();
     await ready(page);
-    await page.waitForFunction(() => DaviForest.diagnostics().place === 'forest');
     const frames = samples
       .map((s) => s.frame)
       .filter(Number.isFinite)

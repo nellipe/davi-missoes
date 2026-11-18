@@ -7,7 +7,7 @@ session('alternancias', async ({ page, context, errors }) => {
   const cdp = await context.newCDPSession(page);
   const map = page.locator('#worldMap'),
     canvas = page.locator('#forestCanvas');
-  const island = () => page.evaluate(() => DaviWorld.diagnostics());
+  const mode = () => diag(page);
   for (let i = 0; i < 30; i++) {
     const width = [360, 390, 1366][i % 3];
     await page.setViewportSize({ width, height: 850 });
@@ -20,31 +20,22 @@ session('alternancias', async ({ page, context, errors }) => {
       el.dispatchEvent(new PointerEvent('pointerdown', { clientX: 1, clientY: 1, bubbles: true }))
     );
     await oldCanvas.dispose();
-    assert.equal((await diag(page)).frameActive, false);
-    const x2 = i % 2 ? 525 : 535,
-      y2 = 444;
-    const svgPoint = await map.evaluate(
-      (svg, [x, y]) => {
-        const p = new DOMPoint(x, y).matrixTransform(svg.getScreenCTM());
-        return { x: p.x, y: p.y, onMap: !!document.elementFromPoint(p.x, p.y)?.closest('#worldMap') };
-      },
-      [x2, y2]
-    );
-    assert(svgPoint.onMap, JSON.stringify(svgPoint));
+    assert.equal((await diag(page)).view, '2d');
+    assert.equal((await diag(page)).webgl, false);
+    const x2 = i % 2 ? -.55 : .55, z2 = 6.2;
+    const svgPoint = await page.evaluate(([x,z])=>DaviForest.project(x,z),[x2,z2]);
+    assert(svgPoint.visible, JSON.stringify(svgPoint));
     await page.touchscreen.tap(svgPoint.x, svgPoint.y);
-    await page.waitForFunction(
-      ([x, y]) => {
-        const p = DaviWorld.diagnostics().position;
-        return Math.hypot(p.x - x, p.y - y) < 4;
-      },
-      [x2, y2],
-      { timeout: 5500 }
-    );
+    await page.waitForFunction(([x,z])=>{
+      const p=DaviForest.diagnostics().position;
+      return Math.hypot(p[0]-x,p[2]-z)<.2;
+    },[x2,z2],{timeout:5500});
     await map.focus();
     const held = i % 2 ? 'ArrowLeft' : 'ArrowRight';
     await page.keyboard.down(held);
     await page.waitForTimeout(110);
-    assert((await island()).keys.length > 0);
+    assert((await mode()).keys.length > 0);
+    const at2d = (await mode()).position;
     const oldMap = await map.elementHandle();
     await page.locator('[data-action=world-forest]').click();
     await ready(page);
@@ -53,8 +44,8 @@ session('alternancias', async ({ page, context, errors }) => {
     );
     await oldMap.dispose();
     await page.keyboard.up(held);
-    const inactive = await island();
-    assert(!inactive.active && !inactive.frameActive && !inactive.keys.length && !inactive.target);
+    assert.equal(await map.count(),0);
+    assert.equal(await page.evaluate(()=>DaviWorld.diagnostics().active),false);
     if (i % 2) {
       await page.locator('[data-action=forest-rotate][data-turn="1"]').click();
       await page.waitForTimeout(750);
@@ -63,8 +54,8 @@ session('alternancias', async ({ page, context, errors }) => {
     assert.deepEqual(start.keys, []);
     assert.equal(start.target, null);
     assert(
-      distance(start.position, [(inactive.position.x - 530) / 12, 0, (inactive.position.y - 370) / 12]) <
-        0.025
+      distance(start.position, at2d) <
+        0.14
     );
     await canvas.scrollIntoViewIfNeeded();
     await canvas.focus();
@@ -144,9 +135,8 @@ session('alternancias', async ({ page, context, errors }) => {
       key,
       svgPoint,
       x2,
-      y2,
-      oldEngine: inactive.active,
-      oldFrame: inactive.frameActive,
+      z2,
+      view: end.view,
       touchError,
       clickError,
       feetError: end.feetY - end.renderedGroundY,
