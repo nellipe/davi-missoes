@@ -51,21 +51,24 @@ export function installRegions(root, library, layout, floor, edge) {
     const paint=source.material.clone();
     paint.color.set(color);
     const batch=new T.InstancedMesh(source.geometry,paint,positions.length);
+    batch.name='Região:'+model;
     const crown=model.includes('_Copa');
     const boulder=/Ardosia|Seixo|Pedra_fendida/.test(model);
-    if((crown||boulder) && !source.geometry.boundingSphere)source.geometry.computeBoundingSphere();
+    const foreground=boulder||/Mirtilo|Azaleia|Samambaia/.test(model);
+    if((crown||foreground) && !source.geometry.boundingSphere)source.geometry.computeBoundingSphere();
     for(const [i,[x,z,sx,sy,sz,turn]] of positions.entries()){
       stamp.position.set(x,floor(x,z),z);
       stamp.scale.set(sx,sy,sz);
       stamp.rotation.y=turn;
       stamp.updateMatrix();
       batch.setMatrixAt(i,stamp.matrix);
-      if(crown || boulder || model.endsWith('_Tronco')){
-        const bounds=crown||boulder?source.geometry.boundingSphere.clone().applyMatrix4(stamp.matrix):null;
+      if(crown || foreground || model.endsWith('_Tronco')){
+        const bounds=crown||foreground?source.geometry.boundingSphere.clone().applyMatrix4(stamp.matrix):null;
         occluders.push({
           parent,batch,index:i,matrix:stamp.matrix.clone(),hidden:false,
           center:bounds?.center??new T.Vector3(x,stamp.position.y+2.7*sy,z),
-          radius:bounds?bounds.radius*(boulder?.86:.93):1.77*sy,
+          radius:bounds?bounds.radius*(foreground?.87:.93):1.77*sy,
+          foreground,
         });
       }
     }
@@ -94,7 +97,7 @@ export function installRegions(root, library, layout, floor, edge) {
     stamps(full,theme.tree+'_Copa',theme.foliage,trees);
     stamps(economy,theme.tree+'_Copa_economica',theme.foliage,trees);
     stamps(group,theme.seed%3===1?'Ardosia':'Pedra_fendida',theme.stone,rocks);
-    stamps(group,'Seixo_musgo','#d6dfc8',pebbles);
+    stamps(group,'Seixo_musgo','#e1ddd8',pebbles);
     stamps(group,'Samambaia','#c5d49c',ferns);
     stamps(group,'Mirtilo','#dadfc2',shrubs);
     stamps(detail,theme.seed%3===0?'Flores':'Azaleia','#fff1dc',flowers);
@@ -192,12 +195,12 @@ export function installRegions(root, library, layout, floor, edge) {
       if(id==='source')boatStart=t;
       if(id==='carving')carvingUntil=t+1.6;
     },
-    tick(t,still,hero,camera,buddy){
+    tick(t,still,hero,camera,buddy,landmarks){
       for(const item of objects)item.group.visible=Math.hypot(hero.x-item.x,hero.z-item.z)<17;
-      sight.update(camera,hero,buddy);
+      sight.update(camera,hero,buddy,landmarks);
       for(const item of occluders) {
         if(!item.parent.visible||item.parent.parent?.visible===false)continue;
-        const hide=sight.covers(item.center,item.radius,.23);
+        const hide=sight.covers(item.center,item.radius,item.foreground?.09:.23,item.foreground);
         if(hide!==item.hidden){
           item.hidden=hide;
           item.batch.setMatrixAt(item.index,hide?hiddenMatrix:item.matrix);

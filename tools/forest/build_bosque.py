@@ -173,20 +173,20 @@ tree("Carvalho", OAK, 0)
 tree("Amieiro", ALDER, 1)
 tree("Aveleira", HAZEL, 2)
 
-# Asymmetric shale split along broad shelves with green mineral terraces.
+# Cool slate with a thin, recessed seam and moss on one sheltered shoulder.
 outline = [(-.87,-.56), (-.23,-.78), (.55,-.69), (1.0,-.26), (.89,.38), (.27,.67), (-.51,.67), (-.99,.24)]
 shale = Sculpture("Ardosia")
 rings, tones = [], []
 for row, (height, spread, shift, tint) in enumerate([
-    (-.27,1.12,.04,"434f42"), (.06,1.07,.09,"556148"), (.39,.99,-.01,"748078"),
-    (.52,1.00,-.09,"859086"), (.66,.91,-.12,"687766"), (.98,.81,-.04,"7e8b7c"),
-    (1.37,.61,-.14,"929d87"), (1.62,.38,-.29,"9ea289")
+    (-.22,1.08,.04,"606478"), (.09,1.04,.06,"777d89"), (.38,1.00,-.02,"858d99"),
+    (.45,.964,-.045,"b9b3ad"), (.48,.924,-.06,"666e80"), (.56,.97,-.09,"8d929a"),
+    (1.13,.69,-.17,"a3a3a3"), (1.37,.38,-.28,"b8b6ad")
 ]):
-    rings.append([(x*spread+shift+.09*math.sin(i*1.51+row*.80),
-                   y*spread+.06*math.cos(i*4.07-row*.6),
-                   height+.14*math.sin(i*2.34)+.085*math.cos(i*1.19-row*.91))
+    rings.append([(x*spread+shift+.045*math.sin(i*1.51+row*.25),
+                   y*spread+.032*math.cos(i*4.07-row*.25),
+                   height+.10*x+.052*math.sin(i*2.34))
                   for i,(x,y) in enumerate(outline)])
-    tones.append([paint("798951" if (i+row*2)%7 < 2 else tint, .82+.24*math.sin(i*.95+row*.61)**2)
+    tones.append([paint("87985e" if row==6 and i in (1,2) else tint, .94+.11*math.sin(i*.95+row*.61)**2)
                   for i in range(len(outline))])
 shale.rings(rings, tones)
 shale.export_mesh()
@@ -198,11 +198,12 @@ def rounded_stone(name, outline, levels, palette):
     for row,(height,spread,shift) in enumerate(levels):
         ring,tonal=[],[]
         for i,(x,y) in enumerate(outline):
-            seam=.085 if name=="Pedra_fendida" and i in (2,3) and row in (2,3) else 0
+            seam=.085 if name=="Pedra_fendida" and i==3 and row in (2,3) else 0
             ring.append((x*spread+shift, y*spread+.055*math.sin(i*2.2+row), height-seam+.06*math.sin(i*1.9)))
-            hue=palette[1] if (i+row*2)%9 in (0,1,2) and row>1 else palette[0]
+            hue=palette[1] if row==len(levels)-2 and i in (0,1) else palette[0]
+            if row==2 and i in (4,5,6):hue="b4aa9d"
             if seam:hue=palette[2]
-            tonal.append(paint(hue,.72+row*.079+.14*math.cos(i*1.76)))
+            tonal.append(paint(hue,.88+row*.054+.08*math.cos(i*1.76)))
         rings.append(ring)
         colors.append(tonal)
     stone.rings(rings,colors)
@@ -211,11 +212,11 @@ def rounded_stone(name, outline, levels, palette):
 rounded_stone("Seixo_musgo",[(-1,-.26),(-.76,-.61),(-.15,-.77),(.52,-.57),(.94,-.27),
                            (1.02,.20),(.65,.57),(.06,.72),(-.65,.57),(-.98,.17)],
               [(-.12,.81,.02),(.15,1,.02),(.56,.96,.10),(.80,.71,.04),(.86,.33,-.16)],
-              ("8b9893","9cab65","576961"))
+              ("969097","879661","696778"))
 rounded_stone("Pedra_fendida",[(-.92,-.40),(-.43,-.73),(.02,-.64),(.34,-.68),(.91,-.37),
                               (.80,.27),(.31,.61),(-.40,.68),(-.95,.24)],
               [(-.16,.89,.10),(.12,1,.03),(.65,.92,-.04),(1.04,.78,-.20),(1.36,.56,-.28),(1.43,.28,-.41)],
-              ("9195a1","819752","505f66"))
+              ("9397a4","8a9962","575c70"))
 
 # Rounded blueberry foliage and a lower shrub with pointed, warm azalea leaves.
 for kind,petal,foliage,spread in [

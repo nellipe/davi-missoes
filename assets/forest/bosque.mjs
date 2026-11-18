@@ -20,13 +20,13 @@ const trees = [
 ];
 
 const shelves = [
-  [-.90, 8.50, 1.57, 1.41, 1.13, .71],
-  [-3.30, 8.90, 1.10, 1.37, 1.18, .30],
-  [ .10, .10, 2.02, 1.62, 1.73, -.40],
-  [ 2.00, -.60, 1.55, 1.76, 1.49, 1.80],
-  [-1.55, -1.40, 1.34, 1.54, 1.24, .76],
+  [-2.90, 8.48, .94, .72, .67, .28],
+  [-3.91, 9.01, .80, .60, .76, -.53],
+  [ .10, .10, 1.71, 1.05, 1.52, -.40],
+  [ 2.00, -.60, 1.42, .96, 1.39, 1.80],
+  [-1.55, -1.40, 1.16, .96, 1.15, .76],
   [ 4.90, 1.45, 1.06, .90, .69, -.9],
-  [ 6.86, 5.70, 1.10, 1.31, 1.48, -.30],
+  [ 6.86, 5.70, 1.01, .77, 1.18, -.30],
   [ 8.66, 4.15, 1.20, 1.10, 1.1, .6],
   [-11.66, -1.62, .72, .55, .74, .7],
   [-12.38, -.37, .45, .37, .40, -.4],
@@ -36,6 +36,8 @@ const shelves = [
   [ 2.57, 3.30, .62, .36, .82, -.82],
   [ 3.36, 3.49, .44, .26, .58, .51],
 ];
+const stoneNames=['Ardosia','Seixo_musgo','Pedra_fendida'];
+const foregroundName=/^(Ardosia|Seixo_musgo|Pedra_fendida|Mirtilo|Azaleia|Samambaia)$/;
 
 export function inBosque(x, z) {
   return x > -13.2 && x < 10.7 && z > -4.2 && z < 9.8;
@@ -46,9 +48,9 @@ export function installBosque(group, library, layout, floor, edge) {
   const details = new T.Group();
   const economy = new T.Group(), full = new T.Group();
   const blockers = [];
-  const crowns = [];
+  const solidBatches = [];
+  const screening = [];
   const trunks = [];
-  const rocks = [];
   group.add(art);
   art.add(details,economy,full);
   const material = library.getObjectByName('Carvalho_Copa').material.clone();
@@ -60,8 +62,9 @@ export function installBosque(group, library, layout, floor, edge) {
   function place(name, x, z, sx, sy, sz, turn, { detail = false, solid = false, lift = 0 } = {}) {
     const parent = detail ? details : name.endsWith('_economica') ? economy : name.endsWith('_Copa') ? full : art;
     const geometry = get(name);
-    if (solid) {
+    if (solid&&!stoneNames.includes(name)) {
       const mesh = new T.Mesh(geometry, material);
+      mesh.name='Bosque:'+name;
       mesh.position.set(x, floor(x, z) + lift, z);
       mesh.scale.set(sx, sy, sz);
       mesh.rotation.y = turn;
@@ -73,7 +76,7 @@ export function installBosque(group, library, layout, floor, edge) {
     }
     const key = name + (detail ? '.detail' : '');
     if (!batches.has(key)) batches.set(key, { parent, geometry, poses: [] });
-    batches.get(key).poses.push([x, z, sx, sy, sz, turn, lift]);
+    batches.get(key).poses.push([x, z, sx, sy, sz, turn, lift, solid]);
   }
   for (const [kind, x, z, size, turn] of trees) {
     const trunk=place(kind + '_Tronco', x, z, size, size, size, turn, { solid: true });
@@ -83,13 +86,8 @@ export function installBosque(group, library, layout, floor, edge) {
     place(kind + '_Pontas', x, z, size, size, size, turn, { detail: true });
   }
   for (const [i,[x,z,sx,sy,sz,turn]] of shelves.entries()) {
-    const kind=['Ardosia','Seixo_musgo','Pedra_fendida'][i%3];
-    const mesh=place(kind,x,z,sx,sy*(kind==='Seixo_musgo'?1.24:1),sz,turn,{solid:sy>=.75});
-    if(mesh){
-      if(!mesh.geometry.boundingSphere)mesh.geometry.computeBoundingSphere();
-      mesh.updateMatrix();
-      rocks.push({mesh,sphere:mesh.geometry.boundingSphere.clone().applyMatrix4(mesh.matrix)});
-    }
+    const kind=stoneNames[i%3];
+    place(kind,x,z,sx,sy,sz,turn,{solid:true});
   }
   place('Tronco_Oco', -7.78, .24, 1, 1, 1, Math.PI+.21, { solid: true, lift: .87 });
   place('Varal', 2.95, 2.95, 1, 1, 1, -.06, { solid: true });
@@ -157,9 +155,12 @@ export function installBosque(group, library, layout, floor, edge) {
   const invisible = new T.Matrix4().makeScale(0,0,0);
   for (const [name, { parent, geometry, poses }] of batches) {
     const mesh = new T.InstancedMesh(geometry,material,poses.length);
+    mesh.name='Bosque:'+name.replace(/\.detail$/,'');
     const canopy = /_Copa|_Pontas/.test(name);
+    const foreground=foregroundName.test(name.replace(/\.detail$/,''));
     const tread = name.startsWith('Passo');
-    poses.forEach(([x,z,sx,sy,sz,turn,lift],i) => {
+    const visibleSolids=new Set();
+    poses.forEach(([x,z,sx,sy,sz,turn,lift,solid],i) => {
       pose.position.set(x,floor(x,z)+lift,z);
       pose.scale.set(sx,sy,sz);
       pose.rotation.y=turn;
@@ -169,21 +170,23 @@ export function installBosque(group, library, layout, floor, edge) {
       }
       pose.updateMatrix();
       mesh.setMatrixAt(i,pose.matrix);
-      if(canopy){
+      if(solid)visibleSolids.add(i);
+      if(canopy||foreground){
         if(!geometry.boundingSphere)geometry.computeBoundingSphere();
         const sphere=geometry.boundingSphere.clone().applyMatrix4(pose.matrix);
-        crowns.push({mesh,parent,i,matrix:pose.matrix.clone(),sphere,hidden:false});
+        screening.push({mesh,parent,i,matrix:pose.matrix.clone(),sphere,foreground,solid,visibleSolids,hidden:false});
       }
     });
     mesh.castShadow = parent === art || parent === full;
     mesh.receiveShadow = true;
     parent.add(mesh);
+    if(visibleSolids.size)solidBatches.push({mesh,visibleSolids});
   }
   let economical=false;
   const sight=createSight();
   return {
     setEconomy(low) { economical=low; details.visible = full.visible = !low; economy.visible=low; },
-    clearSight(camera, hero, buddy) {
+    clearSight(camera, hero, buddy, landmarks) {
       art.visible=Math.hypot(hero.x-1,hero.z-3.4)<(economical?12.4:16.5);
       if(!art.visible)return;
       const dx=hero.x-camera.x, dz=hero.z-camera.z;
@@ -195,20 +198,28 @@ export function installBosque(group, library, layout, floor, edge) {
         const nearRay=(x-camera.x-t*dx)**2+(z-camera.z-t*dz)**2<(radius+.60)**2;
         trunk.visible=!(inFront && nearRay && rayY<trunk.position.y+height);
       }
-      sight.update(camera,hero,buddy);
-      for(const crown of crowns){
-        if(!crown.parent.visible)continue;
-        const blocks=sight.covers(crown.sphere.center,crown.sphere.radius*.90);
-        if (blocks !== crown.hidden) {
-          crown.hidden=blocks;
-          crown.mesh.setMatrixAt(crown.i,blocks?invisible:crown.matrix);
-          crown.mesh.instanceMatrix.needsUpdate=true;
+      sight.update(camera,hero,buddy,landmarks);
+      for(const item of screening){
+        if(!item.parent.visible)continue;
+        const {center,radius}=item.sphere;
+        const blocks=sight.covers(center,radius*.90,item.foreground?.09:.21,item.foreground);
+        if (blocks !== item.hidden) {
+          item.hidden=blocks;
+          item.mesh.setMatrixAt(item.i,blocks?invisible:item.matrix);
+          item.mesh.instanceMatrix.needsUpdate=true;
+          if(item.solid){
+            if(blocks)item.visibleSolids.delete(item.i);
+            else item.visibleSolids.add(item.i);
+          }
         }
       }
-      for(const {mesh,sphere} of rocks)mesh.visible=!sight.covers(sphere.center,sphere.radius*.86,.1);
     },
     blocksTap(ray, hit) {
-      return art.visible && blockers.some(mesh => mesh.visible && ray.intersectObject(mesh,false)[0]?.distance + .02 < hit.distance);
+      return art.visible && (
+        blockers.some(mesh=>mesh.visible&&ray.intersectObject(mesh,false)[0]?.distance+.02<hit.distance) ||
+        solidBatches.some(({mesh,visibleSolids})=>ray.intersectObject(mesh,false)
+          .some(p=>visibleSolids.has(p.instanceId)&&p.distance+.02<hit.distance))
+      );
     },
   };
 }

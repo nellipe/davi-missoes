@@ -4,6 +4,7 @@ import { buildShelter } from './beetle.mjs';
 import { inBosque, installBosque } from './bosque.mjs';
 import { installRegions } from './regions.mjs';
 import { boatProgress } from './boat.mjs';
+import { createSight } from './sight.mjs';
 
 let layout, grid;
 export function configure(map, seamHeight) {
@@ -114,6 +115,34 @@ function waterfall() {
     vertexColors:true,side:T.DoubleSide,roughness:.42,
   }));
 }
+function waterInSlabs(material,geometry,instances,clock){
+  geometry.setAttribute('waterSurface',new T.InstancedBufferAttribute(
+    new Float32Array(instances.map(item=>Number(item.flowing))),1));
+  const paint=material.clone();
+  paint.name='Madeira e superfície da calha';
+  paint.onBeforeCompile=shader=>{
+    shader.uniforms.forestWaterClock=clock;
+    shader.vertexShader=shader.vertexShader
+      .replace('#include <common>',`#include <common>
+        attribute float waterSurface;
+        varying vec3 vWaterSlab;`)
+      .replace('#include <begin_vertex>',`#include <begin_vertex>
+        vWaterSlab=vec3(position.xz,waterSurface*max(0.0,normal.y));`);
+    shader.fragmentShader=shader.fragmentShader
+      .replace('#include <common>',`#include <common>
+        uniform float forestWaterClock;
+        varying vec3 vWaterSlab;`)
+      .replace('#include <color_fragment>',`#include <color_fragment>
+        if(vWaterSlab.z>.5){
+          float lane=2.0-smoothstep(.01,.08,abs(vWaterSlab.x+.20))-
+            smoothstep(.01,.07,abs(vWaterSlab.x-.17));
+          float phase=29.0*vWaterSlab.y-4.0*forestWaterClock+2.0*vWaterSlab.x;
+          float streak=lane*smoothstep(.28,.93,sin(phase));
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.62,.84,.77),.52*streak);
+        }`);
+  };
+  return paint;
+}
 function height(x, z) {
   return (
     0.07 * Math.sin(z * 0.64) +
@@ -133,9 +162,13 @@ export function build(scene, leafUp, library, grain) {
   const group = new T.Group();
   scene.add(group);
   const material = new T.MeshStandardMaterial({ roughness: .83 });
+  const waterClock={value:0};
+  const slatePaint=material.clone();
+  slatePaint.name='Ardósia com pigmento mineral';
+  slatePaint.vertexColors=true;
   const shapes = {
     slab: new T.BoxGeometry(1, 1, 1),
-    stone: library.getObjectByName('Ardosia').geometry.clone().center().scale(.82,.93,1.03).deleteAttribute('color'),
+    stone: library.getObjectByName('Ardosia').geometry.clone().center().scale(.82,.93,1.03),
     crown: new T.SphereGeometry(1,10,6),
     trunk: new T.CylinderGeometry(.74,1,1,9),
     ring: new T.TorusGeometry(1, 0.19, 6, 16),
@@ -144,7 +177,7 @@ export function build(scene, leafUp, library, grain) {
   const batches = new Map(),
     dummy = new T.Object3D(),
     fade = [];
-  function piece(shape, color, x, y, z, sx, sy, sz, rx = 0, ry = 0, rz = 0, shield = false) {
+  function piece(shape, color, x, y, z, sx, sy, sz, rx = 0, ry = 0, rz = 0, shield = false, flowing = false) {
     dummy.position.set(x, y, z);
     dummy.rotation.set(rx, ry, rz);
     dummy.scale.set(sx, sy, sz);
@@ -152,7 +185,7 @@ export function build(scene, leafUp, library, grain) {
     if (!batches.has(shape)) batches.set(shape, []);
     batches
       .get(shape)
-      .push({ matrix: dummy.matrix.clone(), color, shield, x, y, z, top:y+sy*.65, r: Math.max(sx, sz) * 0.85 });
+      .push({ matrix: dummy.matrix.clone(), color, shield, flowing });
   }
   const positions = [],
     colors = [],
@@ -209,7 +242,7 @@ export function build(scene, leafUp, library, grain) {
   terrain.receiveShadow = true;
   group.add(terrain);
 
-  function rock(x, z, w, h, d, color = '#68847b', rotation = 0) {
+  function rock(x, z, w, h, d, color = '#e3dfdc', rotation = 0) {
     piece('stone', color, x, floor(x, z) + h * 0.45, z, w, h * 0.74, d, 0, rotation, 0.08, true);
   }
   function tree(x, z, h) {
@@ -244,7 +277,7 @@ export function build(scene, leafUp, library, grain) {
     [-7, -12.7, 1.15, 4.8, 1.7],
     [0.4, -13.1, 1.5, 5.3, 1.7],
   ].forEach(([x, z, w, h, d], i) => {
-    if (!inBosque(x,z)) rock(x,z,w,h,d,['#677e73','#7e9381','#597674'][i%3],i*.65);
+    if (!inBosque(x,z)) rock(x,z,w,h,d,['#d8dce0','#e1dfdc','#d2d6d9'][i%3],i*.65);
   });
   for (let i = 0; i < 235; i++) {
     const x = random() * 36 - 18,
@@ -258,7 +291,7 @@ export function build(scene, leafUp, library, grain) {
         0.4 + random() * 0.55,
         0.4 + random() * 0.58,
         0.55,
-        random() > 0.5 ? '#739269' : '#9ca889',
+        random() > 0.5 ? '#ddd9de' : '#e6e2db',
         random() * 6
       );
   }
@@ -285,6 +318,7 @@ export function build(scene, leafUp, library, grain) {
   }
   // The mill, trough and recurring leaf boats identify home even in silhouette.
   const wheel = new T.Group();
+  wheel.name='Soleira:Roda';
   wheel.position.set(-1.28, floor(-1.28, 13) + 0.83, 13);
   group.add(wheel);
   const moving = (parent, shape, tint, x, y, z, sx, sy, sz) => {
@@ -309,8 +343,9 @@ export function build(scene, leafUp, library, grain) {
   }
   piece('trunk', '#5b5142', -1.28, wheel.position.y, 13, 0.16, 1.35, 0.16, Math.PI / 2);
   for (const x of [-1.84, -0.92]) piece('slab', '#97744e', x, 0.08, 11.15, 0.13, 0.46, 5.7);
-  piece('slab', '#76b9af', -1.38, 0.21, 11.15, 0.82, 0.12, 5.7);
+  piece('slab', '#5ab1bc', -1.38, 0.21, 11.15, 0.82, 0.12, 5.7,0,0,0,false,true);
   const boat = new T.Group();
+  boat.name='Soleira:Barquinho';
   boat.position.set(-1.38, 0.35, 9);
   boat.scale.set(1.18, 1, 1.14);
   group.add(boat);
@@ -357,14 +392,14 @@ export function build(scene, leafUp, library, grain) {
   const regions = installRegions(group, library, layout, floor, edge);
   const shelter = buildShelter(floor, leafUp);
   group.add(shelter.group);
-  for (let i = 0; i < 3; i++) rock(8 + 0.22 * i, 0.9 - 0.65 * i, 0.43, 0.8 + i * 0.3, 0.35, '#abac94');
+  for (let i = 0; i < 3; i++) rock(8 + 0.22 * i, 0.9 - 0.65 * i, 0.43, 0.8 + i * 0.3, 0.35, '#e2ded7');
   const pulse = moving(group, 'ring', '#f9da8e', 7.8, floor(7.8, 0.35) + 1, 0.35, 0.1, 0.1, 0.1);
   // Water drops through a notch between two limestone faces, beyond the walkable shelf.
   for (let i = 0; i < 7; i++) {
     const x = -7.5 + i * 0.98;
     if (i === 3 || i === 4) continue;
-    piece('stone', '#587577', x, -0.05, -16, 1.25, 2.25, 1, 0, i * 0.35);
-    piece('stone', '#89a09a', x, 1.02, -16.4, 1.16, 1.55, 1.1, 0, 0.42 * i);
+    piece('stone', '#c6c6cf', x, -0.05, -16, 1.25, 2.25, 1, 0, i * 0.35);
+    piece('stone', '#d8d9de', x, 1.02, -16.4, 1.16, 1.55, 1.1, 0, 0.42 * i);
   }
   piece('slab', '#499a9c', -4, -1.55, -17, 12, 0.18, 4);
   group.add(waterfall());
@@ -373,12 +408,23 @@ export function build(scene, leafUp, library, grain) {
     piece('slab', '#927350', -5.15 + i * 0.67, floor(-5.15 + i * 0.67, -13.55) + 0.43, -13.55, 0.1, 0.9, 0.1);
   piece('slab', '#c7a174', -4.15, floor(-4.15, -13.55) + 0.82, -13.55, 2.4, 0.1, 0.13);
   const blockers = [];
+  const gaze=createSight();
+  const lowLandmarks=[wheel.position,new T.Vector3(-1.38,.30,11.8),new T.Vector3(-1.38,.30,9.25)];
+  const forkLandmarks=[[1.25,4.72],[3.72,4.21]].map(([x,z])=>new T.Vector3(x,floor(x,z)+.20,z));
+  const noLandmarks=[];
   for (const [shape, list] of batches) {
-    const mesh = new T.InstancedMesh(shapes[shape], material, list.length);
+    const geometry=shapes[shape];
+    const paint=shape==='stone'?slatePaint:shape==='slab'?waterInSlabs(material,geometry,list,waterClock):material;
+    const mesh = new T.InstancedMesh(geometry, paint, list.length);
+    mesh.name='Trilha:'+(shape==='stone'?'Ardosia_estratificada':shape);
+    if(list.some(item=>item.shield))geometry.computeBoundingSphere();
     list.forEach((p, i) => {
       mesh.setMatrixAt(i, p.matrix);
       mesh.setColorAt(i, new T.Color(p.color));
-      if (p.shield) fade.push({ mesh, i, ...p, hidden: false });
+      if (p.shield){
+        const bounds=geometry.boundingSphere.clone().applyMatrix4(p.matrix);
+        fade.push({mesh,i,item:p,bounds,foreground:shape==='stone'});
+      }
     });
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -394,13 +440,13 @@ export function build(scene, leafUp, library, grain) {
     terrain,
     shelter,
     setEconomy(low) { art.setEconomy(low); regions.setEconomy(low); },
-    living() { return { lowWheel:wheel.rotation.z, lowBoat:boat.position.toArray(), ...regions.living() }; },
+    living() { return { lowWheel:wheel.rotation.z, lowBoat:boat.position.toArray(), lowWater:waterClock.value, ...regions.living() }; },
     blocksTap(ray, hit) {
       if (art.blocksTap(ray,hit)) return true;
       return blockers.some(({ mesh, list }) =>
         ray
           .intersectObject(mesh, false)
-          .some((p) => p.distance + 0.02 < hit.distance && list[p.instanceId].shield)
+          .some((p) => p.distance + 0.02 < hit.distance && list[p.instanceId].shield&&!list[p.instanceId].hidden)
       );
     },
     interact(id, t) {
@@ -418,8 +464,12 @@ export function build(scene, leafUp, library, grain) {
       return description(id);
     },
     tick(t, still, camera, hero, buddy) {
-      art.clearSight(camera,hero,buddy);
-      regions.tick(t,still,hero,camera,buddy);
+      const landmarks=Math.hypot(hero.x,hero.z-13)<3.6?lowLandmarks
+        :Math.hypot(hero.x-2.68,hero.z-6.5)<3.0?forkLandmarks:noLandmarks;
+      art.clearSight(camera,hero,buddy,landmarks);
+      regions.tick(t,still,hero,camera,buddy,landmarks);
+      gaze.update(camera,hero,buddy,landmarks);
+      waterClock.value=still?0:t;
       if (!still) wheel.rotation.z = -t * 0.65;
       const progress=boatProgress(t,boatAt,still,3.6);
       boat.position.z=10.36+progress*3.31;
@@ -432,20 +482,12 @@ export function build(scene, leafUp, library, grain) {
         window.DaviGame?.sound();
       }
       if (pulse.visible) pulse.scale.setScalar(still ? 0.6 : 0.2 + (age % 0.6));
-      const dx = camera.x - hero.x,
-        dz = camera.z - hero.z,
-        length = dx * dx + dz * dz;
-      for (const p of fade) {
-        const k = ((p.x - hero.x) * dx + (p.z - hero.z) * dz) / length;
-        const obscures =
-          k > 0 &&
-          k < 1.12 &&
-          Math.hypot(hero.x + k * dx - p.x, hero.z + k * dz - p.z) < p.r + 1.45 &&
-          p.top >= hero.y - 0.7 + k * (camera.y - hero.y);
-        if (obscures !== p.hidden) {
-          p.mesh.setMatrixAt(p.i, obscures ? hideMatrix : p.matrix);
-          p.mesh.instanceMatrix.needsUpdate = true;
-          p.hidden = obscures;
+      for (const {mesh,i,item,bounds,foreground} of fade) {
+        const obscures=gaze.covers(bounds.center,bounds.radius*.83,.13,foreground);
+        if (obscures !== !!item.hidden) {
+          mesh.setMatrixAt(i,obscures?hideMatrix:item.matrix);
+          mesh.instanceMatrix.needsUpdate=true;
+          item.hidden=obscures;
         }
       }
     },
