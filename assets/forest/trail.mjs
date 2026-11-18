@@ -82,6 +82,37 @@ export function walkable(x, z) {
   return edge(x, z) <= 0;
 }
 const bell = (x, z, a, b, w, h) => Math.exp(-(((x - a) / w) ** 2) - ((z - b) / h) ** 2);
+function waterfall() {
+  const positions=[], colors=[], indices=[];
+  const teal=new T.Color('#57a7aa'), foam=new T.Color('#bce9d8');
+  const color=new T.Color();
+  const rows=14, width=8;
+  for(let row=0;row<=rows;row++){
+    const down=row/rows;
+    for(let column=0;column<=width;column++){
+      const across=column/width;
+      const spread=.57+.22*down*down;
+      const x=-4.13+(2*across-1)*spread+.08*Math.sin(down*2.1);
+      const y=1.97-3.52*down+.12*Math.sin(Math.PI*across)*(1-down);
+      const z=-16.19+1.04*down**.68+.06*Math.sin(across*13+down*3);
+      positions.push(x,y,z);
+      color.copy(teal).lerp(foam,.22+.37*Math.sin(across*18+down*1.7)**2+.17*down);
+      colors.push(color.r,color.g,color.b);
+      if(row<rows&&column<width){
+        const a=row*(width+1)+column, b=a+width+1;
+        indices.push(a,b,a+1,a+1,b,b+1);
+      }
+    }
+  }
+  const geometry=new T.BufferGeometry();
+  geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+  geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return new T.Mesh(geometry,new T.MeshStandardMaterial({
+    vertexColors:true,side:T.DoubleSide,roughness:.42,
+  }));
+}
 function height(x, z) {
   return (
     0.07 * Math.sin(z * 0.64) +
@@ -332,8 +363,7 @@ export function build(scene, leafUp, library, grain) {
     piece('stone', '#89a09a', x, 1.02, -16.4, 1.16, 1.55, 1.1, 0, 0.42 * i);
   }
   piece('slab', '#499a9c', -4, -1.55, -17, 12, 0.18, 4);
-  for (let i = 0; i < 6; i++)
-    piece('slab', i % 2 ? '#a5dcd2' : '#72bdbb', -4.72 + i * 0.22, 0.18, -15.68, 0.26, 3.6, 0.2);
+  group.add(waterfall());
   for (let i = 0; i < 8; i++) piece('crown', '#c7e5d3', -4.9 + 0.28 * i, -1.44, -15.2, 0.46, 0.21, 0.45);
   for (let i = 0; i < 4; i++)
     piece('slab', '#927350', -5.15 + i * 0.67, floor(-5.15 + i * 0.67, -13.55) + 0.43, -13.55, 0.1, 0.9, 0.1);

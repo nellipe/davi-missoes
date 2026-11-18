@@ -49,17 +49,22 @@ export function installRegions(root, library, layout, floor, edge) {
     const paint=source.material.clone();
     paint.color.set(color);
     const batch=new T.InstancedMesh(source.geometry,paint,positions.length);
+    const crown=model.includes('_Copa');
+    if(crown && !source.geometry.boundingSphere)source.geometry.computeBoundingSphere();
     for(const [i,[x,z,sx,sy,sz,turn]] of positions.entries()){
       stamp.position.set(x,floor(x,z),z);
       stamp.scale.set(sx,sy,sz);
       stamp.rotation.y=turn;
       stamp.updateMatrix();
       batch.setMatrixAt(i,stamp.matrix);
-      if(/_Tronco|_Copa/.test(model))occluders.push({
-        parent,batch,index:i,matrix:stamp.matrix.clone(),hidden:false,
-        center:new T.Vector3(x,stamp.position.y+(model.endsWith('_Copa')?4.85:2.7)*sy,z),
-        radius:(model.endsWith('_Copa')?2.35:1.95)*sy,
-      });
+      if(crown || model.endsWith('_Tronco')){
+        const bounds=crown?source.geometry.boundingSphere.clone().applyMatrix4(stamp.matrix):null;
+        occluders.push({
+          parent,batch,index:i,matrix:stamp.matrix.clone(),hidden:false,
+          center:bounds?.center??new T.Vector3(x,stamp.position.y+2.7*sy,z),
+          radius:bounds?.radius??1.95*sy,
+        });
+      }
     }
     batch.receiveShadow=true;
     parent.add(batch);
