@@ -1,6 +1,10 @@
 """Forest slice adapter. Reuses the V0.6 inventory and position, no schema migration."""
 import math
+import json
+from pathlib import Path
 import world
+NAVIGATION_PATH=Path(__file__).parent/'assets/forest/navigation.json'
+TERRAIN=json.loads(NAVIGATION_PATH.read_text()) if NAVIGATION_PATH.exists() else None
 SPAWN=(0,7.5)
 OBSTACLES=[(6,-7,2.2),(-10,10,1.1),(-10,3,1),(13,8,1.1),(12,1,1.1),(-8,-3,1),(-11,-8,1.3),(10,-7,1.2),(-4,-12,1.2),(4,-13,1.2),(11,-13,1.3),(-13,-13,1.1),(6,5,1),(-6,-5,1.1),(7,4,.8),(-8,-8,1.4)]
 def walkable(x,z,inventory):
@@ -15,7 +19,7 @@ def walkable(x,z,inventory):
 def scene(c):
  economy=world.scene(c);a=economy['avatar'];x=(a['x']-530)/12;z=(a['y']-370)/12
  if not walkable(x,z,economy['inventory']):x,z=SPAWN
- return {'economy':economy,'position':{'x':x,'z':z},'obstacles':OBSTACLES}
+ return {'economy':economy,'position':{'x':x,'z':z},'obstacles':OBSTACLES,'terrain':TERRAIN}
 
 def move(c,body):
  x,z=body.get('x'),body.get('z')

@@ -419,11 +419,13 @@ async function child() {
     state.view='child-world';
     if(!state.forestMode){try{state.forestMode=localStorage.getItem('davi-forest-mode')||'3d';}catch{state.forestMode='3d';}}
     if(state.forestMode!=='2d'){
-      try{const forest=await import('/forest.js');const ready=await forest.open({layout,api,run:safe,missions:dayEvents(state.date),dateLabel:fmt(state.date),onMission:openMission,
+      await DaviWorld.close();
+      try{const forest=await import('/forest.js');const ready=await forest.open({layout,api,run:safe,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,
         onCalendar:async()=>{state.childSurface='calendar';await child();},
         onFallback:async()=>{state.forestMode='2d';try{localStorage.setItem('davi-forest-mode','2d');}catch{}await child();}});if(ready)return;
-      }catch(e){if(typeof DaviForest!=='undefined')DaviForest.close();console.warn('Ilha 2D disponível:',e.message);}
+      }catch(e){if(typeof DaviForest!=='undefined')await DaviForest.close();console.warn('Ilha 2D disponível:',e.message);}
     }
+    if(typeof DaviForest!=='undefined') await DaviForest.close();
     await DaviWorld.open({layout,api,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,
       onCalendar:async()=>{state.childSurface='calendar';await child();}});
     return;

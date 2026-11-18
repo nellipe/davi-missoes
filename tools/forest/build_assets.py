@@ -17,7 +17,7 @@ def texture(kind,size=256):
  if kind in ('bark','wood'):
   noise=.07*np.sin(xx*90+np.sin(yy*11)*2)+.025*np.sin(xx*240+yy*11)
   for cx,cy in [(.3,.4),(.7,.8)]:noise+=.08*np.cos(np.sqrt(((xx-cx)*1.8)**2+((yy-cy)*.7)**2)*75)*np.exp(-(((xx-cx)*3)**2+((yy-cy)*2)**2))
-  base=np.stack([.65+noise,.46+noise*.7,.27+noise*.4],axis=-1);height=noise
+  base=np.stack([.92+noise,.84+noise*.7,.69+noise*.4],axis=-1);height=noise
  elif kind=='stone':
   noise=.06*np.sin(xx*19+yy)*np.cos(yy*23)+rng.random((size,size))*.025;lichen=np.maximum(0,np.sin(xx*40+np.cos(yy*19))*np.sin(yy*31)-.55)*.18
   base=np.stack([.52+noise+lichen,.57+noise+lichen,.49+noise-lichen*.5],axis=-1);height=noise*.5
@@ -34,7 +34,8 @@ def material(name,h,kind=None,rough=.8,metal=0,emission=0,vertex=False):
  if vertex:
   attr=n.new('ShaderNodeVertexColor');attr.layer_name='Pigment';links.new(attr.outputs['Color'],p.inputs['Base Color'])
  M[name]=m
-for args in [('Bark','#dab98c','bark'),('Warm timber','#ffdf9f','wood'),('Dark timber','#c5a578','wood'),('Rock','#b8c2a4','stone'),('Roof moss','#a6b5a2','stone'),('Roof ochre','#eeaf70','wood'),('Fabric','#e7ede4','cloth'),('Leaf','#72a847',None),('Fern','#4d8f45',None),('Ground','#53814a',None),('Path','#c5a46a',None),('Skin','#f3bc8c',None),('Hair','#4b3028',None),('Hair light','#835138',None),('Teal','#258f8a','cloth'),('Teal light','#67bbb1',None),('Shorts','#836347','cloth'),('Boot','#b3713e',None),('Sole','#4d4436',None),('Gold','#eabe62',None),('Cream','#f9e9bb',None),('White','#fff9e2',None),('Eye','#183c3c',None),('Iris','#5b8970',None),('Cheek','#e79278',None),('Clay','#c66547',None),('Mushroom','#c46c4a',None),('Lilac','#b0a1d3',None),('Moss','#70924a',None)]:material(*args,vertex=args[0] in ('Leaf','Ground','Path','Moss'))
+for args in [('Bark','#b99b74','bark'),('Warm timber','#d7bb91','wood'),('Dark timber','#a38a67','wood'),('Rock','#b8c2a4','stone'),('Roof moss','#a6b5a2','stone'),('Roof ochre','#c99a66','wood'),('Fabric','#e7ede4','cloth'),('Leaf','#72a847',None),('Fern','#4d8f45',None),('Ground','#53814a',None),('Path','#c5a46a',None),('Skin','#f3bc8c',None),('Hair','#4b3028',None),('Hair light','#835138',None),('Teal','#258f8a','cloth'),('Teal light','#67bbb1',None),('Shorts','#836347','cloth'),('Boot','#b3713e',None),('Sole','#4d4436',None),('Gold','#eabe62',None),('Cream','#f9e9bb',None),('White','#fff9e2',None),('Eye','#183c3c',None),('Iris','#5b8970',None),('Cheek','#e79278',None),('Clay','#c66547',None),('Mushroom','#c46c4a',None),('Lilac','#b0a1d3',None),('Moss','#70924a',None)]:material(*args,vertex=args[0] in ('Leaf','Ground','Path','Moss','Rock'))
+material('Birch','#e8d9ac');material('Bark dark','#68594b');material('Leaf blue','#387e6a',vertex=True);material('Rope','#e1c68b');
 material('Window light','#ffd990',rough=.35,emission=.5);material('Pipo ceramic','#d9edcd',rough=.34);material('Copper','#c08b59',rough=.4,metal=.3);material('Pipo screen','#123a3d',rough=.25,metal=.2);material('Pipo eye','#b5ffdd',rough=.25,emission=.4)
 def mesh(name,verts,faces,mat,uv=None,pigment=None):
  me=bpy.data.meshes.new(name);me.from_pydata(verts,[],faces);me.update();ob=bpy.data.objects.new(name,me);bpy.context.collection.objects.link(ob);me.materials.append(M[mat])
@@ -106,9 +107,9 @@ def export(root,filename,animations=False):
  print('EXPORTED',filename,REPORT[filename],flush=True)
 def height(x,y):return .14*sin(x*.28)+.13*cos(y*.31)+.07*sin(x*.5+y*.3)+2.1*exp(-((x+9)/3.2)**2-((y-6)/4)**2)
 def river(x):return 2+1.1*sin(x*.2)
-def path_x(y):return .5*sin(y*.45)
+def path_x(y):return .8*sin(y*.45)
 # Hand-composed forest clearing and sculpted creek banks.
-env=empty('Floresta_Encantada');verts=[];faces=[];uv=[];N=110
+env=empty('Floresta_Encantada');verts=[];faces=[];uv=[];N=80
 for j in range(N+1):
  y=-18+36*j/N
  for i in range(N+1):
@@ -117,10 +118,25 @@ for j in range(N+1):
    weight=max(0,min(1,(1.25-abs(x+9))/.5));level=-1.9+(y-1)/5*4.1;h=h*(1-weight)+min(h,level-.18)*weight
   verts.append((x,y,h));uv.append((x/6,y/6))
 for j in range(N):
- for i in range(N):a=j*(N+1)+i;faces.append((a,a+1,a+N+2,a+N+1))
+ for i in range(N):
+  a=j*(N+1)+i;faces.extend([(a,a+1,a+N+1),(a+1,a+N+2,a+N+1)])
 def ground_color(v,i):
- x,y,z=v;t=max(0,1-abs(x-path_x(y))/1.7);bank=max(0,1-abs(y-river(x))/2.4);noise=sin(x*3+y*4)*sin(y*5-x*2)*.014;base=np.array(color('#426f3e')[:3]);sand=np.array(color('#bc9b68')[:3]);rgb=(base*(1-t*.96)+sand*t*.96)*(1-bank*.22)+noise;return (*np.clip(rgb,0,1),1)
+ x,y,z=v
+ # A single connected path system, with quiet clearings around each destination.
+ def segment(ax,ay,bx,by):
+  dx,dy=bx-ax,by-ay;t=max(0,min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy)));return math.hypot(x-ax-t*dx,y-ay-t*dy)
+ dist=min(abs(x-path_x(y))-1.05,segment(0,-4,-5.7,-3.6)-.7,segment(0,-7,-4.2,-7.2)-.65,segment(0,-7,5.2,-6.8)-.7,segment(0,-2.5,8.3,-1.5)-.7)
+ t=max(0,min(1,(.32-dist)*1.5));noise=sin(x*7+y*8)*sin(y*6-x*5)*.018
+ base=np.array(color('#5c8959')[:3]);sand=np.array(color('#ccb17c')[:3]);shade=1
+ for tx,ty in [(-10,-10),(-10,-3),(13,-8),(12,-1),(-8,3),(-11,8),(10,7),(-4,12),(4,13)]:shade-=.27*exp(-((x-tx-1.3)/2.7)**2-((y-ty+1)/2.4)**2)
+ rgb=(base*(1-t)+sand*t)*max(.48,shade)+noise
+ bank=abs(y-river(x));stone=max(0,min(1,(3.15-bank)*2.5));rock=np.array(color('#82958b')[:3])*(.83+.1*sin(x*5+z*13))
+ rgb=rgb*(1-stone)+rock*stone
+ return (*np.clip(rgb,0,1),1)
 terrain=mesh('Terrain',verts,faces,'Ground',uv,ground_color);terrain.parent=env
+nav_heights=[round(verts[(N-j)*(N+1)+i][2],6) for j in range(N+1) for i in range(N+1)]
+(OUT/'navigation.json').write_text(json.dumps({'n':N,'bounds':[-19,19,-18,18],'heights':nav_heights},separators=(',',':')))
+
 # A forested valley backdrop closes the composition when the follow camera approaches the north bank.
 vv=[];ff=[];n=46
 for j in range(n+1):
@@ -143,7 +159,7 @@ def boulder(name,x,y,size=1):
    b=2*pi*i/seg;r=1+.12*sin(b*3+j*1.7)+.06*cos(b*5-j);verts.append((cos(a)*cos(b)*size*r,cos(a)*sin(b)*size*.78*r,sin(a)*size*.62*r))
  for j in range(rows):
   for i in range(seg):a=j*(seg+1)+i;faces.append((a,a+1,a+seg+2,a+seg+1))
- ob=mesh(name,verts,faces,'Rock');ob.location=(x,y,height(x,y)+size*.3);ob.parent=env;return ob
+ ob=mesh(name,verts,faces,'Rock',pigment=lambda v,i:(*np.array(color('#a5ada0' if v[2]>size*.3 else '#687b78')[:3])*(.85+.18*sin(i*1.7)),1));ob.location=(x,y,height(x,y)+size*.3);ob.parent=env;return ob
 # Layered canyon bedrock, irregular strata and moss lips are modeled, not a flat blue stripe.
 for side in [-1,1]:
  vv=[];ff=[];uu=[]
@@ -155,8 +171,8 @@ for side in [-1,1]:
  for i in range(99):
   for j in range(5):
    a=i*6+j;face=(a,a+6,a+7,a+1);ff.append(face if side==1 else tuple(reversed(face)))
- wall=mesh('Creek carved bedrock',vv,ff,'Rock',uu);wall.parent=env
-for i in range(52):
+ wall=mesh('Creek carved bedrock',vv,ff,'Rock',uu,pigment=lambda v,i:(*np.array(color('#85988f')[:3])*(.78+.16*sin(v[2]*12+v[0]*.4)),1));wall.parent=env
+for i in range(36):
  x=random.uniform(-17,17);y=river(x)+random.choice((-1,1))*random.uniform(2.4,2.9);boulder('Creek stone',x,y,random.uniform(.13,.5))
 for x,y,s in [(-6,-5,1.1),(7,-4,.9),(-8,8,1.5),(11,3,1.2),(-4,11,1.7),(9,10,1.3)]:boulder('Mossy landmark',x,y,s)
 def leaves_mesh(name,defs,mat='Leaf',parent=None):
@@ -168,17 +184,40 @@ def leaves_mesh(name,defs,mat='Leaf',parent=None):
   for t,w,h in [(0,0,0),(.27,-.9,.03),(.63,-.72,.09),(1,0,.22),(.63,.72,.09),(.27,.9,.03),(.48,0,.2)]:verts.append(tuple(c+d*t*length+s*w*width+up*(h*length+sin(t*pi)*twist)));uv.append(((w+1)*.5,t))
   faces.extend((idx+6,idx+a,idx+(a+1)%6) for a in range(6))
  base=np.array(color('#6c9b3e')[:3]);ob=mesh(name,verts,faces,mat,uv,lambda v,i:(*np.clip(base*(.65+.5*(sin((i//7)*.19)*.5+.5)),0,1),1));ob.parent=parent;return ob
+def crown(name,cx,cy,cz,sx,sy,sz,hue,parent):
+ verts=[];faces=[];seg=14;rows=8
+ for j in range(rows+1):
+  a=-pi/2+j*pi/rows
+  for i in range(seg):
+   b=i/seg*2*pi;r=1+.10*sin(b*5+j*.6)+.055*cos(b*3-j)
+   verts.append((cx+cos(a)*cos(b)*sx*r,cy+cos(a)*sin(b)*sy*r,cz+sin(a)*sz*(1+.035*sin(b*4))))
+ for j in range(rows):
+  for i in range(seg):a=j*seg+i;faces.append((a,j*seg+(i+1)%seg,(j+1)*seg+(i+1)%seg,a+seg))
+ base=np.array(color(hue)[:3])
+ ob=mesh(name,verts,faces,'Leaf',pigment=lambda v,i:(*np.clip(base*(.56+.40*(v[2]-cz+sz)/(2*sz)+.12*(1+sin(i*.31))*.5),0,1),1));ob.parent=parent;return ob
+
 def tree_model(kind=0):
- root=empty('Oak model '+str(kind));branches=[];h=6.4+kind*.8
- branches.append(tube('Fluted oak trunk',[(0,0,0),(.12,-.03,1.1),(.26,.03,2.8),(.4,.12,4.3),(.25,.1,h)],[.64,.43,.32,.22,.06],'Bark',root,segments=14))
+ root=empty('Oak model '+str(kind));branches=[];h=[4.1,5.4,5.1][kind]
+ barkmat='Birch' if kind==1 else 'Bark'
+ branches.append(tube('Sculpted trunk',[(0,0,0),(.12,-.03,.9),(.26,.03,2.4),(.4,.12,3.7),(.25,.1,h)],[.52,.36,.26,.18,.045],barkmat,root,segments=10))
+ for j in range(4):
+  a=j*2*pi/4+.3;end=(cos(a)*1.9,sin(a)*1.7,h-.45+sin(j)*.3);branches.append(tube('Arching branch',[(.2,0,2.6),(.4+cos(a)*.6,sin(a)*.6,3.8),end],[.17,.11,.02],barkmat,root,segments=7))
  for j in range(5):
-  a=j*2*pi/5+.3;end=(cos(a)*2.1,sin(a)*1.8,h-.3+sin(j)*.5);branches.append(tube('Arching branch',[(.2,0,2.9),(.4+cos(a)*.6,sin(a)*.6,4.2),end],[.22,.14,.025],'Bark',root))
- for j in range(7):
-  a=j*2*pi/7;branches.append(tube('Buttress root',[(0,0,.4),(cos(a)*.7,sin(a)*.7,.11),(cos(a)*1.4,sin(a)*1.4,.03)],[.23,.17,.005],'Bark',root,segments=7))
- bark=join(branches,'Oak bark '+str(kind));bark.parent=root;defs=[]
- for i in range(570):
-  a=random.uniform(0,2*pi);e=random.uniform(-.4,1.1);r=random.random()**.4;cx=cos(a)*cos(e)*2.65*r;cy=sin(a)*cos(e)*2.4*r;cz=h+.3+sin(e)*2.1*r;direction=(cos(a)*.6+random.uniform(-.4,.4),sin(a)*.6+random.uniform(-.4,.4),random.uniform(-.1,.7));defs.append(((cx,cy,cz),direction,random.uniform(.65,1.15),random.uniform(.25,.45),.08))
- leaf=leaves_mesh('Oak foliage '+str(kind),defs,parent=root);leaf['wind']=True;return root
+  a=j*2*pi/5;branches.append(tube('Buttress root',[(0,0,.3),(cos(a)*.65,sin(a)*.65,.09),(cos(a)*1.15,sin(a)*1.15,.025)],[.18,.13,.004],barkmat,root,segments=6))
+ bark=join(branches,'Oak bark '+str(kind));bark.parent=root;crowns=[]
+ if kind==2:
+  for j in range(4):
+   z=2.7+j*.95;r=2.25-j*.4
+   crowns.append(crown('Needle crown',.15,.1,z,r,r*.9,.9,'#397b60',root))
+ else:
+  for j in range(5):
+   a=j*2*pi/5;z=h-.35+(j%2)*.55;r=1.25 if kind==1 else 1.65
+   crowns.append(crown('Layered broadleaf',cos(a)*1.25,sin(a)*1.1,z,r,r*.88,1.1 if kind==1 else 1.4,'#8bb47d' if kind==1 else '#578e5b',root))
+  crowns.append(crown('Sunlit crown',.2,.15,h+.75,1.8,1.6,1.25,'#a1c48a' if kind==1 else '#84ad68',root))
+ if kind==1:
+  for j in range(6):branches.append(plank('Birch bark eyes',(.13,-.31,1+j*.44),(.16+(j%2)*.09,.025,.055),'Bark dark',root,angle=.1,bevel=.01))
+ leaf=join(crowns,'Oak foliage '+str(kind));leaf.parent=root
+ return root
 models=[tree_model(i) for i in range(3)]
 def clone_model(model,name,x,y,s=1,rot=0,parent=env):
  g=empty(name,(x,y,height(x,y)),parent);g.scale=(s,s,s);g.rotation_euler.z=rot
@@ -187,7 +226,7 @@ def clone_model(model,name,x,y,s=1,rot=0,parent=env):
  return g
 placements=[(-10,-10,1.15),(-10,-3,1.1),(13,-8,1.2),(12,-1,1.25),(-8,3,1.1),(-11,8,1.4),(10,7,1.25),(-4,12,1.25),(4,13,1.2),(11,13,1.4),(-13,13,1.2)]
 for j,(x,y,s) in enumerate(placements):clone_model(models[j%3],'Hero oak',x,y,s,random.random()*6)
-for j in range(30):
+for j in range(20):
  a=random.uniform(0,2*pi);r=random.uniform(15,21);x=cos(a)*r;y=sin(a)*r
  if y < -10 and abs(x)<12:continue
  clone_model(models[j%3],'Forest depth oak',x,y,random.uniform(.9,1.4),random.random()*6)
@@ -195,37 +234,39 @@ for model in models:
  for o in children(model):o.hide_set(True);o.hide_render=True
 for j,(x,y) in enumerate([(-4,-6),(4,-5),(-5,-1),(5,0),(-5,5),(3.8,6),(-2,9),(8,4),(-7,9),(8,-2)]):
  defs=[]
- for i in range(110):
+ for i in range(35):
   a=random.uniform(0,2*pi);r=random.random()**.5;defs.append(((x+cos(a)*r*.8,y+sin(a)*r*.7,height(x,y)+.25+r*.6),(cos(a),sin(a),.3),random.uniform(.35,.65),.18,.05))
- shrub=leaves_mesh('Understory shrub',defs,parent=env);shrub['wind']=True
+ shrub=leaves_mesh('Understory shrub',defs[:14],parent=env)
+ crown('Understory velvet',x-.25,y,height(x,y)+.32,.65,.5,.46,'#568c59',env)
+ crown('Understory velvet',x+.25,y+.1,height(x,y)+.5,.58,.5,.5,'#7aab65',env)
 
 fern=empty('Fern master');defs=[]
-for j in range(7):
- a=j*2*pi/7;points=[]
- for i in range(9):
-  t=i/8;points.append((cos(a)*t*.9,sin(a)*t*.9,sin(t*pi*.8)*.5))
+for j in range(5):
+ a=j*2*pi/5;points=[]
+ for i in range(7):
+  t=i/6;points.append((cos(a)*t*.9,sin(a)*t*.9,sin(t*pi*.8)*.5))
   if i>0:
    for side in [-1,1]:defs.append((points[-1],(cos(a+side*.9),sin(a+side*.9),.1),.32*(1-t*.6),.092,0))
  curve('Fern rachis',points,.012,'Fern',fern)
 leaves_mesh('Fern blades',defs,'Fern',fern);join(list(fern.children),'Fern silhouette').parent=fern
 grass=empty('Grass master');verts=[];faces=[]
-for i in range(17):
+for i in range(7):
  a=random.random()*2*pi;r=random.random()*.2;x=cos(a)*r;y=sin(a)*r;h=random.uniform(.2,.52);w=random.uniform(.016,.04);side=Vector((cos(a),sin(a),0));idx=len(verts)
  for t,ww in [(0,1),(.35,.9),(.72,.5),(1,0)]:
   center=Vector((x+cos(a)*t*t*.2,y+sin(a)*t*t*.2,h*t));verts.extend([tuple(center-side*w*ww),tuple(center+side*w*ww)])
  for j in range(3):faces.append((idx+j*2,idx+j*2+1,idx+j*2+3,idx+j*2+2))
 g=mesh('Grass blade clump',verts,faces,'Leaf',pigment=lambda v,i:(*color('#75a153' if v[2]>.15 else '#456b36')[:3],1));g.parent=grass;g['wind']=True;g['detail']=True
-for j in range(750):
+for j in range(180):
  x=random.uniform(-14,14);y=random.uniform(-13,14)
  if abs(x-path_x(y))<1.6 or abs(y-river(x))<2.6 or (x-6)**2+(y-7)**2<5:continue
  clone_model(grass,'Detail grass',x,y,random.uniform(.65,1.35),random.random()*6)
-for j in range(65):
+for j in range(36):
  x=random.uniform(-13,13);y=random.uniform(-12,13)
  if abs(x-path_x(y))<1.8 or abs(y-river(x))<2.6:continue
  clone_model(fern,'Fern',x,y,random.uniform(.7,1.4),random.random()*6)
 for model in [fern,grass]:
  for o in children(model):o.hide_set(True);o.hide_render=True
-for i in range(55):
+for i in range(28):
  y=random.uniform(-11,12);x=path_x(y)+random.choice((-1,1))*random.uniform(1.7,4)
  if abs(y-river(x))<2.6:continue
  g=empty('Wildflower colony',(x,y,height(x,y)),env)
@@ -250,18 +291,61 @@ for side in [-1,1]:plank('Chest iron band',(side*.44,-.44,.45),(.1,.03,.76),'Cop
 for j in range(9):
  a=j*pi/8;plank('Rounded chest lid',(0,cos(a)*.44,.76+sin(a)*.28),(1.55,.18,.07),'Warm timber',chest,bevel=.025)
 plank('Chest clasp',(0,-.48,.6),(.19,.08,.3),'Gold',chest,bevel=.03)
+# Destinations are authored places in the same clearing, not menu-only entries.
+def station(name,x,y):return empty('Station '+name,(x,y,height(x,y)),env)
+cal=station('calendar',-4.2,-7.2)
+for x in [-.5,.5]:tube('Calendar carved leg',[(x,0,0),(x,0,1.6)],[.09,.075],'Bark',cal,segments=7)
+plank('Calendar oak frame',(0,0,1.3),(1.55,.22,1.05),'Warm timber',cal,bevel=.09)
+plank('Calendar parchment',(0,-.14,1.3),(1.28,.025,.78),'Cream',cal,bevel=.025)
+for row in range(3):
+ for col in range(4):plank('Calendar day tile',(-.46+col*.30,-.165,1.05+row*.23),(.19,.025,.12),'Teal' if (row+col)%4 else 'Clay',cal,bevel=.018)
+shop=station('workshop',-5.7,-3.6)
+for x in [-.9,.9]:tube('Awning post',[(x,.2,0),(x,.2,2.15)],[.09,.07],'Dark timber',shop,segments=7)
+plank('Workshop counter',(0,-.15,.8),(1.95,.95,.14),'Warm timber',shop,bevel=.06)
+for x in [-.75,.75]:plank('Counter leg',(x,0,.4),(.12,.65,.8),'Dark timber',shop,bevel=.03)
+roof=mesh('Workshop linen awning',[(-1.2,.5,2.2),(1.2,.5,2.2),(-1.2,-.85,1.92),(1.2,-.85,1.92)],[(0,1,3,2)],'Teal');roof.parent=shop
+for x in [-1,-.5,0,.5,1]:loft('Awning scallop',[(x,-.85,1.88,.23,.035),(x,-.85,1.96,.23,.04)],'Teal light',8,shop)
+plank('Workshop tool tray',(.3,-.15,.91),(.58,.45,.08),'Dark timber',shop,bevel=.025)
+for x in [-.3,0,.3]:ellipsoid('Crafting pigment pot',(x,-.15,1.02),(.11,.11,.16),'Gold' if x<0 else 'Clay',shop,segments=9,rings=6)
+wardrobe=station('wardrobe',5.2,-6.8)
+for x in [-.65,.65]:tube('Wardrobe branch',[(x,0,0),(x,0,1.7),(x*.8,0,2)],[.1,.07,.045],'Bark',wardrobe,segments=7)
+curve('Wardrobe crossbar',[(-.8,0,1.8),(0,0,1.9),(.8,0,1.8)],.075,'Warm timber',wardrobe)
+cloth=mesh('Explorer cloak',[(-.32,-.04,1.7),(.32,-.04,1.7),(-.58,-.1,.55),(0,-.2,.63),(.58,-.1,.55)],[(0,1,3),(0,3,2),(1,4,3)],'Lilac');cloth.parent=wardrobe
+loft('Spare explorer hat',[(.5,-.3,.5,.34,.3),(.5,-.3,.54,.34,.3),(.5,-.3,.57,.21,.2),(.5,-.3,.76,.18,.17)],'Gold',14,wardrobe)
+portal=station('portal',8.3,-1.5)
+for side in [-1,1]:
+ for j in range(5):
+  ob=plank('Portal carved stone',(side*(1.05-.08*j*j/4),0,.25+j*.4),(.46,.65,.44),'Roof moss',portal,angle=side*j*.055,bevel=.09)
+loft('Portal keystone',[(0,0,2.15,.42,.35),(0,0,2.65,.30,.31)],'Warm timber',8,portal)
+for side in [-1,1]:
+ gem=ellipsoid('Portal jewel',(side*.9,-.36,1.1),(.08,.04,.12),'Window light',portal,segments=10,rings=6);gem['owner']='portal'
+# Deliberate trail details: low stone kerbs, stepping stones, moss shelves and root groups.
+for y in np.linspace(-10,10,26):
+ for side in [-1,1]:
+  x=path_x(y)+side*1.35
+  if abs(y-river(x))>2.9:
+   ob=boulder('Trail kerb',x,y,.13+random.random()*.08);ob.scale.z=.45
+for x,y in [(-8.1,4.1),(-10.8,4.4),(-7.8,2.9)]:
+ for j in range(3):
+  ob=boulder('Waterfall terrace',x+(j%2)*.25,y,.75-j*.12);ob.location.z+=j*.28
 export(env,'forest.glb')
+activity=empty('Activity marker')
+tube('Activity post',[(0,0,0),(0,0,1.2)],[.07,.055],'Dark timber',activity,segments=7)
+plank('Activity journal',(0,-.03,1),(.58,.16,.46),'Teal',activity,angle=-.1,bevel=.045)
+plank('Activity book spine',(-.22,-.13,1),(.05,.03,.39),'Gold',activity,bevel=.005)
+for j in range(3):plank('Activity page line',(.02,-.13,.9+j*.09),(.25,.015,.02),'Cream',activity,bevel=.003)
+export(activity,'activity.glb')
 # Bent planks, supporting arches, hand-tied ropes, pegs, grain and bevels.
 bridge=empty('Bridge')
-for j in range(24):
- y=-1.2+j*.27;z=height(0,y)+.12+.48*sin((y+1.2)/6.21*pi);plank('Worn bridge board',(random.uniform(-.02,.02),y,z),(2.25+random.uniform(-.07,.07),.245,.13),'Warm timber' if j%3 else 'Dark timber',bridge,random.uniform(-.01,.01),.025)
+for j in range(19):
+ y=-1.2+j*.345;z=height(0,y)+.12+.48*sin((y+1.2)/6.21*pi);plank('Worn bridge board',(random.uniform(-.02,.02),y,z),(2.25+random.uniform(-.07,.07),.245,.13),'Warm timber' if j%3 else 'Dark timber',bridge,random.uniform(-.01,.01),.025)
  for x in [-.88,.88]:ellipsoid('Wooden peg',(x,y,z+.075),(.025,.025,.015),'Copper',bridge,segments=6,rings=4)
 for x in [-1.08,1.08]:
  points=[]
  for j in range(6):
   y=-1.1+j*1.2;z=height(0,y)+.12+.48*sin((y+1.2)/6.2*pi);tube('Bridge post',[(x,y,z),(x-.03,y,z+1)],[.085,.065],'Bark',bridge,segments=8);points.append((x,y,z+.85))
-  for i in range(3):curve('Rope binding',[(x+cos(a)*.1,y+sin(a)*.1,z+.65+i*.05) for a in np.linspace(0,2*pi,17)],.013,'Cream',bridge)
- curve('Rope handrail',points,.035,'Cream',bridge);curve('Arched beam',[(x,-1.4,.02),(x,.4,.3),(x,2,.5),(x,3.8,.3),(x,5.3,.02)],.13,'Dark timber',bridge)
+  for i in range(1):curve('Rope binding',[(x+cos(a)*.1,y+sin(a)*.1,z+.65+i*.05) for a in np.linspace(0,2*pi,17)],.013,'Cream',bridge)
+ curve('Carved timber handrail',points,.075,'Warm timber',bridge);curve('Arched beam',[(x,-1.4,.02),(x,.4,.3),(x,2,.5),(x,3.8,.3),(x,5.3,.02)],.13,'Dark timber',bridge)
 export(bridge,'bridge.glb')
 house=empty('Treehouse',(6,7,height(6,7)));tube('Ancient trunk',[(0,0,0),(-.1,.1,1.5),(-.15,.1,3.5),(-.5,.2,6.5),(-.8,.4,8.5)],[.82,.62,.42,.3,.06],'Bark',house,segments=18)
 for j in range(6):

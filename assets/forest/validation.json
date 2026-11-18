@@ -3,21 +3,28 @@
   "results": [
     {
       "asset": "forest.glb",
-      "bytes": 5472688,
+      "bytes": 3751192,
       "errors": 0,
-      "warnings": 0,
-      "messages": []
+      "warnings": 1,
+      "messages": [
+        {
+          "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
+          "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
+          "severity": 1,
+          "pointer": "/meshes/97/primitives/0/material"
+        }
+      ]
     },
     {
       "asset": "bridge.glb",
-      "bytes": 1228328,
+      "bytes": 752312,
       "errors": 0,
       "warnings": 0,
       "messages": []
     },
     {
       "asset": "treehouse.glb",
-      "bytes": 1569772,
+      "bytes": 1553692,
       "errors": 0,
       "warnings": 1,
       "messages": [
@@ -31,7 +38,7 @@
     },
     {
       "asset": "davi.glb",
-      "bytes": 743896,
+      "bytes": 734820,
       "errors": 0,
       "warnings": 22,
       "messages": [
@@ -236,6 +243,13 @@
           "pointer": "/nodes/15"
         }
       ]
+    },
+    {
+      "asset": "activity.glb",
+      "bytes": 186408,
+      "errors": 0,
+      "warnings": 0,
+      "messages": []
     }
   ]
 }

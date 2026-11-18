@@ -1,0 +1,278 @@
+{
+  "synthetic": true,
+  "first": {
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "vendor": "Google Inc. (NVIDIA)",
+    "frames": 3,
+    "frameMs": [
+      1133.284,
+      16.700000000000045
+    ],
+    "loadMs": [
+      132.39999999850988
+    ],
+    "readyMs": 1581.3999999985099,
+    "position": [
+      0,
+      -0.22622651281139325,
+      0.7099999999999985
+    ],
+    "pipoPosition": [
+      -0.7,
+      -0.03784181946780496,
+      1.2599999999999985
+    ],
+    "pipoScarfVisible": false,
+    "camera": [
+      6.53359036163324,
+      10.923773487188607,
+      11.36655652574382
+    ],
+    "characterSize": [
+      0.9426223581890976,
+      2.2950883864845766,
+      0.7628688093362261
+    ],
+    "quality": "auto",
+    "low": false,
+    "adaptiveLow": false,
+    "triangles": 332926,
+    "calls": 175,
+    "animations": [
+      "Idle",
+      "Walk",
+      "Wave"
+    ],
+    "pipoAnimations": [
+      "Hover",
+      "Walk"
+    ],
+    "webgl": true,
+    "paused": false,
+    "moving": false,
+    "features": [
+      {
+        "id": "bridge",
+        "x": 0,
+        "z": 0.9,
+        "title": "Ponte do riacho"
+      },
+      {
+        "id": "house",
+        "x": 3.5,
+        "z": -6.1,
+        "title": "Casa na árvore"
+      },
+      {
+        "id": "chest",
+        "x": -4,
+        "z": -4,
+        "title": "Baú de descobertas"
+      },
+      {
+        "id": "missions",
+        "x": -2.1,
+        "z": 1.7,
+        "title": "Diário de missões"
+      },
+      {
+        "id": "calendar",
+        "x": -4.2,
+        "z": 7.2,
+        "title": "Calendário"
+      },
+      {
+        "id": "shop",
+        "x": -5.7,
+        "z": 3.6,
+        "title": "Oficina do Pipo"
+      },
+      {
+        "id": "wardrobe",
+        "x": 5.2,
+        "z": 6.8,
+        "title": "Meu personagem"
+      },
+      {
+        "id": "portal",
+        "x": 8.3,
+        "z": 1.5,
+        "title": "Portal dos jogos"
+      }
+    ],
+    "navigationValid": true,
+    "frameActive": true,
+    "geometries": 68,
+    "textures": 46,
+    "pixelRatio": 1,
+    "shadows": true,
+    "animation": "Idle",
+    "pipoAnimation": "Hover",
+    "target": null,
+    "keys": [],
+    "angle": 0.55,
+    "feetY": -0.2012264888888902,
+    "surfaceY": -0.20122648888889016,
+    "renderedGroundY": -0.2132264472039651,
+    "screenPosition": [
+      2.0818258316164347e-16,
+      0.011886312507402233,
+      0.9892366911164271
+    ],
+    "geometryBufferBytes": 4855628,
+    "estimatedTextureBytes": 10489856,
+    "instances": 240,
+    "jsHeapBytes": 53500000
+  },
+  "movingAfterSwap": {
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "vendor": "Google Inc. (NVIDIA)",
+    "frames": 27,
+    "frameMs": [
+      16.70799999999963,
+      16.699999999999818,
+      16.600000000000364,
+      16.699999999999818,
+      16.699999999999818,
+      16.600000000000364,
+      16.699999999999818,
+      16.600000000000364,
+      16.699999999999818,
+      16.699999999999818,
+      16.600000000000364,
+      16.699999999999818,
+      16.599999999999454,
+      16.700000000000728,
+      16.699999999999818,
+      16.599999999999454,
+      16.700000000000728,
+      16.699999999999818,
+      16.699999999999818,
+      16.600000000000364,
+      16.699999999999818,
+      16.699999999999818,
+      16.600000000000364,
+      16.699999999999818,
+      16.599999999999454,
+      16.700000000000728
+    ],
+    "loadMs": [
+      0
+    ],
+    "readyMs": 198.10000000149012,
+    "position": [
+      0.6648028849246138,
+      0.15746103439214912,
+      1.3857392187770572
+    ],
+    "pipoPosition": [
+      -0.17724901356355185,
+      0.017431853885717982,
+      2.0228319782976287
+    ],
+    "pipoScarfVisible": false,
+    "camera": [
+      6.88458530587975,
+      11.263443559356347,
+      12.23469302892184
+    ],
+    "characterSize": [
+      1.1408767073366084,
+      2.3636997080205684,
+      1.1837478935917864
+    ],
+    "quality": "auto",
+    "low": false,
+    "adaptiveLow": false,
+    "triangles": 335614,
+    "calls": 177,
+    "animations": [
+      "Idle",
+      "Walk",
+      "Wave"
+    ],
+    "pipoAnimations": [
+      "Hover",
+      "Walk"
+    ],
+    "webgl": true,
+    "paused": false,
+    "moving": true,
+    "features": [
+      {
+        "id": "bridge",
+        "x": 0,
+        "z": 0.9,
+        "title": "Ponte do riacho"
+      },
+      {
+        "id": "house",
+        "x": 3.5,
+        "z": -6.1,
+        "title": "Casa na árvore"
+      },
+      {
+        "id": "chest",
+        "x": -4,
+        "z": -4,
+        "title": "Baú de descobertas"
+      },
+      {
+        "id": "missions",
+        "x": -2.1,
+        "z": 1.7,
+        "title": "Diário de missões"
+      },
+      {
+        "id": "calendar",
+        "x": -4.2,
+        "z": 7.2,
+        "title": "Calendário"
+      },
+      {
+        "id": "shop",
+        "x": -5.7,
+        "z": 3.6,
+        "title": "Oficina do Pipo"
+      },
+      {
+        "id": "wardrobe",
+        "x": 5.2,
+        "z": 6.8,
+        "title": "Meu personagem"
+      },
+      {
+        "id": "portal",
+        "x": 8.3,
+        "z": 1.5,
+        "title": "Portal dos jogos"
+      }
+    ],
+    "navigationValid": true,
+    "frameActive": true,
+    "geometries": 68,
+    "textures": 46,
+    "pixelRatio": 1,
+    "shadows": true,
+    "animation": "Walk",
+    "pipoAnimation": "Walk",
+    "target": null,
+    "keys": [
+      "right"
+    ],
+    "angle": 0.55,
+    "feetY": 0.11753488466093616,
+    "surfaceY": 0.15014666541023258,
+    "renderedGroundY": 0.138146426652213,
+    "screenPosition": [
+      0.023529550380512024,
+      0.016510788057187937,
+      0.9892160284999314
+    ],
+    "geometryBufferBytes": 4855628,
+    "estimatedTextureBytes": 10489856,
+    "instances": 240,
+    "jsHeapBytes": 53500000
+  },
+  "errors": []
+}

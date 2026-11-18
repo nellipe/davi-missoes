@@ -485,6 +485,15 @@
 .forest-instructions {
   color: #475b39;
 }
+.forest-labels { position:absolute; inset:0; pointer-events:none; }
+.forest-label { position:absolute; transform:translate(-50%,-100%); pointer-events:auto; border:1px solid #b8a77f; border-radius:14px; background:#fff7dded; color:#253e32; padding:5px 9px; min-height:34px; font:700 11px system-ui; box-shadow:0 3px 7px #183d3529; max-width:150px; }
+.forest-label[hidden] { display:none; }
+.forest-label span:first-child { color:#735629; margin-right:4px; }
+.f-label-copy { white-space:nowrap; }
+.forest-route { position:absolute; bottom:86px; right:20px; background:#fff7deed; }
+.forest-label[data-state="open"] { border-bottom:3px solid #497458; }
+.forest-label[data-state="upcoming"] { border-bottom:3px solid #a17b3f; }
+.forest-label[data-state="expired"] { border-bottom:3px solid #7b7377; }
 .f-dialog-top > span {
   color: #4d633f;
 }

@@ -3,22 +3,27 @@
   "seed": 1607,
   "assets": {
     "forest.glb": {
-      "bytes": 5472688,
-      "triangles_before_instancing": 392836,
-      "objects": 2243
+      "bytes": 3751192,
+      "triangles_before_instancing": 156917,
+      "objects": 1095
+    },
+    "activity.glb": {
+      "bytes": 186408,
+      "triangles_before_instancing": 554,
+      "objects": 7
     },
     "bridge.glb": {
-      "bytes": 1228328,
-      "triangles_before_instancing": 26856,
-      "objects": 125
+      "bytes": 752312,
+      "triangles_before_instancing": 11932,
+      "objects": 86
     },
     "treehouse.glb": {
-      "bytes": 1569772,
+      "bytes": 1553692,
       "triangles_before_instancing": 24593,
       "objects": 210
     },
     "davi.glb": {
-      "bytes": 743896,
+      "bytes": 734820,
       "triangles_before_instancing": 11380,
       "objects": 20
     },
