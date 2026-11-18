@@ -111,10 +111,10 @@ export function build(scene, leafUp, library, grain) {
       const pigment = random();
       c.multiplyScalar(0.95 + pigment * 0.08);
       if (inBosque(x,z)) {
-        const roughEdge = border + .22*Math.sin(x*2.4-z*3.5) + .13*Math.cos(x*6.2+z*3.6);
-        const pathLight = 1-T.MathUtils.smoothstep(roughEdge,-.69,.53);
+        const roughEdge = border + .24*Math.sin(x*2.4-z*3.5) + .14*Math.cos(x*6.2+z*3.6);
+        const pathLight = 1-T.MathUtils.smoothstep(roughEdge,-.77,.65);
         const variation = .5+.29*Math.sin(x*.98+z*.84)+.21*Math.sin(z*3.27-x*2.8);
-        const soil = new T.Color('#4a6945').lerp(new T.Color('#77864b'),variation);
+        const soil = new T.Color('#496b49').lerp(new T.Color('#7a8951'),variation);
         const clay = new T.Color(x>3.7&&z<5 ? '#b2a999' : '#b9905c');
         soil.lerp(clay,pathLight);
         const dapple = Math.sin(x*1.88 + Math.cos(z*1.63)) * Math.sin(z*1.37-x*.89);

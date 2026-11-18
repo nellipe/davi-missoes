@@ -7,6 +7,8 @@ const mobile = width < 700;
 const height = mobile ? 850 : 820;
 const profile = process.env.FOREST_PROFILE;
 const captureOnly = process.env.FOREST_CAPTURE_ONLY === '1';
+const visualEvidence = process.env.FOREST_VISUAL_EVIDENCE === '1';
+const shortRevisit = process.env.FOREST_SHORT_REVISIT === '1';
 const suffix = width + (profile ? '-' + profile : '');
 const stem = 'besouro-' + suffix;
 
@@ -14,8 +16,10 @@ session(stem, async ({ page, api, guided }) => {
   const start = performance.now();
   const stops = [];
   const samples = [];
+  const stages = [];
   const action = (name) => page.locator('[data-action="' + name + '"]');
   const press = (name) => mobile ? action(name).tap() : action(name).click();
+  const rotate = () => page.locator('[data-action=forest-rotate][data-turn="1"]').evaluate(button => button.click());
   const point = (x, z) => page.evaluate(([a, b]) => {
     const p = DaviForest.project(a, b);
     return { ...p, free: document.elementFromPoint(p.x, p.y)?.id === 'forestCanvas' };
@@ -37,7 +41,7 @@ session(stem, async ({ page, api, guided }) => {
         }
       }
       if (!target) {
-        await page.locator('[data-action=forest-rotate][data-turn="1"]').click();
+        await rotate();
         await page.waitForTimeout(760);
         continue;
       }
@@ -48,7 +52,7 @@ session(stem, async ({ page, api, guided }) => {
       });
       const d = await diag(page);
       if (distance(before.position, d.position) < .06) {
-        await page.locator('[data-action=forest-rotate][data-turn="1"]').click();
+        await rotate();
         await page.waitForTimeout(760);
         continue;
       }
@@ -84,9 +88,28 @@ session(stem, async ({ page, api, guided }) => {
     return page.screenshot({ path: path.join(out, name + '-' + suffix + '.png') });
   }
   async function record() {
-    save(stem, { stops, samples, fork, activeTask: guided.title, width,
+    save(stem, { stops, samples, stages, fork, canvas, activeTask: guided.title, width,
       renderer: (await diag(page)).renderer });
   }
+  const phase = (stage) => page.waitForFunction((name) =>
+    DaviForest.diagnostics().shelter.phase === name, stage);
+  async function visualFrame(name) {
+    const d = await diag(page);
+    stages.push({ name, seconds: +((performance.now() - start)/1000).toFixed(2),
+      camera: d.camera, leafRoll: d.shelter.leafRoll, basin: d.shelter.wetBasin,
+      fill: d.shelter.basinFill, beetle: d.shelter.beetle, calls: d.calls, triangles: d.triangles });
+    await shot(name);
+  }
+  const showHud = (visible) => page.evaluate((show) => {
+    const nodes = document.querySelectorAll(`
+      .trail-shell #forestInteract, .trail-shell #forestMessage, .trail-shell .forest-route,
+      .trail-shell .forest-camera, .trail-shell .forest-dpad, .trail-hud,
+      .trail-shell .forest-pipo, .trail-shell .forest-instructions`);
+    for (const node of nodes) {
+      if (show) node.style.removeProperty('visibility');
+      else node.style.setProperty('visibility', 'hidden', 'important');
+    }
+  }, visible);
   async function expectShelter(expected) {
     await page.waitForFunction((beetle) => {
       const current = DaviForest.diagnostics().shelter.beetle;
@@ -136,12 +159,16 @@ session(stem, async ({ page, api, guided }) => {
   const enter = async () => { await walk(-7.4, 2.6); await walk(-9, 1.4); };
   const leave = async () => { await walk(-7.4, 2.6); await walk(-5.3, 2.1); };
   await enter();
-  await page.waitForTimeout(1450);
+  await page.waitForTimeout(2050);
+  const canvas = await page.locator('#forestCanvas').boundingBox();
+  if (visualEvidence) await showHud(false);
   await mark('folha inicial');
-  await shot('encontro');
+  if (visualEvidence) await visualFrame('encontro');
+  else await shot('encontro');
   const initial = (await diag(page)).shelter;
   assert.equal(initial.leafUp, false);
-  if (width === 360) {
+  if (visualEvidence && !captureOnly) await page.waitForTimeout(1350);
+  if (width === 360 || visualEvidence) {
     const target = await page.evaluate(() => {
       const [x, y, z] = DaviForest.diagnostics().shelter.leaf;
       return DaviForest.project(x, z, y + .10);
@@ -155,37 +182,67 @@ session(stem, async ({ page, api, guided }) => {
     await page.keyboard.press('e');
   }
   await page.waitForFunction(() => DaviForest.diagnostics().shelter.leafUp);
-  await page.waitForTimeout(1550);
+  if (visualEvidence) {
+    await phase('flip');
+    await page.waitForTimeout(210);
+    await visualFrame('virada');
+    await phase('water');
+    await visualFrame('goteira');
+    await phase('carry');
+    await page.waitForTimeout(535);
+    await visualFrame('transporte');
+    assert.equal(stages[0].basin, stages[1].basin);
+    assert.notEqual(stages[0].basin, stages[2].basin);
+    assert(distance(stages[0].beetle, stages[2].beetle) < .22);
+    assert(distance(stages[0].beetle, stages[3].beetle) > .22);
+  }
+  await phase('rest');
   const changed = (await diag(page)).shelter;
   assert(distance(initial.beetle, changed.beetle) > .65);
   assert(distance(initial.pool, changed.pool) > 1);
   await mark('folha virada');
-  await shot('abrigo');
+  if (visualEvidence) {
+    await visualFrame('abrigo');
+    for (const frame of stages)
+      assert(Math.hypot(...frame.camera.map((v,i)=>v-stages[0].camera[i])) < .002, 'enquadramento fixo');
+  } else await shot('abrigo');
   if(profile) await measure('abrigo');
   if(captureOnly) {
     assert.deepEqual(await (await api.get('/api/world')).json(),before);
     await record();
     return;
   }
+  if (visualEvidence) await page.waitForTimeout(850);
   await leave();
-  await walk(-6, -1.8);
-  await walk(-4, -4.7);
-  await walk(0, -7);
-  await mark('garganta');
-  assert.match((await diag(page)).region, /Garganta/);
-  await walk(3, -5.7);
-  await walk(6.3, -3.1);
-  await walk(7, .3);
-  await walk(5.4, 3.2);
-  await walk(2.4, 5);
-  await press('forest-camera');
+  if (shortRevisit) {
+    await mark('fora do recanto');
+  } else {
+    await walk(-6, -1.8);
+    await walk(-4, -4.7);
+    await walk(0, -7);
+    await mark('garganta');
+    assert.match((await diag(page)).region, /Garganta/);
+    await walk(3, -5.7);
+    await walk(6.3, -3.1);
+    await walk(7, .3);
+    await walk(5.4, 3.2);
+    await walk(2.4, 5);
+    await walk(-1, 4.2);
+    await walk(-5.3, 2.1);
+  }
+  if (visualEvidence) await action('forest-camera').evaluate(button => button.click());
+  else await press('forest-camera');
   await page.waitForTimeout(850);
-  await walk(-1, 4.2);
-  await walk(-5.3, 2.1);
   await enter();
   await page.waitForTimeout(1550);
   await mark('retorno ao tronco');
   await expectShelter(changed);
+  if (visualEvidence) {
+    await visualFrame('revisita');
+    assert(Math.hypot(...stages.at(-1).camera.map((v,i)=>v-stages[0].camera[i])) < .19, 'mesmo enquadramento na volta');
+    await page.waitForTimeout(900);
+    await showHud(true);
+  }
   const where = (await diag(page)).position;
   await press('child-now');
   await page.locator('[data-action=game-learn]').waitFor();
@@ -200,6 +257,11 @@ session(stem, async ({ page, api, guided }) => {
     await page.reload();
     await ready(page);
     await expectShelter(changed);
+    if (visualEvidence) {
+      await showHud(false);
+      await visualFrame('reduzido');
+      await showHud(true);
+    }
     await press('forest-nearby');
     await page.waitForFunction(() => !DaviForest.diagnostics().shelter.leafUp);
     await expectShelter(initial);
@@ -215,5 +277,5 @@ session(stem, async ({ page, api, guided }) => {
   assert.deepEqual(after, before);
   assert.deepEqual((await agenda()).find((item) => item.id === guided.id), beforeEvent);
   await record();
-}, !mobile && !captureOnly, { stars: 0, viewport: { width, height }, videoSize: { width, height }, videoFps: 24 })
+}, (visualEvidence || !mobile) && !captureOnly, { stars: 0, viewport: { width, height }, videoSize: { width, height }, videoFps: 24 })
   .catch((error) => { console.error(error); process.exitCode = 1; });

@@ -100,8 +100,8 @@ BOUGHS = [
     ([(-.24, -.18, 3.83), (-.08, -.94, 4.32), (.51, -1.35, 4.96)], [.17, .098, .025]),
     ([(-.36, -.14, 4.04), (-.83, .66, 4.58), (-1.45, 1.37, 5.17)], [.16, .095, .028]),
 ]
-CROWN = [(-2.08, -.7, 4.55, 1.38, 1.21, .91), (-1.11, -.96, 4.94, 1.33, 1.21, 1.07),
-         (.40, -1.32, 5.17, 1.45, 1.10, .86), (1.49, .98, 4.84, 1.39, 1.46, 1.0),
+CROWN = [(-2.08, -.7, 4.67, 1.25, 1.19, .70), (-1.11, -.96, 4.94, 1.29, 1.21, .89),
+         (.40, -1.32, 5.17, 1.42, 1.10, .76), (1.49, .98, 4.99, 1.28, 1.35, .77),
          (-1.20, 1.04, 5.42, 1.65, 1.34, 1.08), (-.16, .06, 5.93, 1.47, 1.36, 1.05)]
 
 
@@ -109,8 +109,9 @@ def crown_lobe(model, center, scales, hue, seed, tuft=False):
     x, y, z = center
     sx, sy, sz = scales
     rings, colors = [], []
-    outline = [(-.86, .19), (-.56, .69), (.05, .99), (.52, .95), (.92, .46), (1.0, .07),
-               (.70, -.54), (.35, -.91), (-.23, -.96), (-.65, -.66), (-1.02, -.25)]
+    outline = [(-.95, .24), (-.66, .52), (-.53, .80), (-.04, 1.01), (.32, .81), (.65, .89),
+               (.82, .56), (1.00, .28), (.89, .02), (1.01, -.24), (.63, -.58), (.53, -.87),
+               (.10, -.99), (-.23, -.84), (-.61, -.91), (-.74, -.56), (-1.04, -.29)]
     rng = random.Random(seed)
     for j, (h, radius, offset) in enumerate([(-.85,.32,-.12), (-.40,.83,.09), (.16,1,.02),
                                              (.51,.89,-.13), (.82,.52,-.22), (1,.16,-.27)]):
@@ -118,10 +119,13 @@ def crown_lobe(model, center, scales, hue, seed, tuft=False):
                  y+sy*(v*radius+.13*math.sin(j+2*u)),
                  z+sz*(h+.14*math.sin(i*2.3+j*.88))) for i, (u,v) in enumerate(outline)]
         rings.append(list(reversed(rows)))
-        colors.append([paint(hue, .63+j*.087+rng.uniform(-.13,.13)) for _ in rows])
+        colors.append([paint(hue, .77+j*.067+.08*math.sin(i*1.71+seed)+rng.uniform(-.10,.10))
+                       for i in range(len(rows))])
         if tuft and j in (1, 2, 3):
             for i, (px, py, pz) in enumerate(rows):
                 u, v = outline[i]
+                if (i+j+seed)%3 == 0:
+                    continue
                 model.blade((px-u*.33, py-v*.33, pz+.17),
                             (px+u*.24, py+v*.24, pz-.13), .14, hue, .11)
     model.rings(rings, colors)
@@ -156,13 +160,15 @@ outline = [(-.87,-.56), (-.23,-.78), (.55,-.69), (1.0,-.26), (.89,.38), (.27,.67
 shale = Sculpture("Ardosia")
 rings, tones = [], []
 for row, (height, spread, shift, tint) in enumerate([
-    (-.26,1.15,.08,"3f5347"), (.06,1.08,.10,"596961"), (.48,.98,-.05,"697a73"),
-    (.58,1.01,-.03,"849186"), (.73,.88,-.06,"53675b"), (1.04,.74,-.14,"84948c"),
-    (1.56,.55,-.22,"89a095"), (1.73,.34,-.24,"9dac91")
+    (-.27,1.12,.04,"434f42"), (.06,1.07,.09,"556148"), (.39,.99,-.01,"748078"),
+    (.52,1.00,-.09,"859086"), (.66,.91,-.12,"687766"), (.98,.81,-.04,"7e8b7c"),
+    (1.37,.61,-.14,"929d87"), (1.62,.38,-.29,"9ea289")
 ]):
-    rings.append([(x*spread+shift, y*spread, height+.14*math.sin(i*2.34+row*.82))
+    rings.append([(x*spread+shift+.09*math.sin(i*1.51+row*.80),
+                   y*spread+.06*math.cos(i*4.07-row*.6),
+                   height+.14*math.sin(i*2.34)+.085*math.cos(i*1.19-row*.91))
                   for i,(x,y) in enumerate(outline)])
-    tones.append([paint("727e4c" if (i+row*2)%7 == 0 else tint, .81+.31*math.sin(i*.95+row*.61)**2)
+    tones.append([paint("798951" if (i+row*2)%7 < 2 else tint, .82+.24*math.sin(i*.95+row*.61)**2)
                   for i in range(len(outline))])
 shale.rings(rings, tones)
 shale.export_mesh(False)
