@@ -868,8 +868,12 @@ async function action(e) {
     else if (a==='child-now-calendar'){state.childSurface='calendar';await child();}
     else if (a==='world-home') {state.childSurface='world';await child();}
     else if(a.startsWith('forest-')) await DaviForest.action(a,b);
-    else if(a==='world-forest'){state.forestMode='3d';try{localStorage.setItem('davi-forest-mode','3d');}catch{}await child();}
-    else if(a==='world-island'){state.forestMode='island';try{localStorage.setItem('davi-forest-mode','island');}catch{}await child();}
+    else if(a==='world-forest'||a==='world-island'){
+      await window.DaviForest?.close();
+      state.forestMode=a==='world-forest'?'3d':'island';
+      try{localStorage.setItem('davi-forest-mode',state.forestMode);}catch{}
+      await child();
+    }
     else if (a==='world-settings') await worldSettings();
     else if (a==='parent-revoke') {
       const h=state.worldConfig.history.find(h=>h.id===b.dataset.credit);

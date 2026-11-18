@@ -1,0 +1,641 @@
+{
+  "cycles": [
+    {
+      "cycle": 1,
+      "width": 360,
+      "key": "ArrowUp",
+      "svgPoint": {
+        "x": 193.5142857142857,
+        "y": 471.11142857142863,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.02191456665477299,
+      "clickError": 0.015262840990938909,
+      "feetError": 0.011999901501509966,
+      "geometries": 63,
+      "textures": 46,
+      "readyMs": 993.6999999880791,
+      "resources": {
+        "documents": 1,
+        "nodes": 212,
+        "jsEventListeners": 68
+      }
+    },
+    {
+      "cycle": 2,
+      "width": 390,
+      "key": "ArrowDown",
+      "svgPoint": {
+        "x": 165.0026486430764,
+        "y": 492.005431639506,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.0024571836071011722,
+      "clickError": 0.01564356478004683,
+      "feetError": 0.011999727491378093,
+      "geometries": 67,
+      "textures": 46,
+      "readyMs": 207.59999999403954
+    },
+    {
+      "cycle": 3,
+      "width": 1366,
+      "key": "ArrowLeft",
+      "svgPoint": {
+        "x": 708.0683712138684,
+        "y": 446.5444110922888,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.020470803643161943,
+      "clickError": 0.015329066842336375,
+      "feetError": 0.011999813844544599,
+      "geometries": 73,
+      "textures": 50,
+      "readyMs": 438.29999999701977
+    },
+    {
+      "cycle": 4,
+      "width": 360,
+      "key": "ArrowRight",
+      "svgPoint": {
+        "x": 165.77054526318705,
+        "y": 465.23529882167014,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.01613644042656985,
+      "clickError": 0.01569845712080271,
+      "feetError": 0.012000081640988744,
+      "geometries": 67,
+      "textures": 46,
+      "readyMs": 188.90000000596046
+    },
+    {
+      "cycle": 5,
+      "width": 390,
+      "key": "ArrowUp",
+      "svgPoint": {
+        "x": 214.67995033958144,
+        "y": 493.144652695068,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.02285787734899233,
+      "clickError": 0.005892218028357422,
+      "feetError": 0.01199999723325415,
+      "geometries": 64,
+      "textures": 46,
+      "readyMs": 201.09999999403954
+    },
+    {
+      "cycle": 6,
+      "width": 1366,
+      "key": "ArrowDown",
+      "svgPoint": {
+        "x": 619.4133464468221,
+        "y": 486.18501221421366,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.01135352518022956,
+      "clickError": 0.0073438959845184585,
+      "feetError": 0.011999702050785377,
+      "geometries": 72,
+      "textures": 50,
+      "readyMs": 238.29999999701977,
+      "resources": {
+        "documents": 1,
+        "nodes": 212,
+        "jsEventListeners": 68
+      }
+    },
+    {
+      "cycle": 7,
+      "width": 360,
+      "key": "ArrowLeft",
+      "svgPoint": {
+        "x": 196.3129339859645,
+        "y": 467.66010399066414,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.015277073806984225,
+      "clickError": 0.006377197442775141,
+      "feetError": 0.01199996372019324,
+      "geometries": 63,
+      "textures": 46,
+      "readyMs": 180.30000001192093
+    },
+    {
+      "cycle": 8,
+      "width": 390,
+      "key": "ArrowRight",
+      "svgPoint": {
+        "x": 169.5443824880707,
+        "y": 466.9538667333652,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.015492615148735954,
+      "clickError": 0.015665035008794848,
+      "feetError": 0.012000095612430053,
+      "geometries": 67,
+      "textures": 46,
+      "readyMs": 175.29999999701977
+    },
+    {
+      "cycle": 9,
+      "width": 1366,
+      "key": "ArrowUp",
+      "svgPoint": {
+        "x": 720.3555007654064,
+        "y": 484.6772536441528,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.027104736847505626,
+      "clickError": 0.006142422480059515,
+      "feetError": 0.011999979434055827,
+      "geometries": 73,
+      "textures": 50,
+      "readyMs": 218.40000000596046
+    },
+    {
+      "cycle": 10,
+      "width": 360,
+      "key": "ArrowDown",
+      "svgPoint": {
+        "x": 158.6403844331268,
+        "y": 489.64777189433096,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.011351113308473167,
+      "clickError": 0.007563571357116537,
+      "feetError": 0.011999708839256246,
+      "geometries": 67,
+      "textures": 46,
+      "readyMs": 177.8999999910593
+    },
+    {
+      "cycle": 11,
+      "width": 390,
+      "key": "ArrowLeft",
+      "svgPoint": {
+        "x": 206.90572498257487,
+        "y": 475.23740738913096,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.020205903813458454,
+      "clickError": 0.006313723563024957,
+      "feetError": 0.011999784221223359,
+      "geometries": 63,
+      "textures": 46,
+      "readyMs": 197,
+      "resources": {
+        "documents": 1,
+        "nodes": 212,
+        "jsEventListeners": 68
+      }
+    },
+    {
+      "cycle": 12,
+      "width": 1366,
+      "key": "ArrowRight",
+      "svgPoint": {
+        "x": 632.4743751196846,
+        "y": 434.52429213440183,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.015498166733531622,
+      "clickError": 0.015664801436391828,
+      "feetError": 0.012000086095720869,
+      "geometries": 72,
+      "textures": 50,
+      "readyMs": 248.3999999910593
+    },
+    {
+      "cycle": 13,
+      "width": 360,
+      "key": "ArrowUp",
+      "svgPoint": {
+        "x": 201.8386736420778,
+        "y": 486.15864847933807,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.021904027178464208,
+      "clickError": 0.015221670656567373,
+      "feetError": 0.011999937911293918,
+      "geometries": 63,
+      "textures": 46,
+      "readyMs": 175.69999998807907
+    },
+    {
+      "cycle": 14,
+      "width": 390,
+      "key": "ArrowDown",
+      "svgPoint": {
+        "x": 164.6223922257034,
+        "y": 494.96511587531114,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.002510547501231871,
+      "clickError": 0.015643305428780674,
+      "feetError": 0.011999703142802604,
+      "geometries": 67,
+      "textures": 46,
+      "readyMs": 164.70000000298023
+    },
+    {
+      "cycle": 15,
+      "width": 1366,
+      "key": "ArrowLeft",
+      "svgPoint": {
+        "x": 708.7800441571381,
+        "y": 445.79369605642825,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.018981547247143297,
+      "clickError": 0.015328405014869366,
+      "feetError": 0.011999798153967317,
+      "geometries": 73,
+      "textures": 50,
+      "readyMs": 200.70000000298023
+    },
+    {
+      "cycle": 16,
+      "width": 360,
+      "key": "ArrowRight",
+      "svgPoint": {
+        "x": 164.58105482281334,
+        "y": 465.3498077276088,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.01546936605217561,
+      "clickError": 0.005698215526532105,
+      "feetError": 0.012000104814411036,
+      "geometries": 67,
+      "textures": 46,
+      "readyMs": 168.29999999701977,
+      "resources": {
+        "documents": 1,
+        "nodes": 217,
+        "jsEventListeners": 68
+      }
+    },
+    {
+      "cycle": 17,
+      "width": 390,
+      "key": "ArrowUp",
+      "svgPoint": {
+        "x": 213.4563479184395,
+        "y": 493.99439271271484,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.022718710339065248,
+      "clickError": 0.015168666425544756,
+      "feetError": 0.011999979660687277,
+      "geometries": 64,
+      "textures": 46,
+      "readyMs": 162.3999999910593
+    },
+    {
+      "cycle": 18,
+      "width": 1366,
+      "key": "ArrowDown",
+      "svgPoint": {
+        "x": 621.7874624640652,
+        "y": 484.60531914807547,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.011355833130215822,
+      "clickError": 0.01561135656895092,
+      "feetError": 0.0119996849315252,
+      "geometries": 72,
+      "textures": 50,
+      "readyMs": 206.80000001192093
+    },
+    {
+      "cycle": 19,
+      "width": 360,
+      "key": "ArrowLeft",
+      "svgPoint": {
+        "x": 195.8002191998232,
+        "y": 467.79829964552096,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.02021684271274754,
+      "clickError": 0.015362117875082059,
+      "feetError": 0.01199995417362118,
+      "geometries": 63,
+      "textures": 46,
+      "readyMs": 168.40000000596046
+    },
+    {
+      "cycle": 20,
+      "width": 390,
+      "key": "ArrowRight",
+      "svgPoint": {
+        "x": 171.070483458211,
+        "y": 467.2685672260084,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.01547014174974839,
+      "clickError": 0.01566504597952752,
+      "feetError": 0.012000081448854893,
+      "geometries": 67,
+      "textures": 46,
+      "readyMs": 146.79999999701977
+    },
+    {
+      "cycle": 21,
+      "width": 1366,
+      "key": "ArrowUp",
+      "svgPoint": {
+        "x": 721.7053508924747,
+        "y": 484.9576793995088,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.02195834004506129,
+      "clickError": 0.005911612369414957,
+      "feetError": 0.01199998159051427,
+      "geometries": 73,
+      "textures": 50,
+      "readyMs": 202,
+      "resources": {
+        "documents": 1,
+        "nodes": 207,
+        "jsEventListeners": 68
+      }
+    },
+    {
+      "cycle": 22,
+      "width": 360,
+      "key": "ArrowDown",
+      "svgPoint": {
+        "x": 158.50938516228288,
+        "y": 489.37064179844623,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.0021088419077138023,
+      "clickError": 0.00694861258891946,
+      "feetError": 0.011999699721390034,
+      "geometries": 67,
+      "textures": 46,
+      "readyMs": 173.5
+    },
+    {
+      "cycle": 23,
+      "width": 390,
+      "key": "ArrowLeft",
+      "svgPoint": {
+        "x": 207.70205852079056,
+        "y": 475.57504219047223,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.015390649013054262,
+      "clickError": 0.00653105267514167,
+      "feetError": 0.011999818094333342,
+      "geometries": 63,
+      "textures": 46,
+      "readyMs": 239.69999998807907
+    },
+    {
+      "cycle": 24,
+      "width": 1366,
+      "key": "ArrowRight",
+      "svgPoint": {
+        "x": 635.6036533981436,
+        "y": 433.7396328660499,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.02045318850694462,
+      "clickError": 0.015699829596234498,
+      "feetError": 0.01200008342052046,
+      "geometries": 72,
+      "textures": 50,
+      "readyMs": 233.8999999910593
+    },
+    {
+      "cycle": 25,
+      "width": 360,
+      "key": "ArrowUp",
+      "svgPoint": {
+        "x": 202.04572749702243,
+        "y": 485.33043115057154,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.02192372350136552,
+      "clickError": 0.015251903404739519,
+      "feetError": 0.011999920356846133,
+      "geometries": 63,
+      "textures": 46,
+      "readyMs": 162.09999999403954
+    },
+    {
+      "cycle": 26,
+      "width": 390,
+      "key": "ArrowDown",
+      "svgPoint": {
+        "x": 165.21222010517937,
+        "y": 495.13352573335976,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.011358349362777914,
+      "clickError": 0.00756850986582027,
+      "feetError": 0.011999735917035598,
+      "geometries": 67,
+      "textures": 46,
+      "readyMs": 182,
+      "resources": {
+        "documents": 1,
+        "nodes": 217,
+        "jsEventListeners": 68
+      }
+    },
+    {
+      "cycle": 27,
+      "width": 1366,
+      "key": "ArrowLeft",
+      "svgPoint": {
+        "x": 708.5459722641665,
+        "y": 444.6665305348983,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.02020872071650164,
+      "clickError": 0.015295065671799928,
+      "feetError": 0.01199977320816556,
+      "geometries": 73,
+      "textures": 50,
+      "readyMs": 246.90000000596046
+    },
+    {
+      "cycle": 28,
+      "width": 360,
+      "key": "ArrowRight",
+      "svgPoint": {
+        "x": 164.50162227147428,
+        "y": 465.7190308895506,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.01613264059699192,
+      "clickError": 0.005906530319091983,
+      "feetError": 0.012000103141765361,
+      "geometries": 67,
+      "textures": 46,
+      "readyMs": 180
+    },
+    {
+      "cycle": 29,
+      "width": 390,
+      "key": "ArrowUp",
+      "svgPoint": {
+        "x": 213.5623447400923,
+        "y": 493.76391376345754,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": 0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.021801422513644322,
+      "clickError": 0.015220825566602345,
+      "feetError": 0.01200000786910059,
+      "geometries": 64,
+      "textures": 46,
+      "readyMs": 174.5
+    },
+    {
+      "cycle": 30,
+      "width": 1366,
+      "key": "ArrowDown",
+      "svgPoint": {
+        "x": 620.0021659848045,
+        "y": 484.39702645106024,
+        "visible": true,
+        "groundVisible": true
+      },
+      "x2": -0.55,
+      "z2": 6.2,
+      "view": "3d",
+      "touchError": 0.003889277023246331,
+      "clickError": 0.01566008364157137,
+      "feetError": 0.011999670910789767,
+      "geometries": 72,
+      "textures": 50,
+      "readyMs": 186.5,
+      "resources": {
+        "documents": 1,
+        "nodes": 212,
+        "jsEventListeners": 68
+      }
+    }
+  ],
+  "transitions": 60,
+  "errors": []
+}

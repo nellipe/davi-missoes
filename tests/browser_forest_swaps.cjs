@@ -35,9 +35,12 @@ session('alternancias', async ({ page, context, errors }) => {
     await page.keyboard.down(held);
     await page.waitForTimeout(110);
     assert((await mode()).keys.length > 0);
-    const at2d = (await mode()).position;
     const oldMap = await map.elementHandle();
-    await page.locator('[data-action=world-forest]').click();
+    const at2d = await page.locator('[data-action=world-forest]').evaluate(button=>{
+      const at=DaviForest.diagnostics().position;
+      button.click();
+      return at;
+    });
     await ready(page);
     await oldMap.evaluate((el) =>
       el.dispatchEvent(new PointerEvent('pointerdown', { clientX: 1, clientY: 1, bubbles: true }))
@@ -53,10 +56,7 @@ session('alternancias', async ({ page, context, errors }) => {
     const start = await diag(page);
     assert.deepEqual(start.keys, []);
     assert.equal(start.target, null);
-    assert(
-      distance(start.position, at2d) <
-        0.14
-    );
+    assert(distance(start.position, at2d) < 0.04, 'o direcional anterior deve parar ao alternar');
     await canvas.scrollIntoViewIfNeeded();
     await canvas.focus();
     const key = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'][i % 4];
