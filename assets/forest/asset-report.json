@@ -3,9 +3,9 @@
   "seed": 1607,
   "assets": {
     "forest.glb": {
-      "bytes": 3333636,
-      "triangles_before_instancing": 135735,
-      "objects": 1153
+      "bytes": 3408380,
+      "triangles_before_instancing": 137391,
+      "objects": 1171
     },
     "activity.glb": {
       "bytes": 81928,
@@ -23,14 +23,14 @@
       "objects": 150
     },
     "davi.glb": {
-      "bytes": 530508,
-      "triangles_before_instancing": 11076,
-      "objects": 20
+      "bytes": 558532,
+      "triangles_before_instancing": 11600,
+      "objects": 24
     },
     "pipo.glb": {
-      "bytes": 153860,
-      "triangles_before_instancing": 3228,
-      "objects": 12
+      "bytes": 189596,
+      "triangles_before_instancing": 4056,
+      "objects": 16
     }
   }
 }

@@ -21,7 +21,7 @@ session('diagnostico', async ({ page, context, parentPassword }) => {
   await panel.getByRole('button', { name: 'Baixar JSON' }).click();
   const report = JSON.parse(await readFile(await (await download).path(), 'utf8'));
   assert.match(report.build.commit, /^[a-f0-9]{40}$/);
-  assert.equal(report.build.version, '0.7B-chibi.1');
+  assert.equal(report.build.version, '0.7B-chibi.2');
   assert.equal(report.device.model, 'Amazon Fire HD 8 (2022)');
   assert.equal(report.firstOpeningView, '3d');
   assert(report.firstOpeningMs > 0);

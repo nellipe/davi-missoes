@@ -3,6 +3,7 @@ import { terrainHeight } from './navigation.mjs';
 import { buildShelter } from './beetle.mjs';
 import { inBosque, installBosque } from './bosque.mjs';
 import { installRegions } from './regions.mjs';
+import { boatProgress } from './boat.mjs';
 
 let layout, grid;
 export function configure(map, seamHeight) {
@@ -311,6 +312,7 @@ export function build(scene, leafUp, library, grain) {
   piece('slab', '#76b9af', -1.38, 0.21, 11.15, 0.82, 0.12, 5.7);
   const boat = new T.Group();
   boat.position.set(-1.38, 0.35, 9);
+  boat.scale.set(1.18, 1, 1.14);
   group.add(boat);
   moving(boat, 'leaf', '#b77432', 0, -0.025, 0, 0.22, 0.085, 0.48);
   for (const sign of [-1, 1]) {
@@ -318,6 +320,8 @@ export function build(scene, leafUp, library, grain) {
     side.rotation.z = sign * 0.45;
   }
   moving(boat, 'slab', '#715c3c', 0, 0.07, 0, 0.027, 0.045, 0.69);
+  const wake=Array.from({length:3},(_,i)=>
+    moving(boat,'leaf','#c4e9d7',0,.018,-.42-i*.16,.29+i*.065,.013,.026));
   // The original treads outside the art sample continue towards the gorge.
   for (const [index, color] of [
     [1, '#8b6241'],
@@ -382,7 +386,7 @@ export function build(scene, leafUp, library, grain) {
     if (list.some((p) => p.shield)) blockers.push({ mesh, list });
   }
   let echoAt = -10,
-    boatAt = 0,
+    boatAt = null,
     echoPending = false;
   const hideMatrix = new T.Matrix4().makeScale(0, 0, 0);
   return {
@@ -390,6 +394,7 @@ export function build(scene, leafUp, library, grain) {
     terrain,
     shelter,
     setEconomy(low) { art.setEconomy(low); regions.setEconomy(low); },
+    living() { return { lowWheel:wheel.rotation.z, lowBoat:boat.position.toArray(), ...regions.living() }; },
     blocksTap(ray, hit) {
       if (art.blocksTap(ray,hit)) return true;
       return blockers.some(({ mesh, list }) =>
@@ -412,11 +417,14 @@ export function build(scene, leafUp, library, grain) {
       regions.interact(id,t);
       return description(id);
     },
-    tick(t, still, camera, hero) {
-      art.clearSight(camera,hero);
-      regions.tick(t,still,hero,camera);
+    tick(t, still, camera, hero, buddy) {
+      art.clearSight(camera,hero,buddy);
+      regions.tick(t,still,hero,camera,buddy);
       if (!still) wheel.rotation.z = -t * 0.65;
-      boat.position.z = 9.0 + (still ? 0.76 : ((t - boatAt) % 7) / 7) * 4.5;
+      const progress=boatProgress(t,boatAt,still,3.6);
+      boat.position.z=10.36+progress*3.31;
+      boat.position.y=still?.35:.35+Math.sin(t*5)*.025;
+      for(const mark of wake)mark.visible=progress>.08;
       const age = t - echoAt;
       pulse.visible = age < 1.8;
       if (echoPending && age > 0.48) {

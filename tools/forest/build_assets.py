@@ -37,6 +37,8 @@ def material(name,h,kind=None,rough=.8,metal=0,emission=0,vertex=False):
 for args in [('Bark','#b99b74','bark'),('Warm timber','#dfaf7e','wood'),('Dark timber','#a38a67','wood'),('Rock','#aebabb','stone'),('Roof moss','#a6b5a2','stone'),('Roof ochre','#be797b','wood'),('Fabric','#e7ede4','cloth'),('Leaf','#72a847',None),('Fern','#4d8f45',None),('Ground','#53814a',None),('Path','#c5a46a',None),('Skin','#f3bc8c',None),('Hair','#4b3028',None),('Hair light','#835138',None),('Teal','#168f9a','cloth'),('Teal light','#65c5bd',None),('Shorts','#666581','cloth'),('Boot','#b3713e',None),('Sole','#4d4436',None),('Gold','#eabe62',None),('Cream','#f9e9bb',None),('White','#fff9e2',None),('Eye','#183c3c',None),('Iris','#28a2a2',None),('Cheek','#e89380',None),('Clay','#c66547',None),('Mushroom','#c46c4a',None),('Lilac','#b0a1d3',None),('Moss','#70924a',None)]:material(*args,vertex=args[0] in ('Leaf','Ground','Path','Moss','Rock'))
 material('Birch','#e8d9ac');material('Bark dark','#68594b');material('Leaf blue','#387e6a',vertex=True);material('Rope','#e1c68b');
 material('Window light','#ffd990',rough=.35,emission=.5);material('Pipo ceramic','#f0e7ca',rough=.39);material('Copper','#c08b59',rough=.4,metal=.3);material('Pipo screen','#123a3d',rough=.25,metal=.2);material('Pipo eye','#b5ffe4',rough=.32,emission=.45)
+material('Tunica','#ecebe7','cloth');material('Manga','#c3efdf');material('Hat felt','#daaa59');material('Hat ribbon','#6b443b')
+material('Cape lining','#7756ae');material('Scarf','#e77a4d');material('Pipo boot','#cd8851')
 def mesh(name,verts,faces,mat,uv=None,pigment=None):
  me=bpy.data.meshes.new(name);me.from_pydata(verts,[],faces);me.update();ob=bpy.data.objects.new(name,me);bpy.context.collection.objects.link(ob);me.materials.append(M[mat])
  for p in me.polygons:p.use_smooth=True
@@ -152,14 +154,23 @@ for j in range(n):
 skirt=mesh('Distant forest valley',vv,ff,'Ground',pigment=lambda v,i:(*color('#3e633d')[:3],1));skirt.parent=env
 
 def boulder(name,x,y,size=1):
- verts=[];faces=[];seg=10;rows=5
+ verts=[];faces=[];seg=10;rows=5;kind=int(abs(x*173+y*317))%3
+ palette=('#a7aaa0','#a4a3af','#adb095')
  for j in range(rows+1):
   a=-pi/2+pi*j/rows
   for i in range(seg+1):
-   b=2*pi*i/seg;r=1+.12*sin(b*3+j*1.7)+.06*cos(b*5-j);verts.append((cos(a)*cos(b)*size*r,cos(a)*sin(b)*size*.78*r,sin(a)*size*.62*r))
+   b=2*pi*i/seg;r=1+.115*sin(b*(3+kind)+j*1.23+kind)+.055*cos(b*5-j)
+   u=cos(a)*cos(b)*size*r+sin(a)*size*(kind-1)*.16
+   v=cos(a)*sin(b)*size*[.82,.72,.96][kind]*r
+   verts.append((u,v,sin(a)*size*[.56,.67,.46][kind]*r+u*(kind-1)*.06))
  for j in range(rows):
   for i in range(seg):a=j*(seg+1)+i;faces.append((a,a+1,a+seg+2,a+seg+1))
- ob=mesh(name,verts,faces,'Rock',pigment=lambda v,i:(*np.array(color('#a5ada0' if v[2]>size*.3 else '#687b78')[:3])*(.85+.18*sin(i*1.7)),1));ob.location=(x,y,height(x,y)+size*.3);ob.parent=env;return ob
+ def tint(v,i):
+  moss=sin(i*.41+kind)+cos(i*.83)>.61 and v[2]>size*.01
+  hue='#879a60' if size>.65 and moss else palette[kind] if v[2]>size*.22 else '#707e76'
+  return (*np.array(color(hue)[:3])*(.89+.11*sin(i*1.7)),1)
+ ob=mesh(name,verts,faces,'Rock',pigment=tint)
+ ob.location=(x,y,height(x,y)+size*.3);ob.parent=env;return ob
 # Layered canyon bedrock, irregular strata and moss lips are modeled, not a flat blue stripe.
 for side in [-1,1]:
  vv=[];ff=[];uu=[]
@@ -236,9 +247,18 @@ for j,(x,y) in enumerate([(-4,-6),(4,-5),(-5,-1),(5,0),(-5,5),(3.8,6),(-2,9),(8,
  defs=[]
  for i in range(35):
   a=random.uniform(0,2*pi);r=random.random()**.5;defs.append(((x+cos(a)*r*.8,y+sin(a)*r*.7,height(x,y)+.25+r*.6),(cos(a),sin(a),.3),random.uniform(.35,.65),.18,.05))
+ bush_hues=('#568c59','#718d55','#558678')
+ if j%3==1:
+  defs=[(base,heading,length,.087,.07) for base,heading,length,_,__ in defs]
  shrub=leaves_mesh('Understory shrub',defs[:14],parent=env)
- crown('Understory velvet',x-.25,y,height(x,y)+.32,.65,.5,.46,'#568c59',env)
- crown('Understory velvet',x+.25,y+.1,height(x,y)+.5,.58,.5,.5,'#7aab65',env)
+ ground=height(x,y)
+ crown('Understory velvet',x-.25,y,ground+[.30,.23,.42][j%3],.65,.48,[.42,.32,.55][j%3],bush_hues[j%3],env)
+ crown('Understory velvet',x+.25,y+.1,ground+[.42,.32,.50][j%3],[.59,.73,.46][j%3],.51,.43,'#85aa69',env)
+ if j%3!=0:
+  for i,(dx,dy,dz) in enumerate([(-.37,-.14,.61),(.27,-.29,.53),(.52,.03,.62)]):
+   bud=ellipsoid('Understory buds',(x+dx,y+dy,ground+dz),(.083,.058,.052),
+                 'Lilac' if j%3==1 else 'Gold',env,segments=8,rings=5)
+   bud['detail']=True
 
 fern=empty('Fern master');defs=[]
 for j in range(5):
@@ -378,7 +398,7 @@ canopy=leaves_mesh('Treehouse crown',defs,parent=house);canopy['wind']=True;curv
 # Expressive original child explorer: custom face topology, swept locks, tailored clothing.
 davi=empty('Davi');parts=[]
 def add(o):parts.append(o);return o
-add(loft('Tailored shirt',[(0,0,.78,.22,.14),(0,0,.9,.24,.15),(0,0,1.12,.28,.16),(0,0,1.3,.26,.13),(0,0,1.36,.13,.1)],'Teal',20,davi,'Spine'));add(loft('Shorts',[(0,0,.63,.22,.15),(0,0,.87,.24,.17)],'Shorts',16,davi,'Root'));add(loft('Neck',[(0,0,1.29,.105,.1),(0,0,1.48,.11,.1)],'Skin',14,davi,'Head'));add(loft('Sculpted face',[(0,0,1.38,.08,.1),(0,-.015,1.42,.21,.18),(0,-.015,1.52,.31,.255),(0,.005,1.68,.345,.275),(0,.02,1.83,.31,.28),(0,.03,1.94,.22,.21),(0,.03,1.99,.03,.035)],'Skin',32,davi,'Head'))
+add(loft('Tailored shirt',[(0,0,.78,.22,.14),(0,0,.9,.24,.15),(0,0,1.12,.28,.16),(0,0,1.3,.26,.13),(0,0,1.36,.13,.1)],'Tunica',20,davi,'Spine'));add(loft('Shorts',[(0,0,.63,.22,.15),(0,0,.87,.24,.17)],'Shorts',16,davi,'Root'));add(loft('Neck',[(0,0,1.29,.105,.1),(0,0,1.48,.11,.1)],'Skin',14,davi,'Head'));add(loft('Sculpted face',[(0,0,1.38,.08,.1),(0,-.015,1.42,.21,.18),(0,-.015,1.52,.31,.255),(0,.005,1.68,.345,.275),(0,.02,1.83,.31,.28),(0,.03,1.94,.22,.21),(0,.03,1.99,.03,.035)],'Skin',32,davi,'Head'))
 for side in [-1,1]:
  label='L' if side<0 else 'R';add(ellipsoid('Ear '+label,(side*.325,.005,1.63),(.075,.065,.12),'Skin',davi,'Head',14,10));add(ellipsoid('Ear fold '+label,(side*.355,-.04,1.64),(.035,.025,.065),'Cheek',davi,'Head',10,8));add(ellipsoid('Sclera '+label,(side*.145,-.251,1.697),(.101,.045,.126),'White',davi,'Head',20,14));add(ellipsoid('Iris '+label,(side*.145,-.291,1.69),(.063,.025,.083),'Iris',davi,'Head',18,12));add(ellipsoid('Pupil '+label,(side*.145,-.313,1.69),(.035,.013,.055),'Eye',davi,'Head',16,10));add(ellipsoid('Eye sparkle '+label,(side*.145-.021,-.327,1.728),(.02,.009,.026),'White',davi,'Head',10,6));add(curve('Upper eyelid '+label,[(side*.145-.096,-.265,1.73),(side*.145,-.29,1.81),(side*.145+.09,-.265,1.73)],.011,'Hair',davi,'Head'));add(curve('Soft brow '+label,[(side*.145-.09,-.24,1.855),(side*.145,-.275,1.875),(side*.145+.08,-.24,1.845)],.022,'Hair',davi,'Head'));add(ellipsoid('Warm cheek '+label,(side*.215,-.233,1.57),(.072,.012,.036),'Cheek',davi,'Head',16,8))
  for i in range(2):add(ellipsoid('Freckle '+label,(side*(.18+i*.035),-.248+i*.007,1.59+(i%2)*.018),(.007,.006,.007),'Hair light',davi,'Head',6,4))
@@ -398,10 +418,28 @@ scarf=mesh('Folded scarf',[(-.06,-.19,1.29),(.08,-.19,1.29),(.1,-.205,1.05),(-.0
 for side in [-1,1]:
  label='L' if side<0 else 'R';x=side*.115;add(loft('Leg '+label,[(x,0,.22,.074,.075),(x,0,.42,.08,.08),(x,0,.68,.095,.09)],'Skin',14,davi,'Leg'+label));add(loft('Shorts leg '+label,[(x,0,.55,.115,.11),(x,0,.77,.12,.12)],'Shorts',14,davi,'Leg'+label));add(loft('Sock '+label,[(x,0,.18,.08,.08),(x,0,.32,.083,.083)],'Cream',14,davi,'Leg'+label));add(loft('Boot '+label,[(x,-.035,.05,.107,.15),(x,-.06,.1,.115,.19),(x,-.025,.2,.10,.155),(x,.0,.27,.08,.08)],'Boot',18,davi,'Foot'+label));add(loft('Boot sole '+label,[(x,-.065,.025,.113,.19),(x,-.065,.08,.116,.192)],'Sole',18,davi,'Foot'+label))
  for k in range(3):add(curve('Boot lace '+label,[(x-.065,-.13+k*.038,.19),(x+.065,-.13+k*.038,.19)],.009,'Cream',davi,'Foot'+label))
- add(tube('Sleeve '+label,[(side*.29,0,1.27),(side*.37,0,1.07)],[.105,.10],'Teal light',davi,'Arm'+label,14));add(tube('Arm '+label,[(side*.35,0,1.15),(side*.39,-.015,.98),(side*.4,-.035,.85)],[.075,.065,.052],'Skin',davi,'Arm'+label,14));add(ellipsoid('Hand '+label,(side*.405,-.035,.81),(.065,.07,.09),'Skin',davi,'Arm'+label,14,10));add(ellipsoid('Thumb '+label,(side*.35,-.065,.83),(.035,.04,.055),'Skin',davi,'Arm'+label,12,8));add(curve('Sleeve stitching '+label,[(side*.31,-.09,1.11),(side*.38,-.09,1.08),(side*.4,-.07,1.06)],.004,'Cream',davi,'Arm'+label))
+ add(tube('Sleeve '+label,[(side*.29,0,1.27),(side*.37,0,1.07)],[.105,.10],'Manga',davi,'Arm'+label,14));add(tube('Arm '+label,[(side*.35,0,1.15),(side*.39,-.015,.98),(side*.4,-.035,.85)],[.075,.065,.052],'Skin',davi,'Arm'+label,14));add(ellipsoid('Hand '+label,(side*.405,-.035,.81),(.065,.07,.09),'Skin',davi,'Arm'+label,14,10));add(ellipsoid('Thumb '+label,(side*.35,-.065,.83),(.035,.04,.055),'Skin',davi,'Arm'+label,12,8));add(curve('Sleeve stitching '+label,[(side*.31,-.09,1.11),(side*.38,-.09,1.08),(side*.4,-.07,1.06)],.004,'Cream',davi,'Arm'+label))
 add(loft('Backpack',[(0,.17,.84,.19,.08),(0,.2,1,.21,.13),(0,.19,1.23,.17,.1),(0,.17,1.28,.09,.05)],'Dark timber',18,davi,'Spine'))
 for side in [-1,1]:add(curve('Pack strap',[(side*.14,.18,1.25),(side*.2,-.13,1.22),(side*.16,-.17,.94)],.022,'Warm timber',davi,'Spine'))
-add(ellipsoid('Compass badge',(-.15,-.174,1.16),(.055,.018,.055),'Gold',davi,'Spine',14,10));hat=loft('Hat',[(0,.02,1.98,.45,.38),(0,.02,2.02,.45,.38),(0,.02,2.06,.3,.27),(0,.02,2.27,.27,.24),(0,.02,2.32,.18,.17)],'Warm timber',24,davi,'Head');cape=loft('Cape',[(0,.23,.68,.29,.025),(0,.25,.95,.25,.035),(0,.2,1.28,.16,.03)],'Lilac',18,davi,'Spine')
+add(ellipsoid('Compass badge',(-.15,-.174,1.16),(.055,.018,.055),'Gold',davi,'Spine',14,10))
+hat=loft('Hat',[(0,.02,1.96,.47,.39),(0,.02,2.00,.48,.40),(0,.02,2.05,.34,.29),
+                (0,.04,2.24,.30,.27),(0,.05,2.31,.22,.20),(0,.05,2.34,.035,.035)],'Hat felt',24,davi,'Head')
+hat_band=loft('Hat_band',[(0,.022,2.071,.345,.303),(0,.027,2.13,.331,.293)],'Hat ribbon',24,davi,'Head')
+hat_pin=ellipsoid('Hat_pin',(-.14,-.246,2.10),(.063,.022,.053),'Gold',davi,'Head',12,8)
+
+# A shaped mantle wraps the shoulders and clears the backpack as it flares at the hem.
+cape_rows=[
+ [(-.245,-.065,1.28),(-.224,.19,1.31),(0,.30,1.32),(.224,.19,1.31),(.245,-.065,1.28)],
+ [(-.365,.035,1.12),(-.30,.34,1.14),(0,.425,1.15),(.30,.34,1.14),(.365,.035,1.12)],
+ [(-.43,.13,.81),(-.25,.35,.71),(0,.40,.72),(.28,.36,.73),(.43,.15,.83)],
+ [(-.45,.16,.64),(-.27,.40,.57),(0,.46,.61),(.29,.40,.59),(.46,.20,.67)],
+]
+cape=mesh('Cape',[point for row in cape_rows for point in row],
+          [(i,i+1,i+6,i+5) for i in range(15) if i%5!=4],'Lilac')
+cape.parent=davi;bind(cape,'Spine')
+cape_hem=curve('Cape_hem',cape_rows[-1],.019,'Cape lining',davi,'Spine')
+cape_clasp=curve('Cape_clasp',[(-.27,-.095,1.25),(-.14,-.159,1.22),(.04,-.177,1.23),(.25,-.102,1.25)],.023,'Cape lining',davi,'Spine')
+costume=[hat,hat_band,hat_pin,cape,cape_hem,cape_clasp]
 # Warp the surfaces and their rest rig together, keeping the existing clips and names.
 def chibi_point(point, pilot):
  x,y,z=point
@@ -457,26 +495,39 @@ def rig_character(root,parts,bones,clips):
       if name=='Head':p.rotation_euler.z=.035*sin(phase*.5)
       if name.startswith('Arm'):p.rotation_euler.y=(.04+.025*sin(phase))*(1 if name.endswith('L') else -1)
     else:
-     if name=='Root':p.location.z=(abs(sin(phase))*.025 if clip=='Walk' else sin(phase)*.012);p.rotation_euler.y=sin(phase)*.035
-     if name.startswith('Leg') and clip=='Walk':p.rotation_euler.x=sin(phase+(0 if name.endswith('L') else pi))*.5
-     if name.startswith('Wing'):p.rotation_euler.y=sin(phase*2)*.25*(1 if name.endswith('L') else -1)
-     if name=='Head':p.rotation_euler.z=sin(phase)*.08
+     if name=='Root':p.rotation_euler.y=sin(phase)*.043
+     if name.startswith('Leg') and clip=='Walk':
+      stride=phase+(0 if name.endswith('L') else pi)
+      local_axes=p.bone.matrix_local.to_3x3().inverted()
+      p.location=local_axes @ Vector((0,.082*cos(stride),.092*max(0,sin(stride))))
+      p.rotation_euler.x=.61*cos(stride)
+     if name.startswith('Wing'):p.rotation_euler.y=sin(phase*(2 if clip=='Walk' else 1))*.17*(1 if name.endswith('L') else -1)
+     if name=='Head':p.rotation_euler.z=sin(phase)*(.065 if clip=='Walk' else .087)
     p.keyframe_insert('rotation_euler',frame=frame);p.keyframe_insert('location',frame=frame)
   arm.animation_data.action=None;track=arm.animation_data.nla_tracks.new();track.name=clip;track.strips.new(clip,1,action)
  bpy.context.scene.frame_set(1);return arm
 bones=[('Root',(0,0,.72),(0,0,.9),None),('Spine',(0,0,.9),(0,0,1.32),'Root'),('Head',(0,0,1.32),(0,0,1.8),'Spine'),('LegL',(-.115,0,.7),(-.115,0,.24),'Root'),('LegR',(.115,0,.7),(.115,0,.24),'Root'),('FootL',(-.115,0,.24),(-.115,-.2,.08),'LegL'),('FootR',(.115,0,.24),(.115,-.2,.08),'LegR'),('ArmL',(-.27,0,1.27),(-.4,0,.85),'Spine'),('ArmR',(.27,0,1.27),(.4,0,.85),'Spine')]
-chibi_shapes(parts+[hat,cape],'Davi')
-rig_character(davi,merge_skin(parts+[hat,cape],davi),chibi_bones(bones,'Davi'),[('Idle',91),('Walk',25),('Wave',61)]);export(davi,'davi.glb',True)
+chibi_shapes(parts+costume,'Davi')
+rig_character(davi,merge_skin(parts+costume,davi),chibi_bones(bones,'Davi'),[('Idle',91),('Walk',25),('Wave',61)]);export(davi,'davi.glb',True)
 pipo=empty('Pipo');parts=[]
 add(loft('Pipo sculpted torso',[(0,0,.17,.09,.08),(0,0,.21,.18,.14),(0,0,.4,.22,.16),(0,0,.6,.15,.12)],'Teal light',24,pipo,'Root'));add(loft('Pipo head shell',[(0,0,.56,.12,.11),(0,0,.59,.29,.2),(0,0,.8,.32,.22),(0,0,.94,.24,.19),(0,0,.98,.07,.06)],'Pipo ceramic',28,pipo,'Head'));add(loft('Pipo eye visor',[(0,-.18,.64,.22,.045),(0,-.2,.76,.24,.055),(0,-.17,.86,.2,.04)],'Pipo screen',24,pipo,'Head'))
 for side in [-1,1]:
- label='L' if side<0 else 'R';add(ellipsoid('Pipo expressive eye '+label,(side*.115,-.255,.76),(.052,.015,.072),'Pipo eye',pipo,'Head',16,10));add(ellipsoid('Pipo eye highlight '+label,(side*.115-.012,-.271,.786),(.014,.007,.018),'White',pipo,'Head',8,6));add(ellipsoid('Pipo ear joint '+label,(side*.3,0,.74),(.065,.08,.09),'Copper',pipo,'Head',14,10));wing=leaves_mesh('Pipo leaf fin '+label,[((side*.22,.01,.48),(side*.7,.1,.55),.42,.105,.025)],'Teal',pipo);bind(wing,'Wing'+label);add(wing);add(tube('Pipo articulated foot '+label,[(side*.1,0,.25),(side*.14,-.03,.11),(side*.15,-.09,.07)],[.045,.04,.025],'Copper',pipo,'Leg'+label,10))
-add(ellipsoid('Pipo lantern heart',(0,-.15,.4),(.095,.035,.1),'Window light',pipo,'Root',16,10));add(curve('Pipo antenna',[(0,0,.94),(.04,0,1.1),(.11,0,1.15)],.018,'Copper',pipo,'Head'));add(ellipsoid('Pipo antenna seed',(.11,0,1.15),(.05,.045,.06),'Gold',pipo,'Head',14,10));parts.append(loft('Buddy scarf',[(0,0,.57,.2,.15),(0,0,.6,.22,.16)],'Clay',20,pipo,'Root'));add(ellipsoid('Pipo smile',(0,-.232,.684),(.058,.021,.025),'Pipo eye',pipo,'Head',12,8));chibi_shapes(parts,'Pipo');rig_character(pipo,merge_skin(parts,pipo),chibi_bones([('Root',(0,0,.3),(0,0,.55),None),('Head',(0,0,.55),(0,0,.9),'Root'),('WingL',(-.2,0,.45),(-.45,0,.7),'Root'),('WingR',(.2,0,.45),(.45,0,.7),'Root'),('LegL',(-.1,0,.25),(-.15,-.09,.07),'Root'),('LegR',(.1,0,.25),(.15,-.09,.07),'Root')],'Pipo'),[('Hover',73),('Walk',25)]);export(pipo,'pipo.glb',True)
+ label='L' if side<0 else 'R';add(ellipsoid('Pipo expressive eye '+label,(side*.115,-.255,.76),(.052,.015,.072),'Pipo eye',pipo,'Head',16,10));add(ellipsoid('Pipo eye highlight '+label,(side*.115-.012,-.271,.786),(.014,.007,.018),'White',pipo,'Head',8,6));add(ellipsoid('Pipo ear joint '+label,(side*.3,0,.74),(.065,.08,.09),'Copper',pipo,'Head',14,10));wing=leaves_mesh('Pipo leaf fin '+label,[((side*.22,.01,.48),(side*.7,.1,.55),.42,.105,.025)],'Teal',pipo);bind(wing,'Wing'+label);add(wing);add(tube('Pipo articulated foot '+label,[(side*.1,0,.25),(side*.14,-.03,.11),(side*.15,-.09,.07)],[.045,.048,.037],'Pipo boot',pipo,'Leg'+label,10))
+ add(ellipsoid('Pipo toe '+label,(side*.15,-.113,.068),(.074,.104,.051),'Pipo boot',pipo,'Leg'+label,14,8))
+add(ellipsoid('Pipo lantern heart',(0,-.15,.4),(.095,.035,.1),'Window light',pipo,'Root',16,10));add(curve('Pipo antenna',[(0,0,.94),(.04,0,1.1),(.11,0,1.15)],.018,'Copper',pipo,'Head'));add(ellipsoid('Pipo antenna seed',(.11,0,1.15),(.05,.045,.06),'Gold',pipo,'Head',14,10))
+scarf=[
+ loft('Buddy scarf',[(0,-.025,.52,.235,.208),(0,-.029,.55,.252,.224),(0,-.019,.595,.244,.214)],'Scarf',20,pipo,'Root'),
+ ellipsoid('Buddy scarf knot',(.16,-.233,.55),(.091,.038,.057),'Scarf',pipo,'Root',12,8),
+ tube('Buddy scarf tail',[(.19,-.242,.546),(.233,-.257,.465),(.30,-.20,.39)],[.046,.05,.046],'Scarf',pipo,'Root',10),
+ tube('Buddy scarf fringe',[(.193,-.241,.521),(.17,-.264,.446),(.19,-.246,.39)],[.034,.043,.041],'Cream',pipo,'Root',10),
+]
+parts.extend(scarf)
+add(ellipsoid('Pipo smile',(0,-.232,.684),(.058,.021,.025),'Pipo eye',pipo,'Head',12,8));chibi_shapes(parts,'Pipo');rig_character(pipo,merge_skin(parts,pipo),chibi_bones([('Root',(0,0,.3),(0,0,.55),None),('Head',(0,0,.55),(0,0,.9),'Root'),('WingL',(-.2,0,.45),(-.45,0,.7),'Root'),('WingR',(.2,0,.45),(.45,0,.7),'Root'),('LegL',(-.1,0,.25),(-.15,-.09,.07),'Root'),('LegR',(.1,0,.25),(.15,-.09,.07),'Root')],'Pipo'),[('Hover',73),('Walk',25)]);export(pipo,'pipo.glb',True)
 # Editable authoring scene as well as the reproducible source and exported game assets.
 for root in [env,bridge,house,davi,pipo]:
  for ob in children(root):ob.hide_set(False);ob.hide_render=False
 # Accessories are optional, so the authoring overview starts without them.
-hat.hide_set(True);cape.hide_set(True)
+for piece in costume+scarf:piece.hide_set(True)
 davi.location=(0,-4.5,height(0,-4.5));pipo.location=(-.8,-4.8,height(-.8,-4.8))
 camera_data=bpy.data.cameras.new('Art review camera');camera=bpy.data.objects.new('Art review camera',camera_data);bpy.context.collection.objects.link(camera);camera.location=(6.8,-14.4,15.2);camera.rotation_euler=(Vector((0,-3.3,.9))-camera.location).to_track_quat('-Z','Y').to_euler();camera_data.lens=42;bpy.context.scene.camera=camera
 light_data=bpy.data.lights.new('Afternoon sun','AREA');light=bpy.data.objects.new('Afternoon sun',light_data);bpy.context.collection.objects.link(light);light.location=(-12,-10,24);light.rotation_euler=(Vector((0,0,0))-light.location).to_track_quat('-Z','Y').to_euler();light_data.energy=2100;light_data.shape='DISK';light_data.size=8;light_data.color=(1,.87,.64)

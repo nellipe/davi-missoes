@@ -23,7 +23,7 @@ import forest
 import schedule_window as timing
 
 ROOT = Path(__file__).resolve().parent
-APP_VERSION = '0.7B-chibi.1'
+APP_VERSION = '0.7B-chibi.2'
 
 
 def checkout_commit(root):

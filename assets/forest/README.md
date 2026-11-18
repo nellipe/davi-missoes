@@ -7,9 +7,9 @@ Os arquivos deste diretório são disponibilizados sob CC0-1.0: https://creative
 - `forest.glb`: terreno esculpido, leito rochoso, vegetação com folhas/frondes modeladas, placas, baú e lanternas.
 - `bridge.glb`: tábuas curvas com grão de madeira, pegas, cordas amarradas e vigas.
 - `treehouse.glb`: tronco/raízes, varanda, escada, painéis, telhas, porta, janela e copa.
-- `davi.glb`: personagem original, cabeça ampliada, olhos em relevo, vestuário e botinas modeladas. O esqueleto acompanha as novas proporções e mantém os clips Idle, Walk e Wave.
-- `pipo.glb`: companheiro original com corpo cerâmico, visor expressivo, antena, barbatanas e pernas articuladas. Clips Hover (repouso) e Walk.
-- `bosque.glb` e `bosque-authoring.blend`: copas, troncos, rochas e vegetação compartilhada entre as regiões. A versão econômica reutiliza o mesmo tronco e usa copas esculpidas com menos vértices.
+- `davi.glb`: personagem original, cabeça ampliada, olhos em relevo, vestuário e botinas modeladas. O esqueleto mantém os clips Idle, Walk e Wave. A túnica usa tecido neutro para receber o pigmento Menta, Sol ou Azul. Chapéu e capa têm malhas próprias no esqueleto.
+- `pipo.glb`: companheiro original com corpo cerâmico, visor expressivo, antena, barbatanas e botas articuladas. Clips Hover (repouso) e Walk com passada alternada. O lenço tem nó e pontas separados do casco.
+- `bosque.glb` e `bosque-authoring.blend`: Carvalho, Amieiro e Aveleira têm troncos e copas próprios. Ardósia, seixo com musgo e pedra fendida compartilham o material de pigmentos por vértice com samambaias, mirtilos e azaleias. A versão econômica reutiliza troncos e emprega copas esculpidas com menos vértices.
 - `forest-authoring.blend`: cena editável, câmera, materiais, rig e animações.
 - PNGs locais: fontes de albedo e normais embutidas nos GLBs.
 

@@ -3,7 +3,7 @@
   "results": [
     {
       "asset": "forest.glb",
-      "bytes": 3333636,
+      "bytes": 3408380,
       "errors": 0,
       "warnings": 1,
       "messages": [
@@ -38,22 +38,10 @@
     },
     {
       "asset": "davi.glb",
-      "bytes": 530508,
+      "bytes": 558532,
       "errors": 0,
-      "warnings": 22,
+      "warnings": 25,
       "messages": [
-        {
-          "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
-          "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
-          "severity": 1,
-          "pointer": "/meshes/4/primitives/0/material"
-        },
-        {
-          "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
-          "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
-          "severity": 1,
-          "pointer": "/meshes/8/primitives/0/material"
-        },
         {
           "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
           "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
@@ -64,7 +52,13 @@
           "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
           "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
           "severity": 1,
-          "pointer": "/meshes/15/primitives/0/material"
+          "pointer": "/meshes/17/primitives/0/material"
+        },
+        {
+          "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
+          "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
+          "severity": 1,
+          "pointer": "/meshes/20/primitives/0/material"
         },
         {
           "code": "NODE_SKINNED_MESH_NON_ROOT",
@@ -173,14 +167,38 @@
           "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
           "severity": 1,
           "pointer": "/nodes/26"
+        },
+        {
+          "code": "NODE_SKINNED_MESH_NON_ROOT",
+          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
+          "severity": 1,
+          "pointer": "/nodes/27"
+        },
+        {
+          "code": "NODE_SKINNED_MESH_NON_ROOT",
+          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
+          "severity": 1,
+          "pointer": "/nodes/28"
+        },
+        {
+          "code": "NODE_SKINNED_MESH_NON_ROOT",
+          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
+          "severity": 1,
+          "pointer": "/nodes/29"
+        },
+        {
+          "code": "NODE_SKINNED_MESH_NON_ROOT",
+          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
+          "severity": 1,
+          "pointer": "/nodes/30"
         }
       ]
     },
     {
       "asset": "pipo.glb",
-      "bytes": 153860,
+      "bytes": 189596,
       "errors": 0,
-      "warnings": 10,
+      "warnings": 14,
       "messages": [
         {
           "code": "NODE_SKINNED_MESH_NON_ROOT",
@@ -241,6 +259,30 @@
           "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
           "severity": 1,
           "pointer": "/nodes/15"
+        },
+        {
+          "code": "NODE_SKINNED_MESH_NON_ROOT",
+          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
+          "severity": 1,
+          "pointer": "/nodes/16"
+        },
+        {
+          "code": "NODE_SKINNED_MESH_NON_ROOT",
+          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
+          "severity": 1,
+          "pointer": "/nodes/17"
+        },
+        {
+          "code": "NODE_SKINNED_MESH_NON_ROOT",
+          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
+          "severity": 1,
+          "pointer": "/nodes/18"
+        },
+        {
+          "code": "NODE_SKINNED_MESH_NON_ROOT",
+          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
+          "severity": 1,
+          "pointer": "/nodes/19"
         }
       ]
     },
@@ -253,7 +295,7 @@
     },
     {
       "asset": "bosque.glb",
-      "bytes": 274816,
+      "bytes": 428980,
       "errors": 0,
       "warnings": 0,
       "messages": []

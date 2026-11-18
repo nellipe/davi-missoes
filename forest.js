@@ -4,9 +4,12 @@ import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "/vendor/three/addons/utils/SkeletonUtils.js";
 import { mergeGeometries } from "/vendor/three/addons/utils/BufferGeometryUtils.js";
 import { walkable as validPosition, terrainHeight, route, advance } from '/assets/forest/navigation.mjs';
+import { applyOutfit, colors, drawOutfit, outfitDiagnostics, portrait, worn } from '/assets/forest/wardrobe.mjs';
+import { createSight } from '/assets/forest/sight.mjs';
 let Trail;
 let trailScene=null, trailLoading=null, currentRegion='', legacy=null, map2d=null;
-const localCamera=new T.Vector3(), localHero=new T.Vector3();
+const localCamera=new T.Vector3(), localHero=new T.Vector3(), localBuddy=new T.Vector3();
+const clearingSight=createSight();
 const trailX=(x)=>x-data.map.trailOffset;
 const beyondSeam=(x)=>x>=data.map.seam;
 let buddyHead=null, reactUntil=0;
@@ -46,6 +49,9 @@ let host,
   terrain;
 let pipoActions = {},
   pipoClip = "Hover";
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+let motionChoice='full', systemMotionReduced=false;
+let wardrobeBack=false, outfitPending=null;
 let mixers = [],
   actions = {},
   clip = "Idle",
@@ -149,6 +155,26 @@ function groundHit(ray, includeDeck=true) {
 function blockedTap(ray,hit) {
   return beyondSeam(hit.point.x) && trailScene?.blocksTap(ray,hit);
 }
+function characterFraming() {
+  if(!camera||!player||!pipo)return null;
+  const scenery=[];
+  scene.traverseVisible(o=>{
+    if(!o.isMesh||o===terrain||o===trailScene?.terrain||o.material?.isShaderMaterial||o.material?.opacity<.15)return;
+    for(let parent=o;parent;parent=parent.parent)if(parent===player||parent===pipo)return;
+    scenery.push(o);
+  });
+  const ray=new T.Raycaster();
+  function sample(actor,heights) {
+    return heights.map(height=>{
+      const point=actor.position.clone().add(new T.Vector3(0,height,0));
+      const projected=point.clone().project(camera);
+      ray.set(camera.position,point.clone().sub(camera.position).normalize());
+      ray.far=camera.position.distanceTo(point)-.055;
+      return {x:projected.x,y:projected.y,clear:!ray.intersectObjects(scenery,false).length};
+    });
+  }
+  return {davi:sample(player,[.74,1.28,1.58]),pipo:sample(pipo,[.32,.65,.87])};
+}
 function paintBank() {
   const source=terrain.geometry.getAttribute('color');
   if(source){
@@ -215,7 +241,7 @@ function supportTable(name, root, mixer, list) {
 function supportHeight(table, list) {
   let height=0,weight=0;
   for(const [name,action] of Object.entries(list)) {
-    const samples=table?.[name],w=action.isRunning()?action.getEffectiveWeight():0;
+    const samples=table?.[name],w=action.isScheduled()?action.getEffectiveWeight():0;
     if(!samples||!w)continue;
     const phase=(action.time/action.getClip().duration%1)*24,i=Math.floor(phase);
     height+=(samples[i]+(samples[i+1]-samples[i])*(phase-i))*w;weight+=w;
@@ -237,6 +263,16 @@ function store(key, value) {
   try {
     localStorage.setItem("davi-forest-" + key, String(value));
   } catch {}
+}
+function syncMotion() {
+  systemMotionReduced=reducedMotion.matches;
+  still=motionChoice==='reduced'||systemMotionReduced;
+  const status=document.getElementById('forestMotionStatus');
+  if(status)status.textContent=systemMotionReduced
+    ? 'Movimento reduzido pela preferência do aparelho.'
+    : still?'Animações reduzidas neste navegador.':'Animações ativadas.';
+  const badge=document.getElementById('forestMotionBadge');
+  if(badge)badge.hidden=!still;
 }
 async function assets() {
   return Promise.all(['forest','bridge','treehouse','davi','pipo','activity'].map(asset));
@@ -495,7 +531,7 @@ function motes() {
 function layout() {
   const now = '<button class="f-button forest-now" type="button" data-action="child-now">Agora</button>';
   const options = button("☷","options",'aria-label="Opções do mundo"');
-  const chapter='<header class="trail-hud"><div><small>Floresta Encantada</small><h1 id="forestRegion"></h1></div><div class="forest-tools">'+now+options+'</div></header>';
+  const chapter='<header class="trail-hud"><div><small>Floresta Encantada</small><h1 id="forestRegion"></h1><small id="forestMotionBadge" hidden>Movimento reduzido</small></div><div class="forest-tools">'+now+options+'</div></header>';
   const cameraTools=map2d?'':button("↶","rotate",'data-turn="-1" aria-label="Girar câmera à esquerda"')
     +button("⌖","camera",'aria-label="Centralizar câmera"')+button("↷","rotate",'data-turn="1" aria-label="Girar câmera à direita"');
   const directions = [["up","↑","frente"],["left","←","esquerda"],["down","↓","trás"],["right","→","direita"]]
@@ -586,21 +622,7 @@ function syncOwned() {
     o.visible =
       owned("house") || /Ancient|House_roots|Treehouse_crown/.test(o.name);
   });
-  player.traverse((o) => {
-    if (o.isMesh) {
-      if (/^Hat/.test(o.name)) o.visible = owned("hat") && !!data.economy.avatar.hat;
-      if (/^Cape/.test(o.name)) o.visible = owned("cape") && !!data.economy.avatar.cape;
-      if (o.material?.name === "Teal")
-        o.material.color.set(
-          { mint: "#258f8a", sun: "#c79946", sky: "#4c87ad" }[
-            data.economy.avatar.color
-          ],
-        );
-    }
-  });
-  pipo.traverse((o) => {
-    if (o.isMesh && /^Buddy_scarf/.test(o.name)) o.visible = owned("buddy") && !!data.economy.avatar.buddy;
-  });
+  applyOutfit(player,pipo,data.economy);
   const star = document.querySelector(".forest-wallet strong");
   if (star) star.textContent = data.economy.stars;
 }
@@ -679,6 +701,8 @@ function animateClip(next) {
 function updateCamera(dt = 1) {
   const pos = player.position,
     follow = pos.clone().add(new T.Vector3(0, 0.9, 0));
+  follow.x+=(pipo.position.x-pos.x)*.14;
+  follow.z+=(pipo.position.z-pos.z)*.14;
   // A small pullback at the fork keeps both treads in the portrait frame.
   const portraitTrail=beyondSeam(pos.x) && camera.aspect<.85;
   const x=trailX(pos.x);
@@ -698,18 +722,9 @@ function updateCamera(dt = 1) {
   camera.position.lerp(follow.clone().add(offset), Math.min(1, dt * 4));
   camera.lookAt(look);
   camera.updateMatrixWorld();
-  const hero = player.position.clone().add(new T.Vector3(0, 1, 0)),
-    ray = new T.Ray(
-      camera.position,
-      hero.clone().sub(camera.position).normalize(),
-    ),
-    length = camera.position.distanceTo(hero);
+  clearingSight.update(camera.position,player.position,pipo.position);
   for (const c of canopies) {
-    const hit = ray.intersectSphere(
-        new T.Sphere(c.sphere.center, c.sphere.radius + 0.7),
-        new T.Vector3(),
-      ),
-      blocked = !!hit && camera.position.distanceTo(hit) < length;
+    const blocked=clearingSight.covers(c.sphere.center,c.sphere.radius,.28);
     const goal = blocked ? 0 : 1;
     c.object.material.opacity = T.MathUtils.lerp(
       c.object.material.opacity,
@@ -718,11 +733,9 @@ function updateCamera(dt = 1) {
     );
     c.object.visible = c.object.material.opacity > 0.035;
   }
-  for(const {object,sphere} of legacySight){
-    const hit=ray.intersectSphere(sphere,new T.Vector3());
+  for(const {object,sphere,passage} of legacySight){
     const atPassage=pos.x>12 && pos.x<19.5 && pos.z>3.3 && pos.z<8.1;
-    object.visible=!atPassage && !sphere.containsPoint(camera.position) &&
-      (!hit || camera.position.distanceTo(hit)>=length);
+    object.visible=!(passage&&atPassage) && !clearingSight.covers(sphere.center,sphere.radius,.14);
   }
 }
 function tick(now) {
@@ -736,6 +749,7 @@ function tick(now) {
   const dt = Math.min(rawMs / 1000, 0.05);
   last = now;
   clock += dt;
+  if(systemMotionReduced!==reducedMotion.matches)syncMotion();
   let dx = 0,
     dz = 0;
   if (!modal) {
@@ -775,7 +789,10 @@ function tick(now) {
   const oldBuddy={x:pipo.position.x,z:pipo.position.z};
   const desired={x:player.position.x-.7,z:player.position.z+.55};
   const goal=walkable(desired.x,desired.z)?desired:{x:player.position.x,z:player.position.z};
-  const buddy=advance(oldBuddy,{x:goal.x-oldBuddy.x,z:goal.z-oldBuddy.z},Math.hypot(goal.x-oldBuddy.x,goal.z-oldBuddy.z)>.18?2.3*dt:0,walkable);
+  const buddyDelta={x:goal.x-oldBuddy.x,z:goal.z-oldBuddy.z};
+  const buddyGap=Math.hypot(buddyDelta.x,buddyDelta.z);
+  const budget=buddyGap>(moving?.005:.06)?Math.min(buddyGap,2.3*dt):0;
+  const buddy=advance(oldBuddy,buddyDelta,budget,walkable);
   pipo.position.x=buddy.x;pipo.position.z=buddy.z;
   const buddyMoving=Math.hypot(buddy.x-oldBuddy.x,buddy.z-oldBuddy.z)>.00001;
   const buddyClip = buddyMoving ? "Walk" : "Hover";
@@ -784,9 +801,11 @@ function tick(now) {
     pipoActions[buddyClip]?.reset().fadeIn(0.2).play();
     pipoClip = buddyClip;
   }
-  animateClip(moving ? "Walk" : waving > clock ? "Wave" : "Idle");
+  animateClip(moving ? "Walk" : !still && waving > clock ? "Wave" : "Idle");
   if(buddyHead)buddyHead.quaternion.copy(headBase);
-  mixers.forEach((m) => m.update(still && !moving && !buddyMoving ? 0 : dt));
+  if(actions.Idle)actions.Idle.paused=still;
+  if(pipoActions.Hover)pipoActions.Hover.paused=still;
+  mixers.forEach((m) => m.update(dt));
   if(buddyHead){
     headBase.copy(buddyHead.quaternion);
     const remaining=reactUntil-clock;
@@ -819,7 +838,7 @@ function tick(now) {
     message('');
   }
   if(map2d){
-    map2d.draw(player.position,pipo.position,data);
+    map2d.draw(player.position,pipo.position,data,clock,still);
   }else{
     updateCamera(dt);
     // Keep the bank visible while looking back through the passage. Beyond the
@@ -850,7 +869,8 @@ function tick(now) {
       }
       localCamera.copy(camera.position).x-=data.map.trailOffset;
       localHero.copy(player.position).x-=data.map.trailOffset;
-      trailScene.tick(clock,still,localCamera,localHero);
+      localBuddy.copy(pipo.position).x-=data.map.trailOffset;
+      trailScene.tick(clock,still,localCamera,localHero,localBuddy);
     }
     if(!low && Math.abs(sunLight.target.position.x-player.position.x)>5){
       sunLight.target.position.x=player.position.x;
@@ -940,6 +960,8 @@ function bind() {
     target=null;path=[];
     save();
   });
+  on(reducedMotion,'change',syncMotion);
+  syncMotion();
   on(document, "visibilitychange", () => {
     keys.clear();
     target=null;path=[];last=0;
@@ -1031,7 +1053,7 @@ function bind() {
   });
   observer = new ResizeObserver(() => {
   if(renderer)setQuality();
-    else if(player)map2d?.draw(player.position,pipo.position,data);
+    else if(player)map2d?.draw(player.position,pipo.position,data,clock,still);
   });
   observer.observe(stage);
 }
@@ -1045,7 +1067,16 @@ function renderDialog() {
     title=e.title;body=`<p>${esc(e.time)} · ${e.done?'Concluída':'Pendente'}</p><p>${e.window?esc(windowLabel(e.window)):''}</p><p>${e.has_mission?'Aprender, Fazer e Lembrar continuam disponíveis. A confirmação real respeita o horário do servidor.':'Esta atividade não tem roteiro e continua disponível na agenda.'}</p>${e.has_mission?button('Entrar na missão','mission',`data-id="${e.id}" data-date="${e.date}"`):button('Ver atividade na agenda','calendar')}`;
   } else if (modal === 'wardrobe') {
     title='Seu jeito de explorar';
-    body=`<p>Cores e acessórios ficam guardados para os outros aparelhos.</p><div class="f-options">${button('Menta','color','data-color="mint"')}${button('Sol','color','data-color="sun"')}${button('Azul','color','data-color="sky"')}</div><div class="f-shop">${data.economy.catalog.filter(i=>i.kind!=='building').map(i=>`<article><h3>${esc(i.name)}</h3><p>${i.owned?'Guardado na sua mochila':i.price+' estrelas'}</p>${i.owned?button(data.economy.avatar[i.id]?'Tirar':'Vestir','equip',`data-id="${i.id}"`):!i.removed&&i.available?button('Comprar','buy',`data-id="${i.id}" ${data.economy.stars<i.price?'disabled':''}`):'<p>Indisponível</p>'}</article>`).join('')}</div>`;
+    const economy=data.economy;
+    const preview3d=renderer&&!paused;
+    const preview=preview3d?'<canvas id="forestOutfitPreview" width="336" height="200" role="img" aria-label="Prévia de Davi e Pipo"></canvas>':portrait(economy);
+    body=`<div class="f-outfit-preview">${preview}${preview3d?button(wardrobeBack?'Ver de frente':'Ver as costas','outfit-turn') : ''}</div>
+      <div class="f-outfit-colors" role="group" aria-label="Cor da roupa">${Object.entries(colors).map(([id,dye])=>
+      button(dye.label,'color',`data-color="${id}" aria-pressed="${economy.avatar.color===id}"`)).join('')}</div>
+      <div class="f-shop f-outfit-items">${economy.catalog.filter(i=>i.kind!=='building').map(i=>{
+        const wearing=worn(economy,i.id);
+        return `<article><h3>${esc(i.name)}</h3><p>${wearing?'Em uso':i.owned?'Na mochila':i.removed?'Removido pelo responsável':i.price+' estrelas'}</p>${i.owned?button(wearing?'Tirar':'Vestir','equip',`data-id="${i.id}" aria-label="${wearing?'Tirar':'Vestir'} ${esc(i.name)}"`):!i.removed&&i.available?button('Comprar','buy',`data-id="${i.id}" ${economy.stars<i.price?'disabled':''}`):'<p>Indisponível</p>'}</article>`;
+      }).join('')}</div>`;
   } else if (modal === "chest") {
     title = "O baú das descobertas";
     body =
@@ -1064,10 +1095,12 @@ function renderDialog() {
     body = `<p>Seu saldo: ${data.economy.stars} estrelas. Construções e acessórios continuam guardados entre os aparelhos.</p><div class="f-shop">${data.economy.catalog.map((i) => `<article><h3>${esc(i.name)}</h3><p>${esc(i.description)}</p><strong>${i.removed ? "Removido pelo responsável" : i.owned ? "Já é seu" : i.price + " ✦"}</strong>${!i.owned && !i.removed && i.available ? button("Guardar", "buy", `data-id="${i.id}" ${data.economy.stars < i.price ? "disabled" : ""}`) : i.owned && i.kind !== "building" ? button(data.economy.avatar[i.id] ? "Tirar" : "Usar", "equip", `data-id="${i.id}"`) : ""}</article>`).join("")}</div>`;
   } else {
     title = "Do seu jeito";
-    body = `<label for="forestQuality">Qualidade</label><select id="forestQuality"><option value="auto">Automática</option><option value="low">Econômica</option><option value="high">Detalhada</option></select><label><input id="forestMotion" type="checkbox" ${still ? "" : "checked"}>Animações do bosque</label><div class="f-options">${map2d?'':button("Vista 2D da floresta","fallback")}<button type="button" class="f-button" data-action="world-island">Ilha das ideias</button></div>`;
+    body = `<label for="forestQuality">Qualidade</label><select id="forestQuality"><option value="auto">Automática</option><option value="low">Econômica</option><option value="high">Detalhada</option></select><label for="forestMotion">Animações do bosque</label><select id="forestMotion" aria-describedby="forestMotionStatus"><option value="full">Ativadas</option><option value="reduced">Reduzidas</option></select><p id="forestMotionStatus" role="status"></p><div class="f-options">${map2d?'':button("Vista 2D da floresta","fallback")}<button type="button" class="f-button" data-action="world-island">Ilha das ideias</button></div>`;
   }
   document.getElementById("forestDialogBody").innerHTML =
     `<div class="f-dialog-top"><span>O DIÁRIO DO BOSQUE</span>${button("Fechar ×", "close")}</div><h2 id="forestDialogTitle">${title}</h2>${body}`;
+  const preview=document.getElementById('forestOutfitPreview');
+  if(preview)drawOutfit(renderer,preview,player,pipo,wardrobeBack);
   if (modal === "options") {
     const q = document.getElementById("forestQuality");
     q.value = quality;
@@ -1076,14 +1109,19 @@ function renderDialog() {
       store("quality", quality);
       setQuality();
     };
-    document.getElementById("forestMotion").onchange = (e) => {
-      still = !e.target.checked;
-      store("still", still);
+    const motion=document.getElementById('forestMotion');
+    motion.value=motionChoice;
+    syncMotion();
+    motion.onchange = () => {
+      motionChoice=motion.value;
+      store('motion',motionChoice);
+      syncMotion();
     };
   }
 }
 function dialog(name) {
   modal = name;
+  if(name==='wardrobe')wardrobeBack=false;
   keys.clear();
   target = null;
   waving = clock + 1.6;
@@ -1091,12 +1129,16 @@ function dialog(name) {
   document.getElementById("forestDialog").showModal();
 }
 async function refresh() {
-  data = await host.api("/api/forest/map");
+  const token=generation;
+  const fresh=await host.api("/api/forest/map");
+  if(token!==generation)return false;
+  data=fresh;
   syncOwned();
   if (!walkable(player.position.x, player.position.z)) {
     player.position.set(data.position.x, 0, data.position.z);
   }
-  renderDialog();
+  if(modal)renderDialog();
+  return true;
 }
 async function action(a, b) {
   const name = a.replace("forest-", "");
@@ -1155,6 +1197,12 @@ async function action(a, b) {
     canvas.focus({ preventScroll: true });
     return;
   }
+  if(name==='outfit-turn'){
+    wardrobeBack=!wardrobeBack;
+    renderDialog();
+    document.querySelector('[data-action=forest-outfit-turn]')?.focus({preventScroll:true});
+    return;
+  }
   if (name === "nearby") {
     const near = nearest();
     if(near.discovery&&near.d<1.8){
@@ -1177,6 +1225,7 @@ async function action(a, b) {
         return;
       }
       reactUntil=clock+1.5;
+      map2d?.interact(near.id,clock);
       message(trailScene?trailScene.interact(near.id,clock):Trail.description(near.id));
       if(near.id==='echo')pipo.rotation.y=Math.atan2(near.x-pipo.position.x,near.z-pipo.position.z);
       return;
@@ -1185,22 +1234,44 @@ async function action(a, b) {
     return;
   }
   if (name === "buy") {
+    if(outfitPending)return;
+    const token=generation;
     const item = data.economy.catalog.find((i) => i.id === b.dataset.id);
-    await host.api("/api/world/buy", "POST", {
+    outfitPending=host.api("/api/world/buy", "POST", {
       item_id: item.id,
       price: item.price,
     });
-    await refresh();
-    waving = clock + 1.8;
-    message("Pipo: Conseguimos! O bosque ganhou uma nova história.");
+    try{
+      await outfitPending;
+      if(token!==generation||!await refresh())return;
+      waving = clock + 1.8;
+      message("Pipo: Conseguimos! O bosque ganhou uma nova história.");
+    }finally{
+      outfitPending=null;
+    }
     return;
   }
   if (name === "equip" || name === "color") {
+    if(outfitPending)return;
+    const token=generation;
     const avatar = { ...data.economy.avatar };
     if (name === "color") avatar.color = b.dataset.color;
     else avatar[b.dataset.id] = avatar[b.dataset.id] ? null : b.dataset.id;
-    await host.api("/api/world/equip", "PUT", avatar);
-    await refresh();
+    outfitPending=host.api("/api/world/equip", "PUT", avatar);
+    try {
+      const economy=await outfitPending;
+      if(token!==generation)return;
+      data.economy=economy;
+      syncOwned();
+      if(modal){
+        const refocus=b.matches(':focus');
+        renderDialog();
+        const selector=name==='color'?`[data-color="${b.dataset.color}"]`:`[data-action=forest-equip][data-id="${b.dataset.id}"]`;
+        if(refocus)document.querySelector(selector)?.focus({preventScroll:true});
+      }
+    }finally{
+      outfitPending=null;
+    }
     return;
   }
   if (name === "cross") {
@@ -1273,6 +1344,7 @@ async function open(options) {
   const token=++generation;
   if (player) await save();
   if (leafPending) await leafPending.catch(() => {});
+  if (outfitPending) await outfitPending.catch(() => {});
   if(token!==generation)return false;
   dispose();
   host = options;
@@ -1285,9 +1357,10 @@ async function open(options) {
   if(token!==generation)return false;
   if(mapModule)map2d=mapModule.createMap();
   quality = preference("quality", "auto");
-  still =
-    preference("still", "false") === "true" ||
-    matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // The old key was written only when the player changed the checkbox.
+  const savedMotion=preference('motion',preference('still','false')==='true'?'reduced':'full');
+  motionChoice=savedMotion==='reduced'?'reduced':'full';
+  syncMotion();
   dirty = false;
   paused = false;
   last = 0;
@@ -1386,10 +1459,14 @@ async function open(options) {
       root.updateMatrixWorld(true);
       const occluders = [];
       root.traverse((o) => {
+        if(/^(Station_wardrobe|Mossy_landmark)/i.test(o.name)){
+          legacySight.push({object:o,sphere:new T.Box3().setFromObject(o).getBoundingSphere(new T.Sphere())});
+          o.traverse(child=>{child.userData.keepGroup=true;});
+        }
         if(/^(Forest_depth_oak|Hero_oak)/.test(o.name)){
           const p=o.getWorldPosition(new T.Vector3());
           if(p.x>11&&p.z>4){
-            legacySight.push({object:o,sphere:new T.Box3().setFromObject(o).getBoundingSphere(new T.Sphere())});
+            legacySight.push({object:o,sphere:new T.Box3().setFromObject(o).getBoundingSphere(new T.Sphere()),passage:true});
             o.traverse(child=>{child.userData.keepGroup=true;});
           }
         }
@@ -1449,7 +1526,7 @@ async function open(options) {
       mixers.push(mixer);
       for (const anim of asset.animations)
         pipoActions[anim.name] = mixer.clipAction(anim);
-      if (pipoActions.Walk) pipoActions.Walk.timeScale = 3.2;
+      if (pipoActions.Walk) pipoActions.Walk.timeScale = 2.1;
       pipoSupport=supportTable('pipo',root,mixer,pipoActions);
       pipoActions.Hover?.reset().play();mixer.update(0);
       buddyHead=root.getObjectByName('Head');if(buddyHead)headBase.copy(buddyHead.quaternion);
@@ -1492,6 +1569,7 @@ window.DaviForest = {
   open,
   close,
   action,
+  characterFraming,
   telemetry() {
     return {
       view:map2d?'2d':renderer?'3d':'agenda',
@@ -1517,8 +1595,7 @@ window.DaviForest = {
     return {x:rect.left+(p.x*.5+.5)*rect.width,y:rect.top+(-p.y*.5+.5)*rect.height,visible,groundVisible};
   },
   diagnostics() {
-    let pipoScarfVisible = false;
-    pipo?.traverse((o) => { if (o.isMesh && /^Buddy_scarf/.test(o.name) && o.visible) pipoScarfVisible = true; });
+    const outfit=outfitDiagnostics(player,pipo);
     const gl = renderer?.getContext(),
       ext = gl?.getExtension("WEBGL_debug_renderer_info");
     let renderedGroundY=null,renderedBoardY=null;
@@ -1547,7 +1624,13 @@ window.DaviForest = {
       readyMs: stats.readyMs,
       position: player?.position.toArray(),
       pipoPosition: pipo?.position.toArray(),
-      pipoScarfVisible,
+      pipoScarfVisible:outfit.buddy.length>0,
+      outfit,
+      pipoSteps:['LegL','LegR'].map(name=>pipo?.getObjectByName(name)?.position.toArray()??null),
+      pipoFeetY:pipo&&camera?new T.Box3().setFromObject(pipo,true).min.y:null,
+      pipoGroundY:pipo&&camera?floor(pipo.position.x,pipo.position.z):null,
+      motion:{choice:motionChoice,reduced:still,system:reducedMotion.matches},
+      living:trailScene?.living()??null,
       camera: camera?.position.toArray(),
       characterSize: player
         ? new T.Box3().setFromObject(player).getSize(new T.Vector3()).toArray()

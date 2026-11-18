@@ -94,6 +94,8 @@ OAK = [(0, 0, -.26), (-.15, -.05, .72), (-.30, -.11, 1.84), (-.11, -.13, 3.16),
        (-.38, -.23, 4.24), (-.65, -.36, 5.43)]
 ALDER = [(0, 0, -.23), (.12, .02, .76), (.28, .10, 1.83), (.22, .15, 3.18),
          (.40, -.22, 4.43), (.72, -.51, 5.68)]
+HAZEL = [(0, 0, -.24), (.04, -.08, .58), (.47, -.26, 1.46), (.82, -.42, 2.48),
+         (.97, -.72, 3.46), (1.45, -.80, 4.89)]
 BOUGHS = [
     ([(-.2, -.1, 2.25), (-.94, -.33, 3.05), (-1.46, -.77, 3.76), (-2.38, -.70, 4.16)], [.22, .15, .10, .033]),
     ([(-.2, -.1, 3.04), (.53, .16, 3.57), (1.03, .63, 4.24), (1.94, 1.08, 4.36)], [.23, .16, .098, .033]),
@@ -133,17 +135,31 @@ def crown_lobe(model, center, scales, hue, seed, tuft=False):
 def tree(kind, trunk, variant):
     stem, leaves, tips, economy = (Sculpture(kind+s) for s in ("_Tronco","_Copa","_Pontas","_Copa_economica"))
     bark = BARK if variant == 0 else ("99785a", "685343", "b49b70", "5c4d3d", "8e7460")
+    if variant == 2:
+        bark = ("82634e", "694b45", "997160", "b78b61", "70604c")
     stem.grain(trunk, [.64, .38, .30, .23, .15, .047], bark, 16)
     for x,y in [(-1.64,-.30), (1.17,.78), (.60,-1.32), (-.82,1.01), (.10,1.56)]:
         stem.grain([trunk[1], (x*.42,y*.42,.19), (x*.77,y*.77,.07), (x,y,-.13)],
                    [.23,.20,.116,.022], bark, 9)
-    sway = -.75 if variant else 1
-    for line, radii in BOUGHS:
-        stem.grain([(x*sway, y, z+variant*.25) for x,y,z in line], radii, bark, 10)
+    sway = (1,-.75,1)[variant]
+    boughs=BOUGHS if variant!=2 else [
+        ([(.47,-.26,1.46),(-.10,.22,2.39),(-1.05,.72,3.18),(-2.15,.64,3.73)],[.29,.22,.16,.041]),
+        ([(.82,-.42,2.48),(1.40,-1.12,2.93),(2.21,-1.49,3.78)],[.25,.16,.039]),
+        ([(.65,-.37,2.07),(.79,.48,2.91),(.09,1.31,4.02)],[.24,.14,.029]),
+        ([(.97,-.72,3.46),(1.89,.03,4.00),(2.45,.78,4.29)],[.17,.10,.029]),
+    ]
+    for line, radii in boughs:
+        stem.grain([(x*sway,y,z+(.25 if variant==1 else 0)) for x,y,z in line],radii,bark,10)
     colors = ("508157","5b955e","7ca764","508c62","66a362","80af66") if variant == 0 else (
         "517c62","51906d","6ca57b","57957a","437c66","87ad77")
-    for i, (x,y,z,sx,sy,sz) in enumerate(CROWN):
-        center = (sway*x, y, z+variant*.36)
+    clusters=CROWN
+    if variant==2:
+        colors=("6a9857","83a85c","91ac61","6a9b55","599264","9eb96f")
+        clusters=[(-1.91,.62,4.01,1.36,1.15,.72),(-.73,.88,4.37,1.40,1.30,.85),
+                  (1.98,-1.35,4.09,1.35,1.20,.74),(2.31,.82,4.53,1.33,1.40,.80),
+                  (.48,1.16,4.45,1.43,1.25,.80),(1.28,-.64,5.06,1.36,1.13,.98)]
+    for i, (x,y,z,sx,sy,sz) in enumerate(clusters):
+        center = (sway*x, y, z+(.36 if variant==1 else 0))
         crown_lobe(leaves, center, (sx, sy, sz), colors[i], 90+i)
         crown_lobe(tips, (center[0]+.56, center[1]-.31, center[2]+.23),
                    (sx*.61, sy*.54, sz*.71), colors[(i+2)%6], 52-i, True)
@@ -155,6 +171,7 @@ def tree(kind, trunk, variant):
 
 tree("Carvalho", OAK, 0)
 tree("Amieiro", ALDER, 1)
+tree("Aveleira", HAZEL, 2)
 
 # Asymmetric shale split along broad shelves with green mineral terraces.
 outline = [(-.87,-.56), (-.23,-.78), (.55,-.69), (1.0,-.26), (.89,.38), (.27,.67), (-.51,.67), (-.99,.24)]
@@ -173,6 +190,64 @@ for row, (height, spread, shift, tint) in enumerate([
                   for i in range(len(outline))])
 shale.rings(rings, tones)
 shale.export_mesh()
+
+# Two different silhouettes with the moss and fissures painted into the stone.
+def rounded_stone(name, outline, levels, palette):
+    stone=Sculpture(name)
+    rings,colors=[],[]
+    for row,(height,spread,shift) in enumerate(levels):
+        ring,tonal=[],[]
+        for i,(x,y) in enumerate(outline):
+            seam=.085 if name=="Pedra_fendida" and i in (2,3) and row in (2,3) else 0
+            ring.append((x*spread+shift, y*spread+.055*math.sin(i*2.2+row), height-seam+.06*math.sin(i*1.9)))
+            hue=palette[1] if (i+row*2)%9 in (0,1,2) and row>1 else palette[0]
+            if seam:hue=palette[2]
+            tonal.append(paint(hue,.72+row*.079+.14*math.cos(i*1.76)))
+        rings.append(ring)
+        colors.append(tonal)
+    stone.rings(rings,colors)
+    stone.export_mesh()
+
+rounded_stone("Seixo_musgo",[(-1,-.26),(-.76,-.61),(-.15,-.77),(.52,-.57),(.94,-.27),
+                           (1.02,.20),(.65,.57),(.06,.72),(-.65,.57),(-.98,.17)],
+              [(-.12,.81,.02),(.15,1,.02),(.56,.96,.10),(.80,.71,.04),(.86,.33,-.16)],
+              ("8b9893","9cab65","576961"))
+rounded_stone("Pedra_fendida",[(-.92,-.40),(-.43,-.73),(.02,-.64),(.34,-.68),(.91,-.37),
+                              (.80,.27),(.31,.61),(-.40,.68),(-.95,.24)],
+              [(-.16,.89,.10),(.12,1,.03),(.65,.92,-.04),(1.04,.78,-.20),(1.36,.56,-.28),(1.43,.28,-.41)],
+              ("9195a1","819752","505f66"))
+
+# Rounded blueberry foliage and a lower shrub with pointed, warm azalea leaves.
+for kind,petal,foliage,spread in [
+    ("Mirtilo","596ad2",("6c9f57","538754","83ad66"),1),
+    ("Azaleia","eda581",("809052","a5aa69","6f924c"),1.25),
+]:
+    shrub=Sculpture(kind)
+    for j in range(6):
+        angle=j*2.39996
+        dx,dy=math.cos(angle),math.sin(angle)
+        reach=(.46+(.04*(j%3)))*spread
+        top=.30+.12*(j%3)
+        shrub.grain([(0,0,-.05),(dx*reach*.53,dy*reach*.52,top*.65),(dx*reach,dy*reach,top)],
+                     [.021,.024,.013],["675940"],5)
+        for i in range(4):
+            a=angle+(i-1.40)*.7
+            x,y=math.cos(a),math.sin(a)
+            shrub.blade((dx*reach*.63,dy*reach*.63,top*.78),
+                        (dx*reach+x*.20,dy*reach+y*.23,top+.10),
+                        .135 if kind=="Mirtilo" else .078,foliage[i%3],.105)
+        for i in [-1,1]:
+            x,y=dx*reach+.074*i,dy*reach-.041*i
+            if kind=="Mirtilo":
+                shrub.grain([(x,y,top-.015),(x,y,top+.03),(x,y,top+.105)],
+                             [.041,.074,.035],[petal,"899be1"],6)
+            else:
+                for a in range(5):
+                    turn=a*math.tau/5
+                    shrub.blade((x,y,top+.04),(x+.13*math.cos(turn),y+.13*math.sin(turn),top+.12),
+                                .061,petal if j%2 else "f5bfab",.085)
+                shrub.blade((x-.03,y,top+.07),(x+.03,y+.015,top+.10),.026,"ead070",.025)
+    shrub.export_mesh()
 
 for name, outline2, hue in [
     ("Passo_Pedra", [(-.7,-.19),(-.47,-.35),(.26,-.37),(.59,-.17),(.54,.20),(.02,.29),(-.45,.20)], "b4b6a3"),

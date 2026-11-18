@@ -1,10 +1,15 @@
+import { boatProgress } from './boat.mjs';
+import { colors, worn } from './wardrobe.mjs';
+
 const COLORS = ['#ddc299','#a77655','#cfceae','#a98262','#bfc4a7','#b9ad91','#d2966d','#e3d9ab','#d4c394'];
 const esc = (value) => String(value).replace(/[&<>"']/g, c => ({
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 }[c]));
 
 export function createMap() {
-  let svg, davi, pipo, shelter, bridge, ownedMarks;
+  let svg, davi, pipo, shelter, bridge, ownedMarks, boats, clothes, accessoryMarks;
+  let avatar;
+  const release={wheel:null,source:null};
   let view = [-8,0,16,16];
   return {
     mount(canvas,data,features) {
@@ -25,20 +30,31 @@ export function createMap() {
         <g stroke-linecap="round" stroke-linejoin="round" fill="none">${routes}</g>
         ${circles}
         <path id="forest2dBridge" d="M0 -5.5V1.4" fill="none" stroke="#9b714f" stroke-width="1.8"/>
+        <g transform="translate(${trailOffset} 0)">
+          <path d="M-1.38 10.36v3.31 M18.9 -6.13Q17 -8.4 11.38 -10.04" fill="none" stroke="#5ab8ae" stroke-width=".42"/>
+          <path data-boat="wheel" d="M0 -.32Q.40 -.03 0 .28Q-.40 -.03 0 -.32Z" fill="#ffd477" stroke="#76523c" stroke-width=".06"/>
+          <path data-boat="source" d="M0 -.32Q.40 -.03 0 .28Q-.40 -.03 0 -.32Z" fill="#ffd477" stroke="#76523c" stroke-width=".06"/>
+        </g>
         <g id="forest2dShelter" transform="translate(${trailOffset-9.71} -.46)">
           <ellipse cx="-1.02" cy="1" rx=".5" ry=".27" fill="#78634b"/><ellipse cx=".2" cy="1.25" rx=".5" ry=".27" fill="#78634b"/>
           <g id="forest2dWet"><ellipse rx=".35" ry=".18" fill="#5ac9c7"/></g>
         </g>
         ${features.map(f=>`<g transform="translate(${f.x} ${f.z})" ${['house','portal'].includes(f.id)?`data-owned-mark="${f.id}"`:''}><circle r=".62" fill="#314e45" stroke="#f5e5ae" stroke-width=".07"/><text y=".25" text-anchor="middle" font-size=".78" fill="#ffebbf">${esc(f.icon)}</text></g>`).join('')}
-        <g id="forest2dPipo"><circle r=".36" fill="#75d5ba" stroke="#24473e" stroke-width=".06"/><circle cy="-.08" r=".17" fill="#f6dda5"/></g>
-        <g id="forest2dDavi"><circle r=".46" fill="#255b64" stroke="#f8e1ae" stroke-width=".11"/><circle cy="-.11" r=".28" fill="#efbf89"/><path d="M-.3-.15Q-.26-.5.23-.35L.3-.1Z" fill="#483024"/></g>`;
+        <g id="forest2dPipo"><circle r=".36" fill="#75d5ba" stroke="#24473e" stroke-width=".06"/><circle cy="-.08" r=".17" fill="#f6dda5"/><path data-accessory="buddy" d="M-.34 .12Q0 .28.34 .12l-.02 .14-.13 .01 .09 .20-.14 .04-.08-.22Q-.12 .34-.28 .25Z" fill="#e77a4d"/></g>
+        <g id="forest2dDavi"><path data-accessory="cape" d="M-.23-.05h.46L.53 .49Q0 .66-.53 .49Z" fill="#a486ce" stroke="#e6d0ee" stroke-width=".07"/><circle data-clothes r=".46" fill="#255b64" stroke="#f8e1ae" stroke-width=".11"/><circle cy="-.11" r=".28" fill="#efbf89"/><path d="M-.3-.15Q-.26-.5.23-.35L.3-.1Z" fill="#483024"/><path data-accessory="hat" d="M-.25-.29L-.19-.53Q0-.65.2-.53l.05 .24.13 .05Q0-.14-.38-.24Z" fill="#e2ad5f" stroke="#805541" stroke-width=".06"/></g>`;
       davi=svg.querySelector('#forest2dDavi');
       pipo=svg.querySelector('#forest2dPipo');
       shelter=svg.querySelector('#forest2dWet');
       bridge=svg.querySelector('#forest2dBridge');
       ownedMarks=svg.querySelectorAll('[data-owned-mark]');
+      boats=Array.from(svg.querySelectorAll('[data-boat]'));
+      clothes=svg.querySelector('[data-clothes]');
+      accessoryMarks=svg.querySelectorAll('[data-accessory]');
     },
-    draw(player,buddy,data) {
+    interact(id,time) {
+      if(Object.hasOwn(release,id))release[id]=time;
+    },
+    draw(player,buddy,data,time=0,still=false) {
       const width=svg.clientWidth, height=svg.clientHeight;
       if(!width||!height)return;
       const w=width<640?14:25, h=w*height/width;
@@ -46,6 +62,17 @@ export function createMap() {
       svg.setAttribute('viewBox',view.join(' '));
       davi.setAttribute('transform',`translate(${player.x} ${player.z})`);
       pipo.setAttribute('transform',`translate(${buddy.x} ${buddy.z})`);
+      if(avatar!==data.economy.avatar){
+        avatar=data.economy.avatar;
+        clothes.setAttribute('fill',(colors[avatar.color]??colors.mint).cloth);
+        for(const mark of accessoryMarks)
+          mark.setAttribute('visibility',worn(data.economy,mark.dataset.accessory)?'visible':'hidden');
+      }
+      for(const boat of boats){
+        const id=boat.dataset.boat,p=boatProgress(time,release[id],still,id==='wheel'?3.6:4.5);
+        const [x,z]=id==='wheel'?[-1.38,10.36+3.31*p]:[18.9-7.52*p,-6.13-3.91*p];
+        boat.setAttribute('transform',`translate(${x} ${z})`);
+      }
       bridge.style.visibility=data.economy.inventory.includes('bridge')?'visible':'hidden';
       shelter.setAttribute('transform',data.leaf_up?'translate(-1.02 1)':'translate(.2 1.25)');
       for(const mark of ownedMarks)

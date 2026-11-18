@@ -524,6 +524,22 @@
   background:#fffdf0; color:#29443e; font-size:.85rem; box-shadow:0 4px 16px #152c2638;
 }
 #forestFamilyDiagnostics output { display:block; margin:8px 0; }
+#forestMotionStatus { font-size:.88rem; color:#315946; margin:.3rem 0 .95rem; }
+#forestMotionBadge { color:#fff1bb; }
+.f-outfit-preview {
+  position:relative; display:grid; place-items:center;
+  background:#deece1; border:1px solid #adc6b6; border-radius:15px; overflow:hidden;
+}
+.f-outfit-preview :is(canvas,svg) { display:block; width:min(100%,336px); height:auto; }
+.f-outfit-preview button { position:absolute; right:7px; top:7px; font-size:.79rem; padding:6px 9px; }
+.f-outfit-colors { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:10px 0; }
+.f-outfit-colors button { display:flex; align-items:center; justify-content:center; gap:5px; padding-inline:5px; }
+.f-outfit-colors button::before { content:""; width:.78rem; height:.78rem; border-radius:50%; border:1px solid #243f3960; }
+.f-outfit-colors [data-color=mint]::before { background:#37b686; }
+.f-outfit-colors [data-color=sun]::before { background:#ffb72e; }
+.f-outfit-colors [data-color=sky]::before { background:#477de0; }
+.f-outfit-colors [aria-pressed=true] { color:#fff9e8; background:#315e4d; border-color:#315e4d; }
+.f-outfit-colors [aria-pressed=true]::before { border-color:#fff9e8; }
 .forest-tools .forest-now { color:#fff9dc; background:#326147; border-color:#31543c; }
 @media(max-width:700px) {
   .forest-shell:not(.trail-shell) .forest-title { flex-wrap:wrap; }

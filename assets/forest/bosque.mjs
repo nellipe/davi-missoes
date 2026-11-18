@@ -1,10 +1,11 @@
 import * as T from '/vendor/three/three.module.min.js';
+import { createSight } from './sight.mjs';
 
 const trees = [
   ['Carvalho', -2.2, 7.5, 1.08, -.42],
-  ['Amieiro', 6.35, 8.15, .96, .7],
+  ['Aveleira', 6.35, 8.15, .96, .7],
   ['Carvalho', -.05, 1.65, .89, -.34],
-  ['Amieiro', 3.35, -.69, .92, 1.8],
+  ['Aveleira', 3.35, -.69, .92, 1.8],
   ['Amieiro', -5.25, 5.9, 1.07, -.64],
   ['Carvalho', -8.75, 5.15, .91, 1.38],
   ['Amieiro', -12.5, 3.2, 1.08, -.79],
@@ -12,7 +13,7 @@ const trees = [
   ['Amieiro', -7.42, -2.83, .83, .93],
   ['Carvalho', 8.32, 2.62, 1.02, -.85],
   ['Amieiro', 9.38, 5.35, .96, 1.38],
-  ['Carvalho', 9.42, -.71, 1.09, .79],
+  ['Aveleira', 9.42, -.71, 1.09, .79],
   ['Amieiro', 4.55, -3.58, .91, -1.53],
   ['Carvalho', .66, -3.90, .85, -.83],
   ['Amieiro', -2.43, -3.33, .77, .45],
@@ -47,6 +48,7 @@ export function installBosque(group, library, layout, floor, edge) {
   const blockers = [];
   const crowns = [];
   const trunks = [];
+  const rocks = [];
   group.add(art);
   art.add(details,economy,full);
   const material = library.getObjectByName('Carvalho_Copa').material.clone();
@@ -80,8 +82,14 @@ export function installBosque(group, library, layout, floor, edge) {
     place(kind + '_Copa_economica', x, z, size, size, size, turn);
     place(kind + '_Pontas', x, z, size, size, size, turn, { detail: true });
   }
-  for (const [x, z, sx, sy, sz, turn] of shelves) {
-    place('Ardosia', x, z, sx, sy, sz, turn, { solid: sy >= .75 });
+  for (const [i,[x,z,sx,sy,sz,turn]] of shelves.entries()) {
+    const kind=['Ardosia','Seixo_musgo','Pedra_fendida'][i%3];
+    const mesh=place(kind,x,z,sx,sy*(kind==='Seixo_musgo'?1.24:1),sz,turn,{solid:sy>=.75});
+    if(mesh){
+      if(!mesh.geometry.boundingSphere)mesh.geometry.computeBoundingSphere();
+      mesh.updateMatrix();
+      rocks.push({mesh,sphere:mesh.geometry.boundingSphere.clone().applyMatrix4(mesh.matrix)});
+    }
   }
   place('Tronco_Oco', -7.78, .24, 1, 1, 1, Math.PI+.21, { solid: true, lift: .87 });
   place('Varal', 2.95, 2.95, 1, 1, 1, -.06, { solid: true });
@@ -121,13 +129,14 @@ export function installBosque(group, library, layout, floor, edge) {
     [4.65, 2.8, .66], [7.72, 2.23, .72], [8.51, .97, .92], [6.49, -.87, .70],
     [-1.08, -.43, .76], [2.9, -1.45, .81],
   ];
-  for (const [x,z,s] of colonies) {
+  for (const [index,[x,z,s]] of colonies.entries()) {
     for (let i=0;i<7;i++) {
       const angle = random()*Math.PI*2;
       const range = .12+random()*.92;
       const u = x+range*Math.cos(angle), v = z+range*Math.sin(angle);
       if (edge(u,v)<.30 || (u < -8.6 && u > -11.99 && v > -.76 && v < 1.93)) continue;
-      const name = i < 2 ? 'Samambaia' : i === 2 ? 'Flores' : 'Trevo';
+      const shrub=i===1 && index%3!==2;
+      const name=shrub?'Mirtilo':i<2?'Samambaia':i===2?(index%3===1?'Azaleia':'Flores'):'Trevo';
       const size = s*(i < 2 ? .65+random()*.66 : .65+random()*.40);
       place(name, u, v, size, size, size, angle, { detail: i === 2 || i > 4 });
     }
@@ -160,22 +169,21 @@ export function installBosque(group, library, layout, floor, edge) {
       }
       pose.updateMatrix();
       mesh.setMatrixAt(i,pose.matrix);
-      if(canopy) crowns.push({
-        mesh, i, matrix:pose.matrix.clone(), center: new T.Vector3(x,pose.position.y+4.95*sy,z),
-        radius: 2.25*sy, hidden: false,
-      });
+      if(canopy){
+        if(!geometry.boundingSphere)geometry.computeBoundingSphere();
+        const sphere=geometry.boundingSphere.clone().applyMatrix4(pose.matrix);
+        crowns.push({mesh,parent,i,matrix:pose.matrix.clone(),sphere,hidden:false});
+      }
     });
     mesh.castShadow = parent === art || parent === full;
     mesh.receiveShadow = true;
     parent.add(mesh);
   }
   let economical=false;
-  const cameraToHero = new T.Vector3();
-  const offset = new T.Vector3();
-  const sight = new T.Vector3();
+  const sight=createSight();
   return {
     setEconomy(low) { economical=low; details.visible = full.visible = !low; economy.visible=low; },
-    clearSight(camera, hero) {
+    clearSight(camera, hero, buddy) {
       art.visible=Math.hypot(hero.x-1,hero.z-3.4)<(economical?12.4:16.5);
       if(!art.visible)return;
       const dx=hero.x-camera.x, dz=hero.z-camera.z;
@@ -184,25 +192,20 @@ export function installBosque(group, library, layout, floor, edge) {
         const t=((x-camera.x)*dx+(z-camera.z)*dz)/distanceSq;
         const rayY=T.MathUtils.lerp(camera.y,hero.y+.8,t);
         const inFront=t>-.15 && t<.93;
-        const nearRay=(x-camera.x-t*dx)**2+(z-camera.z-t*dz)**2<(radius+.92)**2;
+        const nearRay=(x-camera.x-t*dx)**2+(z-camera.z-t*dz)**2<(radius+.60)**2;
         trunk.visible=!(inFront && nearRay && rayY<trunk.position.y+height);
       }
-      cameraToHero.copy(hero).sub(camera).y += .9;
-      const length = cameraToHero.length();
-      sight.copy(cameraToHero).divideScalar(length);
+      sight.update(camera,hero,buddy);
       for(const crown of crowns){
-        offset.copy(crown.center).sub(camera);
-        const distance = offset.dot(sight);
-        const radius = crown.radius;
-        const blocks = distance > -radius && distance < length && (
-          offset.lengthSq()-distance*distance < (radius+1.05)**2
-        );
+        if(!crown.parent.visible)continue;
+        const blocks=sight.covers(crown.sphere.center,crown.sphere.radius*.90);
         if (blocks !== crown.hidden) {
           crown.hidden=blocks;
           crown.mesh.setMatrixAt(crown.i,blocks?invisible:crown.matrix);
           crown.mesh.instanceMatrix.needsUpdate=true;
         }
       }
+      for(const {mesh,sphere} of rocks)mesh.visible=!sight.covers(sphere.center,sphere.radius*.86,.1);
     },
     blocksTap(ray, hit) {
       return art.visible && blockers.some(mesh => mesh.visible && ray.intersectObject(mesh,false)[0]?.distance + .02 < hit.distance);

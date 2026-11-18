@@ -1,11 +1,13 @@
 import * as T from '/vendor/three/three.module.min.js';
+import { boatProgress } from './boat.mjs';
+import { createSight } from './sight.mjs';
 
 // Shared silhouettes from the Bosque library, composed as separate groups within the same terrain.
 export function installRegions(root, library, layout, floor, edge) {
   const themes=[
     {x:-5,z:11,tree:'Amieiro',stone:'#a8a692',foliage:'#9fb18a',seed:7},
     {x:-1,z:-10,tree:'Carvalho',stone:'#849a99',foliage:'#859e98',seed:17},
-    {x:10,z:-11,tree:'Carvalho',stone:'#b19b86',foliage:'#b0ac7e',seed:27},
+    {x:10,z:-11,tree:'Aveleira',stone:'#c0af98',foliage:'#b6bc87',seed:27},
     {x:18,z:-5,tree:'Amieiro',stone:'#95a6a7',foliage:'#b8caaa',seed:37},
     {x:13,z:8,tree:'Amieiro',stone:'#9fa99b',foliage:'#a6b995',seed:47},
   ];
@@ -27,8 +29,8 @@ export function installRegions(root, library, layout, floor, edge) {
   const objects=[];
   const occluders=[];
   const hiddenMatrix=new T.Matrix4().makeScale(0,0,0);
-  const line=new T.Vector3(), offset=new T.Vector3();
-  let boatStart=0, carvingUntil=-1;
+  const sight=createSight();
+  let boatStart=null, carvingUntil=-1;
   function material(color) {
     if(!materials.has(color))materials.set(color,new T.MeshStandardMaterial({color,roughness:.85}));
     return materials.get(color);
@@ -50,19 +52,20 @@ export function installRegions(root, library, layout, floor, edge) {
     paint.color.set(color);
     const batch=new T.InstancedMesh(source.geometry,paint,positions.length);
     const crown=model.includes('_Copa');
-    if(crown && !source.geometry.boundingSphere)source.geometry.computeBoundingSphere();
+    const boulder=/Ardosia|Seixo|Pedra_fendida/.test(model);
+    if((crown||boulder) && !source.geometry.boundingSphere)source.geometry.computeBoundingSphere();
     for(const [i,[x,z,sx,sy,sz,turn]] of positions.entries()){
       stamp.position.set(x,floor(x,z),z);
       stamp.scale.set(sx,sy,sz);
       stamp.rotation.y=turn;
       stamp.updateMatrix();
       batch.setMatrixAt(i,stamp.matrix);
-      if(crown || model.endsWith('_Tronco')){
-        const bounds=crown?source.geometry.boundingSphere.clone().applyMatrix4(stamp.matrix):null;
+      if(crown || boulder || model.endsWith('_Tronco')){
+        const bounds=crown||boulder?source.geometry.boundingSphere.clone().applyMatrix4(stamp.matrix):null;
         occluders.push({
           parent,batch,index:i,matrix:stamp.matrix.clone(),hidden:false,
           center:bounds?.center??new T.Vector3(x,stamp.position.y+2.7*sy,z),
-          radius:bounds?.radius??1.95*sy,
+          radius:bounds?bounds.radius*(boulder?.86:.93):1.77*sy,
         });
       }
     }
@@ -75,24 +78,26 @@ export function installRegions(root, library, layout, floor, edge) {
     group.add(detail,economy,full);
     let seed=theme.seed;
     const rnd=()=> (seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296;
-    const trees=[], rocks=[], ferns=[], flowers=[];
+    const trees=[], rocks=[], pebbles=[], ferns=[], flowers=[], shrubs=[];
     for(let i=0;i<67;i++){
       const x=theme.x+(rnd()-.5)*13,z=theme.z+(rnd()-.5)*10;
       if(x<layout.bounds[0]+.35||z< -14.5|| (x>-11&&x<9&&z> -4.2&&z<9.8))continue;
       const rim=edge(x,z), a=rnd()*6.28, s=.48+rnd()*.58;
       if(rim>1.68&&i<24)trees.push([x,z,s,s,s,a]);
-      else if(rim>.7&&i<40)rocks.push([x,z,s,s*.64,s,a]);
+      else if(rim>.7&&i<40) (i%3===0?pebbles:rocks).push([x,z,s,s*(i%3===0?.83:.65),s,a]);
       else if(rim>.32&&rim<1.8){
-        ferns.push([x,z,s,s,s,a]);
-        if(i%2)flowers.push([x+.16,z-.26,s,s,s,a]);
+        (i%3===2?shrubs:ferns).push([x,z,s,s,s,a]);
+        if(i%3===0)flowers.push([x+.16,z-.26,s,s,s,a]);
       }
     }
     stamps(group,theme.tree+'_Tronco','#e8decb',trees);
     stamps(full,theme.tree+'_Copa',theme.foliage,trees);
     stamps(economy,theme.tree+'_Copa_economica',theme.foliage,trees);
-    stamps(group,'Ardosia',theme.stone,rocks);
+    stamps(group,theme.seed%3===1?'Ardosia':'Pedra_fendida',theme.stone,rocks);
+    stamps(group,'Seixo_musgo','#d6dfc8',pebbles);
     stamps(group,'Samambaia','#c5d49c',ferns);
-    stamps(detail,'Flores','#fff1d8',flowers);
+    stamps(group,'Mirtilo','#dadfc2',shrubs);
+    stamps(detail,theme.seed%3===0?'Flores':'Azaleia','#fff1dc',flowers);
     objects.push({group,detail,economy,full,...theme});
   }
   const [margin,gorge,patio,copa,returnPath]=objects.map(item=>item.group);
@@ -182,21 +187,17 @@ export function installRegions(root, library, layout, floor, edge) {
   };
   return {
     setEconomy,
+    living() { return { highWheel:wheel.rotation.z, highBoat:boat.position.toArray() }; },
     interact(id,t){
       if(id==='source')boatStart=t;
       if(id==='carving')carvingUntil=t+1.6;
     },
-    tick(t,still,hero,camera){
+    tick(t,still,hero,camera,buddy){
       for(const item of objects)item.group.visible=Math.hypot(hero.x-item.x,hero.z-item.z)<17;
-      line.copy(hero).sub(camera).y+=1;
-      const depth=line.length();
-      line.divideScalar(depth);
+      sight.update(camera,hero,buddy);
       for(const item of occluders) {
-        if(!item.parent.visible)continue;
-        offset.copy(item.center).sub(camera);
-        const along=offset.dot(line);
-        const hide=along>-item.radius&&along<depth-.25&&
-          offset.lengthSq()-along*along<(item.radius+.75)**2;
+        if(!item.parent.visible||item.parent.parent?.visible===false)continue;
+        const hide=sight.covers(item.center,item.radius,.23);
         if(hide!==item.hidden){
           item.hidden=hide;
           item.batch.setMatrixAt(item.index,hide?hiddenMatrix:item.matrix);
@@ -205,12 +206,12 @@ export function installRegions(root, library, layout, floor, edge) {
       }
       if(copa.visible){
         wheel.rotation.z=still?-.35:-t*.62;
-        const phase=still?.34:((t-boatStart)%5)/5;
+        const phase=boatProgress(t,boatStart,still,4.5);
         boat.position.copy(current.getPointAt(phase)).y+=.19;
         const travel=current.getTangentAt(phase);
         boat.rotation.y=Math.atan2(travel.x,travel.z);
       }
-      if(patio.visible)bird.rotation.y=still?.36:.23+Math.max(0,carvingUntil-t)*.32;
+      if(patio.visible)bird.rotation.y=still?(carvingUntil>0?.79:.36):.23+Math.max(0,carvingUntil-t)*.32;
     }
   };
 }
