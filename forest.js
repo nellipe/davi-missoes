@@ -12,6 +12,7 @@ import { createChibiPaint } from '/assets/forest/chibi.mjs';
 let Trail;
 let navigation, companion;
 let newMap, newScene, sceneEndpoint;
+let puzzleUI, puzzle;
 let worldReveal;
 let trailScene=null, trailLoading=null, currentRegion='', legacy=null, map2d=null;
 const localCamera=new T.Vector3(), localHero=new T.Vector3(), localBuddy=new T.Vector3();
@@ -362,6 +363,7 @@ function syncMotion() {
   systemMotionReduced=reducedMotion.matches;
   still=motionChoice==='reduced'||(motionChoice==='system'&&systemMotionReduced);
   document.querySelector('.trail-shell')?.classList.toggle('forest-motion-reduced',still);
+  document.getElementById('forestDialog')?.classList.toggle('forest-motion-reduced',still);
   if(still)stage?.querySelector('.forest-star-spark')?.remove();
   const status=document.getElementById('forestMotionStatus');
   if(status)status.textContent=still
@@ -675,7 +677,7 @@ function layout() {
       ${button('<span aria-hidden="true">★</span> <span id="forestBalance"><strong>'+data.economy.stars+'</strong><span class="sr-only"> estrelas disponíveis</span></span>',"shop",'aria-label="Oficina" aria-describedby="forestBalance"',"forest-wallet")}
       ${newMap?`<output id="worldFinds" class="world-finds" aria-live="polite">${discoveryCount()}</output>`:''}
     </div><p id="forestInstructions" class="forest-instructions">Toque no chão · setas ou WASD para andar · E para explorar</p>
-    </section><dialog id="forestDialog" class="forest-dialog" aria-labelledby="forestDialogTitle"><div id="forestDialogBody"></div></dialog>`);
+    </section><dialog id="forestDialog" class="forest-dialog" aria-labelledby="forestDialogTitle"><div id="forestDialogBody"></div><p id="forestPuzzleStatus" class="sr-only" role="status"></p></dialog>`);
   document.body.classList.add("forest-view");
   stage=document.getElementById("forestStage");
   canvas=document.getElementById(map2d?"worldMap":"forestCanvas");
@@ -1259,6 +1261,7 @@ function bind() {
   });
   on(document.getElementById("forestDialog"), "cancel", () => {
     modal = null;
+    puzzle = null;
     keys.clear();
     canvas.focus({ preventScroll: true });
   });
@@ -1287,14 +1290,24 @@ function renderDialog() {
     title=esc(place.title);
     const collected=data.progress.includes(place.id);
     const required=(place.requires??[]).filter(id=>!data.progress.includes(id));
+    const kind=data.challenges?.[place.id];
     body=`<p>${esc(collected&&place.success?place.success:place.text)}</p>`;
-    if(required.length){
+    if(puzzle?.place===place.id){
+      body=puzzleUI.renderChallenge(place,kind,puzzle,{sound:puzzleSound(),still});
+    }else if(required.length&&!collected){
       const missing=required.map(id=>data.layout.places.find(p=>p.id===id).title);
       body+=`<p>Para continuar, visite ${esc(missing.join(', '))}.</p>`;
+    }else if(kind){
+      if(collected&&!place.success)body+='<p>Descoberta guardada ✓</p>';
+      body+=button(collected?'Jogar de novo':'Abrir desafio','puzzle-start','','f-primary');
     }else if(!collected&&place.collect){
+      if(data.challenges&&puzzleUI.isShell(place.id))body+=puzzleUI.renderShell(place.id,puzzleSound());
       body+=button(esc(place.collect),'collect',`data-id="${esc(place.id)}"`,'f-primary');
     }else if(collected&&!place.success){
       body+='<p role="status">Descoberta guardada ✓</p>';
+      if(data.challenges&&puzzleUI.isShell(place.id))body+=puzzleUI.renderShell(place.id,puzzleSound());
+    }else if(collected&&place.id==='machine'&&data.challenges){
+      body+=button('Ver a dança de novo','collect',`data-id="${esc(place.id)}"`,'f-primary');
     }else if(place.inspect){
       body+=button(esc(place.inspect),'inspect-world',`data-id="${esc(place.id)}"`,'f-primary');
     }
@@ -1341,7 +1354,7 @@ function renderDialog() {
       <div class="f-options">${map2d?'':button(newMap?'Vista 2D do mundo':'Vista 2D da floresta',"fallback")}<button type="button" class="f-button" data-action="world-island">Ilha das ideias</button></div>`;
   }
   document.getElementById("forestDialogBody").innerHTML =
-    `<div class="f-dialog-top"><span>${newMap?esc(worldTitle()):'O DIÁRIO DO BOSQUE'}</span>${button("Fechar ×", "close")}</div><h2 id="forestDialogTitle">${title}</h2>${body}`;
+    `<div class="f-dialog-top"><span>${newMap?esc(worldTitle()):'O DIÁRIO DO BOSQUE'}</span>${button("Fechar ×", "close")}</div><h2 id="forestDialogTitle" tabindex="-1">${title}</h2>${body}`;
   const preview=document.getElementById('forestOutfitPreview');
   if(preview)drawOutfit(renderer,preview,player,pipo,wardrobeBack);
   if (modal === "options") {
@@ -1364,6 +1377,10 @@ function renderDialog() {
 }
 function dialog(name) {
   modal = name;
+  puzzle = null;
+  const live=document.getElementById('forestPuzzleStatus');
+  live.textContent='';
+  live.classList.add('sr-only');
   if(name==='wardrobe')wardrobeBack=false;
   keys.clear();
   target = null;
@@ -1390,26 +1407,109 @@ async function refresh() {
 const discoveryNotes={
   praia:[523,659,880],dinossauros:[392,523,659],inventores:[440,659,988],
 };
+const puzzleSound=()=>preference('puzzle-sound','off')==='on';
 function revealDiscovery(place,collected){
   const focus=newScene?.reveal(place,clock);
   if(focus)worldReveal={...focus,time:clock};
   map2d?.reveal?.(place,clock);
-  DaviGame.sound(discoveryNotes[data.world].slice(0,place.requires?3:2));
+  const notes=place.id==='chest-song'&&data.challenges?puzzleUI.melodyNotes:discoveryNotes[data.world].slice(0,place.requires?3:2);
+  if(collected&&data.challenges)DaviGame.sound(notes,puzzleSound(),.23);
+  else DaviGame.sound(notes);
   reactUntil=clock+1.5;
   document.getElementById('forestDialog').close();
   modal=null;
+  puzzle=null;
   canvas.focus({preventScroll:true});
   if(collected){
     document.getElementById('worldFinds').textContent=discoveryCount();
     message('Pipo: '+(place.success??'Descoberta guardada ✓'),true);
   }
 }
+function redrawPuzzle(trigger,announcement=''){
+  const {action,choice}=trigger.dataset;
+  renderDialog();
+  document.getElementById('forestPuzzleStatus').textContent=announcement;
+  const buttons=[...document.querySelectorAll('#forestDialog [data-action^="forest-puzzle-"]:enabled')];
+  const same=buttons.find(b=>b.dataset.action===action&&b.dataset.choice===choice);
+  const next=action==='forest-puzzle-pick'?buttons.find(b=>b.dataset.action==='forest-puzzle-fit'):
+    buttons.find(b=>['forest-puzzle-step','forest-puzzle-check'].includes(b.dataset.action));
+  const heading=document.getElementById('forestDialogTitle');
+  const focus=action==='forest-puzzle-start'?heading:action==='forest-puzzle-pick'?next:same??next;
+  (focus??heading).focus({preventScroll:true});
+}
+
+async function puzzleAction(command,trigger){
+  const place=data.layout.places.find(p=>p.id===modal);
+  if(!place)return;
+  const kind=data.challenges?.[place.id];
+  if(command==='sound'){
+    store('puzzle-sound',puzzleSound()?'off':'on');
+    redrawPuzzle(trigger);
+    return;
+  }
+  const choice=trigger.dataset.choice;
+  if(command==='listen'){
+    DaviGame.sound(choice==='melody'?puzzleUI.melodyNotes:[puzzleUI.note(choice)],puzzleSound(),.23);
+    return;
+  }
+  if(!kind)return;
+  if(command==='motion'){
+    motionChoice=still?'full':'reduced';
+    store('motion-mode',motionChoice);
+    syncMotion();
+    redrawPuzzle(trigger);
+    return;
+  }
+  if(command==='return'){await action('forest-close',trigger);return;}
+  if(command==='pick'&&puzzle){
+    puzzle.selected=choice;
+    puzzle.outcome='';
+    redrawPuzzle(trigger);
+    return;
+  }
+  if(command==='fit'&&puzzle&&!puzzle.selected){
+    puzzle.outcome='select';
+    redrawPuzzle(trigger,'Escolha uma peça primeiro.');
+    return;
+  }
+  const token=generation;
+  const payload={place:place.id,action:command==='fit'?'step':command};
+  if(command==='start')await save();
+  else if(puzzle?.place===place.id){
+    payload.revision=puzzle.round.revision;
+    if(command==='step')payload.value=['dig','valve'].includes(kind)?Number(choice):choice;
+    if(command==='fit')payload.value=[puzzle.selected,choice];
+  }else return;
+  if(token!==generation||modal!==place.id)return;
+  if(kind==='melody'&&command==='step')DaviGame.sound([puzzleUI.note(choice)],puzzleSound(),.23);
+  let result;
+  try{result=await host.api(sceneEndpoint+'/interact','POST',payload);}
+  catch(error){
+    if(token===generation&&modal===place.id){
+      const region=document.getElementById('forestPuzzleStatus');
+      region.classList.remove('sr-only');
+      region.textContent=error.message;
+    }
+    return;
+  }
+  if(token!==generation||modal!==place.id)return;
+  document.getElementById('forestPuzzleStatus').classList.add('sr-only');
+  data.progress=result.progress;
+  newScene?.progress(data.progress);
+  if(result.outcome==='solved'){revealDiscovery(place,true);return;}
+  const clearPiece=['start','reset'].includes(command)||result.outcome==='changed'||(command==='fit'&&result.outcome==='updated');
+  const selected=clearPiece?null:puzzle?.selected;
+  puzzle={place:place.id,round:result.round,outcome:result.outcome,selected};
+  redrawPuzzle(trigger,puzzleUI.announce(kind,puzzle));
+}
+
 async function action(a, b) {
   const name = a.replace("forest-", "");
   if(name==='hint'){
     message('Pipo: '+(newMap?data.layout.hint:beyondSeam(player.position.x)?Trail.hint(trailX(player.position.x),player.position.z):'Siga a margem junto às bandeirinhas azuis.'));
     return;
   }
+  if(name.startsWith('puzzle-')&&newMap){await puzzleAction(name.slice(7),b);return;}
   if((name==='collect'||name==='inspect-world')&&newMap){
     const place=data.layout.places.find(p=>p.id===b.dataset.id&&p.id===modal);
     if(!place||Math.hypot(player.position.x-place.x,player.position.z-place.z)>=1.8)return;
@@ -1472,6 +1572,7 @@ async function action(a, b) {
   if (name === "close") {
     document.getElementById("forestDialog").close();
     modal = null;
+    puzzle = null;
     canvas.focus({ preventScroll: true });
     return;
   }
@@ -1604,6 +1705,7 @@ function dispose() {
   trailScene?.group.traverse(o=>{if(o.isInstancedMesh)o.dispose();});
   trailScene=null;trailLoading=null;currentRegion='';buddyHead=null;reactUntil=0;
   newScene?.dispose();newScene=null;newMap=null;
+  puzzle=null;puzzleUI=null;
   worldReveal=null;
   legacy=null;map2d=null;
   renderer?.dispose();
@@ -1640,8 +1742,9 @@ async function open(options) {
   navigation=createNavigation(data.map,data.collision,data.economy.inventory);
   companion=createCompanion(walkable,data.map.bounds);
   if(alternate){
-    const {landscape,regionAt}=await import('/assets/worlds/terrain.mjs');
+    const [{landscape,regionAt},micro]=await Promise.all([import('/assets/worlds/terrain.mjs'),import('/assets/worlds/challenges.mjs')]);
     if(token!==generation)return false;
+    puzzleUI=micro;
     const {layout}=data;
     newMap={height:landscape(data).height,region:(x,z)=>regionAt(layout,x,z)};
   }else{

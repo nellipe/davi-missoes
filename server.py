@@ -476,7 +476,9 @@ class Handler(BaseHTTPRequestHandler):
             if (match:=re.fullmatch(r'/api/worlds/([a-z]+)/(move|interact)',path)) and match[1] in world_maps.LAYOUTS:
                 with LOCK, db() as c:
                     if match[2]=='move' and method=='PUT': result=world_maps.move(c,match[1],body)
-                    elif match[2]=='interact' and method=='POST': result=world_maps.interact(c,match[1],body)
+                    elif match[2]=='interact' and method=='POST':
+                        c.execute('BEGIN IMMEDIATE')
+                        result=world_maps.interact(c,match[1],body)
                     else: return self.fail('Rota não encontrada.',404)
                 return self.send(200,result)
             if path.startswith('/api/world'):

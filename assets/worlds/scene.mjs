@@ -43,6 +43,30 @@ function appendMesh(batches,source,rootMatrix,inverse,x,z){
   batches.get(key).parts.push(geometry);
 }
 
+function mechanismFeedback(root,name){
+  if(name==='console-coil'){
+    const loop=new T.TorusGeometry(.29,.021,7,20);
+    const material=new T.MeshBasicMaterial({color:'#9aebf7'});
+    return [1.32,1.58,1.83].map(y=>{
+      const mesh=new T.Mesh(loop,material);
+      mesh.rotation.x=Math.PI/2;
+      mesh.position.set(-.16,y,0);
+      root.add(mesh);
+      return mesh;
+    });
+  }
+  if(name==='console-commands'){
+    const bulb=new T.SphereGeometry(.059,9,6);
+    return [-.24,0,.24].map((z,i)=>{
+      const mesh=new T.Mesh(bulb,new T.MeshBasicMaterial({color:['#ffe697','#dcb4ff','#9fead9'][i]}));
+      mesh.position.set(-.16,1.26,z);
+      root.add(mesh);
+      return mesh;
+    });
+  }
+  return [];
+}
+
 function build(data,library){
   const {world,layout}=data;
   const shape=landscape(data), group=new T.Group();
@@ -90,7 +114,10 @@ function build(data,library){
       if(o.name.startsWith('idle_'))idles.push({node:o,phase:x});
       if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
     });
-    if(destinations.has(name))effects.set(name,effect);
+    if(destinations.has(name)){
+      effect.indicators=mechanismFeedback(root,name);
+      effects.set(name,effect);
+    }
     group.add(root);
   }
   sceneryBatches(group,batches);
@@ -142,7 +169,7 @@ function build(data,library){
   };
 }
 
-function tickEffect(name,{root,y,yaw,start,moving,prize,bones,dial,parts,active},time,still){
+function tickEffect(name,{root,y,yaw,start,moving,prize,bones,dial,parts,active,indicators},time,still){
   const age=time-start;
   const amount=active?(still?1:smoothstep(age,0,.83)):0;
   const jump=active&&!still&&age>0&&age<1.48?Math.sin(Math.PI*age/1.48):0;
@@ -172,6 +199,10 @@ function tickEffect(name,{root,y,yaw,start,moving,prize,bones,dial,parts,active}
     }
   }
   if(dial)dial.rotation.z=(-1.48+(still?0:jump*.31))*amount;
+  for(const [i,indicator] of indicators.entries()){
+    indicator.visible=active&&(still||age>=.12+i*.23);
+    if(name==='console-coil')indicator.scale.setScalar(still||!indicator.visible?1:1+.12*Math.sin(time*5-i*.9));
+  }
   if(name==='automaton'&&moving){
     moving.rotation.z=still?0:Math.sin(time*5.7)*.30*amount;
     moving.rotation.y=still?0:Math.sin(time*2.5)*.84*amount;

@@ -70,6 +70,39 @@ def activate(button, touch=False, **options):
         button.click(**options)
 
 
+def challenge_control(dialog, action, choice=None):
+    selector=f'[data-action="forest-puzzle-{action}"]'
+    if choice is not None:
+        selector+=f'[data-choice="{choice}"]'
+    return dialog.locator(selector)
+
+
+def perform_challenge(page, dialog, action, choice=None, *, touch=False, keyboard=None):
+    control=challenge_control(dialog,action,choice)
+    if keyboard:
+        control.press(keyboard)
+    else:
+        activate(control,touch)
+    page.locator('#content[aria-busy="true"]').wait_for(state='hidden')
+
+
+def solve_world_challenge(page, dialog, kind, touch):
+    perform_challenge(page,dialog,'start',touch=touch)
+    choices={
+        'melody':['shell-rose','shell-gold','shell-blue'], 'commands':['power','steps','dance'],
+        'dig':[0,1,2], 'valve':[1,1], 'coil':['left','right'],
+    }
+    if kind=='skeleton':
+        for piece in ('head','ribs','tail'):
+            perform_challenge(page,dialog,'pick',piece,touch=touch)
+            perform_challenge(page,dialog,'fit',piece,touch=touch)
+    else:
+        for step in choices[kind]:
+            perform_challenge(page,dialog,'step',step,touch=touch)
+        if kind!='dig':
+            perform_challenge(page,dialog,'check',touch=touch)
+
+
 def travel(page, world, place, touch):
     ident = place['id']
     points = page.evaluate(PLANNED_ROUTE, [world,ident])
@@ -81,7 +114,11 @@ def travel(page, world, place, touch):
     dialog.get_by_role('heading', name=place['title'], exact=True).wait_for()
     diagnostics = page.evaluate('() => DaviForest.diagnostics()')
     assert diagnostics['navigationValid'] and diagnostics['pipoNavigationValid'], diagnostics['position']
-    if place.get('collect') or place.get('inspect'):
+    if challenge_control(dialog,'start').count():
+        kind=page.request.get('/api/worlds/'+world).json()['challenges'][ident]
+        solve_world_challenge(page,dialog,kind,touch)
+        dialog.wait_for(state='hidden')
+    elif place.get('collect') or place.get('inspect'):
         action = 'collect' if place.get('collect') else 'inspect-world'
         activate(dialog.locator(f'[data-action=forest-{action}]'), touch)
         dialog.wait_for(state='hidden')

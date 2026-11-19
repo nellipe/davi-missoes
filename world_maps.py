@@ -4,6 +4,7 @@ import math
 from pathlib import Path
 
 import world
+import world_challenges as challenges
 from forest import map_scene as forest_scene, read_json_setting
 from forest_navigation import create_navigation, overlaps, safe_position
 
@@ -81,7 +82,8 @@ def scene(c, key):
     previous = read_json_setting(c, f'world_position_{key}')
     position = safe_position(previous, NAVIGATION[key], layout['spawn'], BOUNDS)
     return {'world': key, 'economy': world.scene(c), 'position': position, 'layout': layout,
-            'map': {'bounds': BOUNDS}, 'collision': COLLISIONS[key], 'progress': progress(c, key)}
+            'map': {'bounds': BOUNDS}, 'collision': COLLISIONS[key], 'progress': progress(c, key),
+            'challenges': challenges.KINDS[key]}
 
 
 def move(c, key, body):
@@ -99,9 +101,41 @@ def interact(c, key, body):
     if place is None or math.hypot(position['x']-place['x'], position['z']-place['z']) >= 1.8:
         raise ValueError('Aproxime-se para explorar este lugar.')
     collected = progress(c, key)
-    if any(required not in collected for required in place.get('requires', ())):
+    ident = place['id']
+    if ident not in collected and any(required not in collected for required in place.get('requires', ())):
         raise ValueError('Visite as outras descobertas primeiro.')
-    if place['id'] not in collected:
-        collected.append(place['id'])
+    kind = challenges.KINDS[key].get(ident)
+    result = {'progress': collected}
+    if kind:
+        result.update(play_challenge(c, key, ident, kind, body))
+        if result['outcome'] != 'solved':
+            return result
+    elif body.get('action') is not None:
+        raise ValueError('Essa ação não pertence a este lugar.')
+    if ident not in collected:
+        collected.append(ident)
         save(c, f'world_activity_{key}', collected)
-    return {'progress': collected}
+    return result
+
+
+def play_challenge(c, world_id, place, kind, body):
+    key = f'world_challenge_{world_id}_{place}'
+    state = read_json_setting(c, key)
+    action = body.get('action')
+    if not isinstance(action, str):
+        raise ValueError('Abra e resolva o desafio para continuar.')
+    if action == 'start':
+        if state is None or state['done']:
+            state = challenges.fresh(kind, state['revision'] + 1 if state else 0)
+            save(c, key, state)
+        return {'round': state, 'outcome': 'ready'}
+    if state is None:
+        raise ValueError('Abra o desafio para começar.')
+    revision = body.get('revision')
+    if type(revision) is not int or revision != state['revision'] or state['done']:
+        return {'round': state, 'outcome': 'changed'}
+    next_state, outcome = challenges.advance(kind, state, action, body.get('value'))
+    if next_state != state:
+        next_state['revision'] += 1
+        save(c, key, next_state)
+    return {'round': next_state, 'outcome': outcome}

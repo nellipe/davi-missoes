@@ -52,13 +52,13 @@ window.DaviGame = (() => {
     const types={'🎒':'bag','🥋':'dobok','🎗️':'belt','🚰':'bottle','💧':'bottle','📚':'book','📓':'notebook','✏️':'case'};
     return art(types[step.icon],step.icon);
   }
-  function sound(notes=[523,659,784]) {
-    if (preferences().sound !== true) return;
+  function sound(notes=[523,659,784], enabled=preferences().sound===true, beat=.09) {
+    if (!enabled) return;
     try {
       const audio=new (window.AudioContext || window.webkitAudioContext)();
       const gain=audio.createGain(); gain.gain.value=.035; gain.connect(audio.destination);
-      notes.forEach((frequency,i)=>{const note=audio.createOscillator();note.type='sine';note.frequency.value=frequency;note.connect(gain);note.start(audio.currentTime+i*.09);note.stop(audio.currentTime+i*.09+.12);});
-      setTimeout(()=>audio.close(),600);
+      notes.forEach((frequency,i)=>{const note=audio.createOscillator();note.type='sine';note.frequency.value=frequency;note.connect(gain);note.start(audio.currentTime+i*beat);note.stop(audio.currentTime+i*beat+beat+.03);});
+      setTimeout(()=>audio.close(),Math.max(600,(beat*notes.length+.1)*1000));
     } catch {}
   }
   function stopVoice() { if ('speechSynthesis' in window) speechSynthesis.cancel(); }
