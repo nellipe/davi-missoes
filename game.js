@@ -52,12 +52,12 @@ window.DaviGame = (() => {
     const types={'🎒':'bag','🥋':'dobok','🎗️':'belt','🚰':'bottle','💧':'bottle','📚':'book','📓':'notebook','✏️':'case'};
     return art(types[step.icon],step.icon);
   }
-  function sound() {
+  function sound(notes=[523,659,784]) {
     if (preferences().sound !== true) return;
     try {
       const audio=new (window.AudioContext || window.webkitAudioContext)();
       const gain=audio.createGain(); gain.gain.value=.035; gain.connect(audio.destination);
-      [523,659,784].forEach((frequency,i)=>{const note=audio.createOscillator();note.type='sine';note.frequency.value=frequency;note.connect(gain);note.start(audio.currentTime+i*.09);note.stop(audio.currentTime+i*.09+.12);});
+      notes.forEach((frequency,i)=>{const note=audio.createOscillator();note.type='sine';note.frequency.value=frequency;note.connect(gain);note.start(audio.currentTime+i*.09);note.stop(audio.currentTime+i*.09+.12);});
       setTimeout(()=>audio.close(),600);
     } catch {}
   }

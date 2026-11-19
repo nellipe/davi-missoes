@@ -12,6 +12,7 @@ import { createChibiPaint } from '/assets/forest/chibi.mjs';
 let Trail;
 let navigation, companion;
 let newMap, newScene, sceneEndpoint;
+let worldReveal;
 let trailScene=null, trailLoading=null, currentRegion='', legacy=null, map2d=null;
 const localCamera=new T.Vector3(), localHero=new T.Vector3(), localBuddy=new T.Vector3();
 const skySoft=new T.Color('#dff2e7'), skyDefault=new T.Color('#ddf2fa');
@@ -114,6 +115,10 @@ const esc = (s) =>
 const button = (text, action, attrs = "", cls = "") =>
   `<button type="button" class="f-button ${cls}" data-action="forest-${action}" ${attrs}>${text}</button>`;
 const owned = (id) => data.economy.inventory.includes(id);
+function discoveryCount(){
+  const goals=data.layout.places.filter(p=>p.collect&&!p.requires);
+  return `${goals.filter(p=>data.progress.includes(p.id)).length} de ${goals.length} achados`;
+}
 let deckProfile = [], deckHitMesh = null, deckBoards = [];
 // The same continuous tread supports the feet and picks taps between planks.
 function prepareDeck(root) {
@@ -305,11 +310,12 @@ function supportHeight(table, list) {
   }
   return weight?height/weight:0;
 }
-function message(text) {
+function message(text,discovery=false) {
   const el = document.getElementById("forestMessage");
   if (el) {
     el.textContent = text;
     el.classList.toggle('pipo-speech',text.startsWith('Pipo:'));
+    el.classList.toggle('world-discovery-message',discovery);
     messageUntil=text ? clock+6 : 0;
   }
 }
@@ -317,7 +323,7 @@ function positionSpeech() {
   const el=document.getElementById('forestMessage');
   if(!el?.textContent)return;
   if(clock>=messageUntil){message('');return;}
-  if(map2d || !el.classList.contains('pipo-speech'))return;
+  if(map2d || el.classList.contains('world-discovery-message') || !el.classList.contains('pipo-speech'))return;
   speechAnchor.copy(pipo.position).y+=1.02;
   speechAnchor.project(camera);
   const width=stage.clientWidth,height=stage.clientHeight;
@@ -667,6 +673,7 @@ function layout() {
       ${map2d?'<button class="f-button" data-action="world-forest">Vista 3D</button>':''}
       ${button("Ver agenda","calendar")}
       ${button('<span aria-hidden="true">★</span> <span id="forestBalance"><strong>'+data.economy.stars+'</strong><span class="sr-only"> estrelas disponíveis</span></span>',"shop",'aria-label="Oficina" aria-describedby="forestBalance"',"forest-wallet")}
+      ${newMap?`<output id="worldFinds" class="world-finds" aria-live="polite">${discoveryCount()}</output>`:''}
     </div><p id="forestInstructions" class="forest-instructions">Toque no chão · setas ou WASD para andar · E para explorar</p>
     </section><dialog id="forestDialog" class="forest-dialog" aria-labelledby="forestDialogTitle"><div id="forestDialogBody"></div></dialog>`);
   document.body.classList.add("forest-view");
@@ -843,6 +850,12 @@ function updateCamera(dt = 1) {
     aim.x-=Math.sin(angle)*lead;
     aim.z-=Math.cos(angle)*lead;
     aim.y+=.25;
+    if(worldReveal&&!still){
+      const age=clock-worldReveal.time;
+      const weight=T.MathUtils.smoothstep(age,0,.36)*(1-T.MathUtils.smoothstep(age,1.85,2.55));
+      aim.lerp(new T.Vector3(worldReveal.x,worldReveal.y,worldReveal.z),weight*.78);
+      if(age>2.55)worldReveal=null;
+    }
   }
   look.lerp(aim, still?1:Math.min(1, dt * 5));
   const offset = new T.Vector3(
@@ -955,6 +968,7 @@ function tick(now) {
     } else { target = null; path=[]; }
   }
   if (movingNow && !moving) save();
+  if(moving)worldReveal=null;
   movingNow = moving;
   const oldBuddy={x:pipo.position.x,z:pipo.position.z};
   const goal=pipoGoal(player.position);
@@ -1074,9 +1088,10 @@ function tick(now) {
     const next=near.d<1.8?near.id:'';
     if(next!==actionTarget){
       actionTarget=next;
+      b.dataset.place=next;
       const icon=near.id==='wheel'?'⛵':near.id==='leaf'?'❧':near.icon;
       b.innerHTML=next
-        ? `<span aria-hidden="true">${esc(icon)}</span>${esc(near.title)}`
+        ? `<span aria-hidden="true">${esc(icon)}</span>${esc(near.shortTitle??near.title)}`
         : "Explorar por perto · E";
     }
   }
@@ -1280,6 +1295,8 @@ function renderDialog() {
       body+=button(esc(place.collect),'collect',`data-id="${esc(place.id)}"`,'f-primary');
     }else if(collected&&!place.success){
       body+='<p role="status">Descoberta guardada ✓</p>';
+    }else if(place.inspect){
+      body+=button(esc(place.inspect),'inspect-world',`data-id="${esc(place.id)}"`,'f-primary');
     }
   } else if (modal?.startsWith('activity-')) {
     const e=features.find(f=>f.id===modal).activity;
@@ -1361,6 +1378,7 @@ async function refresh() {
   if(token!==generation)return false;
   data=fresh;
   newScene?.progress(data.progress);
+  if(newMap)document.getElementById('worldFinds').textContent=discoveryCount();
   navigation=createNavigation(data.map,data.collision,data.economy.inventory);
   syncOwned();
   if (!walkable(player.position.x, player.position.z)) {
@@ -1369,24 +1387,41 @@ async function refresh() {
   if(modal)renderDialog();
   return true;
 }
+const discoveryNotes={
+  praia:[523,659,880],dinossauros:[392,523,659],inventores:[440,659,988],
+};
+function revealDiscovery(place,collected){
+  const focus=newScene?.reveal(place,clock);
+  if(focus)worldReveal={...focus,time:clock};
+  map2d?.reveal?.(place,clock);
+  DaviGame.sound(discoveryNotes[data.world].slice(0,place.requires?3:2));
+  reactUntil=clock+1.5;
+  document.getElementById('forestDialog').close();
+  modal=null;
+  canvas.focus({preventScroll:true});
+  if(collected){
+    document.getElementById('worldFinds').textContent=discoveryCount();
+    message('Pipo: '+(place.success??'Descoberta guardada ✓'),true);
+  }
+}
 async function action(a, b) {
   const name = a.replace("forest-", "");
   if(name==='hint'){
     message('Pipo: '+(newMap?data.layout.hint:beyondSeam(player.position.x)?Trail.hint(trailX(player.position.x),player.position.z):'Siga a margem junto às bandeirinhas azuis.'));
     return;
   }
-  if(name==='collect'&&newMap){
+  if((name==='collect'||name==='inspect-world')&&newMap){
+    const place=data.layout.places.find(p=>p.id===b.dataset.id&&p.id===modal);
+    if(!place||Math.hypot(player.position.x-place.x,player.position.z-place.z)>=1.8)return;
+    if(name==='inspect-world'){revealDiscovery(place,false);return;}
     const token=generation;
     await save();
     if(token!==generation)return;
-    const result=await host.api(sceneEndpoint+'/interact','POST',{place:b.dataset.id});
+    const result=await host.api(sceneEndpoint+'/interact','POST',{place:place.id});
     if(token!==generation)return;
     data.progress=result.progress;
     newScene?.progress(data.progress);
-    if(data.layout.places.find(p=>p.id===b.dataset.id)?.requires)DaviGame.sound();
-    reactUntil=clock+1.5;
-    renderDialog();
-    document.querySelector('[data-action=forest-close]')?.focus();
+    revealDiscovery(place,true);
     return;
   }
   if (name === "calendar") {
@@ -1569,6 +1604,7 @@ function dispose() {
   trailScene?.group.traverse(o=>{if(o.isInstancedMesh)o.dispose();});
   trailScene=null;trailLoading=null;currentRegion='';buddyHead=null;reactUntil=0;
   newScene?.dispose();newScene=null;newMap=null;
+  worldReveal=null;
   legacy=null;map2d=null;
   renderer?.dispose();
   renderer?.forceContextLoss();

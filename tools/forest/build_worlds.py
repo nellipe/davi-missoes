@@ -109,6 +109,20 @@ def eyes(x, y, z, spacing=.25):
         sphere((p-.031,y+.043,z+.044),(.031,.034,.018),'fff7db')
 
 
+def leaf(point, size, yaw, pigment):
+    x,y,z=size
+    vertices=[(-x,0,0),(-x*.23,0,z),(x,0,0),(-x*.23,0,-z),(0,y,0),(0,-y*.27,0)]
+    faces=[(i,(i+1)%4,4) for i in range(4)]+[((i+1)%4,i,5) for i in range(4)]
+    mesh=bpy.data.meshes.new('Folded leaf')
+    mesh.from_pydata([coordinate(v) for v in vertices],[],faces)
+    mesh.materials.append(material(pigment))
+    obj=bpy.data.objects.new('Folded leaf',mesh)
+    bpy.context.collection.objects.link(obj)
+    obj.parent=PARENT
+    obj.location=coordinate(point)
+    obj.rotation_euler.z=yaw
+
+
 def palm():
     points = [(0,0,0),(-.05,1,0),(.12,2.1,0),(.43,3.05,0)]
     for a,b in zip(points,points[1:]):
@@ -133,6 +147,9 @@ def lighthouse():
     box((-.06,2.42,.86),(.26,.37,.12),'6a8f94',.07)
     rod((0,4.57,0),(0,4.8,0),.9,'5f9ca2')
     rod((0,4.8,0),(0,5.47,0),.57,'ffd07d',glow=True)
+    with group('idle_lens',(0,5.1,0)):
+        rod((0,0,-.64),(0,0,.64),.19,'fff2ad',glow=True)
+        torus((0,0,.64),.25,.045,'ffbd74',True)
     for i in range(8):
         x,z=.60*cos(i*pi/4),.60*sin(i*pi/4)
         rod((x,4.78,z),(x,5.5,z),.032,'fcf1d8')
@@ -148,9 +165,10 @@ def crab():
         for z in (-.17,.01,.18):
             rod((s*.30,.39,z),(s*.59,.22,z+.03),.065,'cc685d')
             rod((s*.59,.22,z+.03),(s*.65,.09,z+.13),.056,'cc685d')
-        rod((s*.35,.55,.06),(s*.60,.74,.18),.083,shell)
-        sphere((s*.66,.80,.19),(.19,.22,.17),shell)
-        sphere((s*.75,.94,.20),(.105,.11,.13),'f99d7a')
+        with group(f'idle_claw_{s}',(s*.35,.55,.06)):
+            rod((0,0,0),(s*.25,.19,.12),.083,shell)
+            sphere((s*.31,.25,.13),(.19,.22,.17),shell)
+            sphere((s*.40,.39,.14),(.105,.11,.13),'f99d7a')
         rod((s*.22,.66,.12),(s*.23,.93,.20),.07,shell)
         sphere((s*.23,.94,.24),(.15,.16,.12),'ffebd0')
     eyes(0,.95,.34,.23)
@@ -169,8 +187,11 @@ def chest():
         box((0,.06,1.07),(.26,.24,.07),'eac674',.06)
         sphere((0,.06,1.113),(.045,.06,.021),'80644f')
     with group('prize_chest'):
-        sphere((0,.69,.05),(.30,.30,.30),'fff0ae',True)
-        torus((0,.65,.05),.40,.032,'ffd478',False,True)
+        sphere((0,.83,.05),(.27,.27,.27),'fff0ae',True)
+        torus((0,.87,.05),.40,.032,'ffd478',False,True)
+        for i,pigment in enumerate(('e5a7b4','e9ba70','89d8e2')):
+            t=(i-1)*.78
+            sphere((.57*sin(t),.70,.56*cos(t)),(.11,.08,.15),pigment,True)
 
 
 def umbrella():
@@ -234,8 +255,7 @@ def fern():
         for j in range(1,5):
             s=j*.18
             for side in (-1,1):
-                obj=sphere((u*s-v*.12*side,s+.16,v*s+u*.12*side),(.26-.028*j,.052,.073),['86a94b','659949','abc35e'][(i+j)%3])
-                obj.rotation_euler.z=-t-side*.66
+                leaf((u*s-v*.12*side,s+.16,v*s+u*.12*side),(.26-.028*j,.052,.073),-t-side*.66,['86a94b','659949','abc35e'][(i+j)%3])
 
 
 def cliff():
@@ -272,7 +292,8 @@ def dino(long_neck=False):
             sphere((x,.102,z+.06),(.234,.115,.27),skin)
             for n in (-1,0,1):
                 sphere((x+n*.091,.101,z+.296),(.04,.045,.037),belly)
-    rod((0,.80,-.47),(0,.63,-1.48),.30,skin,.08)
+    with group('idle_tail',(0,.80,-.47)):
+        rod((0,0,0),(0,-.17,-1.01),.30,skin,.08)
     if long_neck:
         for a,b,r in [((0,.95,.41),(0,1.65,.59),.32),((0,1.65,.59),(0,2.47,.78),.27),((0,2.47,.78),(0,2.92,1.02),.24)]:
             rod(a,b,r,skin,r-.035)
@@ -284,31 +305,41 @@ def dino(long_neck=False):
         for j in range(7):
             t=j*pi/6
             sphere((.61*cos(t),cy+.15+.46*sin(t),cz+.015),(.074,.087,.057),belly)
-    sphere((0,cy,cz),(.47,.38,.39),skin)
-    sphere((0,cy-.13,cz+.27),(.35,.23,.24),belly)
-    eyes(0,cy+.065,cz+.335,.24)
-    for s in (-1,1):
-        sphere((s*.25,cy-.105,cz+.37),(.077,.044,.038),'e9a583')
-        if not long_neck:
-            rod((s*.27,cy+.27,cz+.23),(s*.31,cy+.48,cz+.40),.092,'ffdcac',.008)
+    with group('idle_head',(0,cy,cz)):
+        sphere((0,0,0),(.47,.38,.39),skin)
+        sphere((0,-.13,.27),(.35,.23,.24),belly)
+        eyes(0,.065,.335,.24)
+        for s in (-1,1):
+            sphere((s*.25,-.105,.37),(.077,.044,.038),'e9a583')
+            if not long_neck:
+                rod((s*.27,.27,.23),(s*.31,.48,.40),.092,'ffdcac',.008)
 
 
 def fossil(board=False, part='ribs'):
     height=.14 if not board else 1.08
     if board:
         box((0,.97,0),(2.65,1.51,.25),'b38366',.15)
-        box((0,.97,.15),(2.40,1.29,.08),'7b645b',.12)
+        box((0,.97,.15),(2.40,1.29,.08),'526a65',.12)
+        for s in (-1,1):rod((s*1.02,0,-.03),(s*1.02,1.55,-.03),.105,'a37955')
+        box((0,1.67,.08),(2.73,.17,.49),'d8a670',.07)
+        for x in (-.67,.07,.69):
+            torus((x,1.05,.201),.19,.015,'95ae8c',True)
     else:
         sphere((0,.035,0),(1.05,.10,.79),'ba9272')
     with group('prize_fossil-board' if board else 'bones'):
         color='fae0aa'
         if board:
-            sphere((-.69,height+.15,.233),(.33,.23,.09),color)
-            sphere((-.75,height+.20,.309),(.085,.08,.035),'65585b')
-            rod((-.47,height,.25),(.95,height,.25),.061,color,.025)
-            for j in range(6):
-                x=-.34+j*.18
-                rod((x,height,.26),(x+.04,height-.24+.018*j,.27),.041,color)
+            with group('assemble_head',(-.66,height+.17,.24)):
+                sphere((0,0,0),(.32,.22,.09),color)
+                sphere((-.07,.06,.075),(.085,.08,.035),'65585b')
+            with group('assemble_ribs',(.02,height,.25)):
+                rod((-.45,0,0),(.39,0,0),.055,color,.044)
+                for j in range(6):
+                    x=-.36+j*.131
+                    rod((x,0,0),(x+.04,-.24+.018*j,.02),.039,color)
+            with group('assemble_tail',(.40,height,.25)):
+                rod((0,0,0),(.68,.17,0),.044,color,.014)
+                for i in range(4):sphere((i*.14,.04*i,.016),(.073-i*.012,.062,.047),color)
         elif part=='head':
             sphere((-.11,.16,0),(.43,.13,.36),color)
             sphere((.29,.145,0),(.35,.10,.21),color)
@@ -333,18 +364,34 @@ def gear(x,y,z,r,pigment):
     sphere((x,y,z+.12),(r*.18,r*.18,.08),'79758d')
 
 
-def workshop(paint):
+def workshop(paint, kind):
     box((0,.20,0),(4.15,.34,2.75),'a48b9d',.13)
     box((0,1.38,0),(3.82,2.46,2.47),paint,.19)
     box((0,2.53,0),(4.12,.32,2.71),'f2d9ac',.15)
-    box((0,2.77,0),(3.81,.32,2.47),'8a839f',.16)
+    roof={'press':'a56370','optic':'618795','coil':'9b79a7','clock':'81a18f'}[kind]
+    box((0,2.77,0),(3.81,.32,2.47),roof,.16)
     for s in (-1,1):
         box((1.15*s,1.62,1.25),(.81,.87,.11),'f8e0b5',.14)
         box((1.15*s,1.62,1.31),(.62,.67,.10),'739daf',.11)
         box((1.15*s,1.62,1.38),(.043,.61,.05),'e2d7b0',.02)
     box((0,.81,1.26),(.93,1.46,.17),'686a86',.17)
     sphere((.27,.77,1.38),(.063,.063,.061),'f9ca82')
-    gear(0,2.43,1.39,.32,'eccc91')
+    if kind=='optic':
+        torus((0,2.42,1.41),.28,.063,'f3d293',True)
+        rod((0,2.42,1.37),(0,2.42,1.45),.23,'8fd1d7',glow=True)
+        rod((0,2.87,.10),(.55,3.83,-.23),.21,'c58a86',.36)
+    elif kind=='coil':
+        for y in (2.25,2.37,2.49):torus((0,y,1.43),.22,.028,'a07c9e')
+        sphere((0,3.42,0),(.29,.31,.29),'d5b9ee',True)
+        rod((0,2.89,0),(0,3.42,0),.055,'827c9a')
+    elif kind=='clock':
+        torus((0,2.43,1.39),.28,.037,'f2d49d',True)
+        rod((0,2.43,1.41),(.13,2.56,1.41),.034,'69817e')
+        rod((0,2.43,1.41),(-.13,2.46,1.41),.034,'69817e')
+    else:
+        gear(0,2.43,1.39,.32,'eccc91')
+    for j in range(8):
+        box((-.98+j*.28,1.93,1.48),(.29,.08,.45),roof if j%2 else 'f3d4a4',.04)
     for x in (-1.17,1.13):
         rod((x,2.86,-.55),(x,3.66,-.55),.19,'c6887e')
         torus((x,3.61,-.55),.20,.052,'f0c488')
@@ -395,7 +442,8 @@ def console(theme):
     if theme=='pressure':
         torus((-.20,1.43,.10),.25,.040,'e8c693',True)
         rod((-.20,1.43,.04),(-.20,1.43,.12),.218,'f0d6aa',sides=20)
-        rod((-.20,1.43,.17),(-.07,1.53,.17),.027,'9b6d80')
+        with group('dial_pressure',(-.20,1.43,.17)):
+            rod((0,0,0),(-.13,.10,0),.027,'9b6d80')
     elif theme=='coil':
         rod((-.16,1.12,0),(-.16,1.88,0),.087,'8b80a7')
         for i in range(5):torus((-.16,1.17+i*.127,0),.191,.042,'c991a0')
@@ -453,7 +501,134 @@ def garnish(kind):
     elif kind=='automaton':
         rod((0,0,0),(0,.34,0),1.35,'aa9ab9')
         rod((0,.33,0),(0,.47,0),1.24,'e3c1a3')
+        for s in (-1,1):
+            rod((s*1.14,.26,-.54),(s*1.14,2.15,-.54),.085,'a076a6')
+            sphere((s*1.14,2.21,-.54),(.145,.16,.14),'f8cc8b',True)
+        rod((-1.14,2.15,-.54),(1.14,2.15,-.54),.05,'e5bb83')
+        with group('prize_automaton'):
+            torus((0,.48,0),1.15,.046,'ffd37e',glow=True)
         with group('stage',(0,.49,0)):robot(True)
+
+
+def beach_detail(kind):
+    if kind=='dune-plants':
+        for i in range(10):
+            t=i*2.4
+            r=.22+.083*i
+            x,z=r*cos(t),r*sin(t)
+            for j in range(3):
+                leaf((x+.07*cos(j*2),.13+j*.026,z+.07*sin(j*2)),(.18,.10+j*.042,.075),t+j*.8,['639e7b','8fb97e','b8ca81'][j])
+            if i%3==0:sphere((x,.19,z),(.061,.066,.061),'e6a3a0')
+    elif kind=='packing':
+        for x,z,yaw in ((-.39,.14,.21),(.31,-.21,-.2)):
+            box((x,.25,z),(.61,.48,.57),'ba805a',.068,yaw)
+            for y in (.14,.34):box((x,y,z+.286),(.58,.047,.052),'d3a177',.014,yaw)
+        torus((.28,.49,-.19),.21,.041,'dec18e')
+        torus((.25,.51,-.18),.142,.031,'b19a70')
+    elif kind=='pennant':
+        for s in (-1,1):
+            rod((s*1.38,0,0),(s*1.38,2.31,0),.067,'af8065')
+            sphere((s*1.38,2.35,0),(.094,.11,.094),'f1ce94')
+        for i in range(7):
+            x=-1.2+i*.40
+            y=1.94+.19*x*x
+            rod((x-.21,y+.08,0),(x+.22,y,0),.024,'e8cc95')
+            box((x,y-.10,.019),(.22,.26,.033),('d87978','68b6b9','f5cf94')[i%3],.025,i*.035)
+    elif kind=='tide-pool':
+        sphere((0,.025,0),(1.36,.07,.99),'b4e1db')
+        sphere((.04,.073,-.05),(1.11,.044,.79),'6fc4c9')
+        for i in range(10):
+            t=i*pi*.2
+            if i%4!=1:
+                stone((1.25*cos(t),.15,.86*sin(t)),(.26,.17,.20),('e0bc96','cba88b','ecc99f')[i%3],t)
+        for i in range(5):
+            t=i*pi*.4
+            rod((-.37,.135,.06),(-.37+.23*cos(t),.136,.06+.23*sin(t)),.04,'eb9b8c',.009,7)
+    elif kind=='snail':
+        sphere((0,.13,0),(.36,.16,.18),'d09b6c')
+        sphere((-.08,.28,-.02),(.24,.26,.22),'ebb183')
+        torus((-.09,.28,.156),.126,.025,'bd7963',True)
+        for z in (-.085,.085):rod((.22,.19,z),(.25,.32,z),.024,'b3815e')
+
+
+def dino_detail(kind):
+    if kind=='cycad':
+        rod((0,0,0),(0,.92,0),.26,'9c744d',.17,9)
+        for j in range(5):torus((0,.14+j*.15,0),.23-j*.012,.029,'b28956')
+        for ring in range(2):
+            for i in range(7):
+                t=i*pi*2/7+ring*.45
+                r=.55-ring*.17
+                leaf((r*cos(t),.94+ring*.28,r*sin(t)),(.67-ring*.16,.20,.23),-t,['538560','739d63','96af6c'][i%3])
+    elif kind=='horsetail':
+        for i in range(9):
+            t=i*2.4
+            r=.16+i*.069
+            x,z=r*cos(t),r*sin(t)
+            h=.39+(1-i/10)*.54
+            rod((x,0,z),(x*1.2,h,z*1.24),.041,'7c9556',.023,7)
+            for j in (1,2,3):
+                y=j*h/4
+                for k in (0,1,2):
+                    a=t+k*pi*2/3
+                    leaf((x+.13*cos(a),y,z+.13*sin(a)),(.14,.04,.028),-a,'91aa65')
+    elif kind=='strata':
+        for j in range(5):
+            rod((0,j*.43,0),(j*.033,.43+j*.43,.04),1.35-j*.14,['c48860','e4a979','b1785a','dfa071','edbe89'][j],1.29-j*.14,9)
+        stone((.12,2.11,.05),(.68,.34,.63),'c99670',.33)
+        for x,z in ((-.7,.65),(-.94,-.47),(.64,.68)):
+            stone((x,.14,z),(.41,.25,.32),'b49a73',x)
+    elif kind=='amber':
+        for i in range(5):
+            t=i*2.4
+            r=i*.14
+            x,z=r*cos(t),r*sin(t)
+            rod((x,0,z),(x+.13,.59+i*.16,z+.083),.16,'efbb5f' if i%2 else 'ffc66e',0,5,True)
+    elif kind=='trail-sign':
+        rod((0,0,0),(0,1.21,0),.062,'a57b53')
+        box((0,1.06,0),(.62,.32,.085),'dfab71',.08)
+        for s in (-1,0,1):sphere((s*.09,1.08+abs(s)*.026,.05),(.043,.077,.018),'775f53')
+
+
+def city_detail(kind):
+    if kind=='market':
+        box((0,.14,0),(2.83,.25,1.47),'b89187',.07)
+        box((0,.61,0),(2.57,.87,.94),'b28392',.11)
+        box((0,1.07,0),(2.78,.12,1.22),'edc59b',.065)
+        for s in (-1,1):
+            rod((s*1.21,0,-.48),(s*1.21,2.12,-.48),.066,'8c7899')
+            rod((s*1.21,0,.48),(s*1.21,1.85,.48),.066,'8c7899')
+        for i in range(8):
+            roof=box((i*.337-1.18,2.02,0),(.34,.09,1.25),'d88e91' if i%2 else 'f5d8a9',.045)
+            roof.rotation_euler.x=.20
+        for x,paint in ((-.85,'76aaa6'),(-.24,'d08b84'),(.46,'a991b0')):
+            gear(x,1.30,.16,.20,paint)
+    elif kind=='post':
+        rod((0,0,0),(0,1.66,0),.056,'7a7895')
+        for y,turn,paint in ((1.37,.11,'d59793'),(1.11,-.14,'8eadae')):
+            box((.03,y,.055),(.75,.20,.087),paint,.055,turn)
+            rod((.12,y,.103),(.30,y,.103),.030,'f4d893')
+    elif kind=='cable-lamp':
+        for i in range(9):
+            x=i*.42-1.69
+            h=2.22+.41*(x/1.70)**2
+            if i:
+                u=x-.42
+                rod((u,2.22+.41*(u/1.70)**2,0),(x,h,0),.017,'927c8d',sides=7)
+            if i%2:sphere((x,h-.068,0),(.089,.11,.078),['ebaa9c','f4dca4','c5d8c5'][i%3],True)
+    elif kind=='industrial':
+        box((0,.19,0),(1.66,.35,1.02),'ad8ba2',.14)
+        rod((-.37,.30,0),(-.37,1.37,0),.30,'cf9589')
+        torus((-.37,1.33,0),.277,.054,'f5cd99')
+        rod((.39,.3,0),(.39,1.08,0),.28,'858ea6')
+        torus((.39,1.04,0),.249,.042,'c6b5bd')
+        gear(.04,.72,.48,.23,'ebb87d')
+    elif kind=='delivery':
+        box((0,.14,0),(1.30,.25,.75),'9fa0b4',.064)
+        box((.11,.38,0),(1.11,.29,.67),'c58683',.089)
+        for x in (-.41,.42):
+            for s in (-1,1):rod((x,.145,s*.23),(x,.145,s*.41),.142,'738194',sides=12)
+        box((-.23,.55,0),(.34,.19,.48),'dcbb88',.05)
 
 
 def export(key, models):
@@ -482,11 +657,15 @@ def export(key, models):
 if __name__ == '__main__':
     export('praia',dict(lighthouse=lighthouse,crab=crab,chest=chest,hut=hut,wreck=wreck,umbrella=umbrella,palm=palm,
                         **{f'shell-{key}':lambda key=key:shell(key) for key in ['rose','gold','blue']},
-                        **{key:lambda key=key:garnish(key) for key in ['sandstone','jetty','buoy']}))
+                        **{key:lambda key=key:garnish(key) for key in ['sandstone','jetty','buoy']},
+                        **{key:lambda key=key:beach_detail(key) for key in ['dune-plants','packing','pennant','tide-pool','snail']}))
     export('dinossauros',{'sauropod':lambda:dino(True),'trico':dino,'cave':cave,'arch':lambda:cave(True),'fossil-board':lambda:fossil(True),
                          **{f'fossil-{key}':lambda key=key:fossil(part=key) for key in ['head','ribs','tail']},
-                         'cliff':cliff,'fern':fern,**{key:lambda key=key:garnish(key) for key in ['eggs','tracks']}})
+                         'cliff':cliff,'fern':fern,**{key:lambda key=key:garnish(key) for key in ['eggs','tracks']},
+                         **{key:lambda key=key:dino_detail(key) for key in ['cycad','horsetail','strata','amber','trail-sign']}})
     export('inventores',{'clock':clock,'robot':robot,
                         **{f'console-{key}':lambda key=key:console(key) for key in ['pressure','coil','commands']},
-                        **{f'workshop-{key}':lambda pigment=pigment:workshop(pigment) for key,pigment in [('red','df9c91'),('blue','94b5c6'),('yellow','e8ba8f')]},
-                        **{key:lambda key=key:garnish(key) for key in ['gear-fountain','automaton','lamp','planter','vent','canal-bridge']}})
+                        **{f'workshop-{key}':lambda pigment=pigment,kind=kind:workshop(pigment,kind)
+                           for key,pigment,kind in [('red','df9c91','press'),('blue','94b5c6','optic'),('yellow','e8ba8f','coil'),('mint','98bba3','clock')]},
+                        **{key:lambda key=key:garnish(key) for key in ['gear-fountain','automaton','lamp','planter','vent','canal-bridge']},
+                        **{key:lambda key=key:city_detail(key) for key in ['market','post','cable-lamp','industrial','delivery']}})

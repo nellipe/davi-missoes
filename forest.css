@@ -820,10 +820,17 @@
 .world-picker [data-world="inventores"] { background:#e9def5; }
 .world-picker [data-world="island"] { background:#dbe9f6; }
 .world-picker [aria-current="true"] { outline:2px solid currentColor; outline-offset:-5px; }
+.world-finds { margin-inline-start:auto; font-size:.79rem; font-weight:700; white-space:nowrap; }
+.trail-shell #forestMessage.pipo-speech.world-discovery-message {
+  inset:88px auto auto 50%; transform:translateX(-50%); width:max-content; max-width:min(420px,85%);
+  font-size:clamp(.76rem,3vw,.92rem);
+}
+.world-discovery-message::after { display:none; }
 @media (max-width: 470px) {
   .trail-hud .forest-tools { flex-wrap:nowrap; gap:4px; }
   .trail-hud .forest-tools .f-button { min-width:0; padding-inline:7px; }
   .trail-hud .forest-region { min-width:0; }
   .trail-hud .forest-region h1 { overflow-wrap:anywhere; }
   .world-picker .world-choice { padding:8px; font-size:.88rem; grid-template-columns:1.5rem 1fr; }
+  .world-finds { font-size:.7rem; margin-inline-start:0; }
 }

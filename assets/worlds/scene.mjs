@@ -1,177 +1,219 @@
 import * as T from '/vendor/three/three.module.min.js';
 import { GLTFLoader } from '/vendor/three/addons/loaders/GLTFLoader.js';
-import { smoothstep } from '/assets/forest/navigation.mjs';
+import { mergeGeometries } from '/vendor/three/addons/utils/BufferGeometryUtils.js';
+import { smoothstep } from '../forest/navigation.mjs';
 import { landscape } from './terrain.mjs';
+import { makeGround, makeWater, randomSequence } from './landscape-art.mjs';
+import { createDiscoveries } from './discoveries.mjs';
+import { atmosphere } from './ambient.mjs';
 
 export async function loadWorld(data) {
   const library = await new GLTFLoader().loadAsync(`/assets/worlds/${data.world}.glb`);
-  return build(data,library.scene);
+  try{return build(data,library.scene);}
+  catch(error){disposeModel(library.scene);throw error;}
 }
 
-function build(data, library) {
-  const {world,layout,map:{bounds:[xmin,xmax,zmin,zmax]}}=data;
-  const shape=landscape(data);
-  const group=new T.Group();
-  group.name=layout.title;
-  const land=new T.PlaneGeometry(xmax-xmin+4,zmax-zmin+4,156,78).rotateX(-Math.PI/2)
-    .translate((xmax+xmin)/2,0,(zmax+zmin)/2);
-  const points=land.getAttribute('position'), pigments=new Float32Array(points.count*3);
-  const base=new T.Color(layout.ground), pathColor=new T.Color(layout.path), edge=new T.Color(layout.edge), color=new T.Color();
-  const city=world==='inventores', beach=world==='praia';
-  for(let i=0;i<points.count;i++){
-    const x=points.getX(i),z=points.getZ(i),d=shape.coast(x,z), p=shape.path(x,z);
-    points.setY(i,shape.height(x,z,d));
-    const patch=(Math.sin(x*.88+z*.79)+Math.cos(x*.47-1.04*z)+2)*.25;
-    color.copy(base).lerp(edge,(.19+.19*patch)*(city?1:beach?.50:1.25));
-    color.lerp(pathColor,1-smoothstep(p,city?1.05:.58,city?1.63:1.45));
-    if(beach&&d<1.95)color.lerp(pathColor,(1-smoothstep(d,-.32,1.95))*.64);
-    color.multiplyScalar(.94+.085*patch).toArray(pigments,i*3);
+// Most kit materials differ only in pigment. Bake them into spatial batches so
+// small narrative props stay visible in Economy without a draw call per piece.
+function sceneryBatches(group,batches){
+  const opaque=new T.MeshStandardMaterial({vertexColors:true,roughness:.82,side:T.DoubleSide});
+  const luminous=new T.MeshBasicMaterial({vertexColors:true});
+  for(const {parts,glow} of batches.values()){
+    const geometry=mergeGeometries(parts);
+    for(const part of parts)part.dispose();
+    const mesh=new T.Mesh(geometry,glow?luminous:opaque);
+    mesh.castShadow=!glow;
+    mesh.receiveShadow=!glow;
+    group.add(mesh);
   }
-  land.setAttribute('color',new T.BufferAttribute(pigments,3));
-  land.computeVertexNormals();
-  const ground=new T.Mesh(land,new T.MeshStandardMaterial({vertexColors:true,roughness:.96}));
-  ground.receiveShadow=true;
-  group.add(ground);
+}
 
-  const water=new T.Mesh(new T.PlaneGeometry(170,120).rotateX(-Math.PI/2),new T.ShaderMaterial({
-    uniforms:{waterTint:{value:new T.Color(layout.waterColor)},sky:{value:new T.Color(layout.sky)},clock:{value:0}},
-    vertexShader:`varying vec3 p; void main(){ p=(modelMatrix*vec4(position,1.)).xyz;
-      gl_Position=projectionMatrix*viewMatrix*vec4(p,1.); }`,
-    fragmentShader:`uniform vec3 waterTint,sky; uniform float clock; varying vec3 p;
-      void main(){vec2 uv=p.xz;
-        float ripple=sin(uv.y*4.8+sin(uv.x*1.28)+clock*.9)+.56*sin(uv.x*3.6-uv.y*2.7-clock*.62);
-        float glints=smoothstep(1.10,1.48,ripple)*(.22+.78*smoothstep(.08,1.,sin(uv.x*.46+uv.y*.21)));
-        float depth=sin(uv.x*.52+uv.y*.29)*.055;
-        vec3 teal=waterTint*(.90+depth)+glints*vec3(.34,.53,.50);
-        float mist=smoothstep(14.,49.,distance(p,cameraPosition));
-        gl_FragColor=vec4(mix(teal,sky,mist*.95),1.);
-        #include <colorspace_fragment>
-      }`,
-  }));
-  water.position.set((xmin+xmax)/2,-.43,0);
-  group.add(water);
+function appendMesh(batches,source,rootMatrix,inverse,x,z){
+  const glow=source.material.emissiveIntensity>0&&source.material.emissive?.getHex()!==0;
+  const key=[Math.floor(x/12),Math.floor(z/12),glow].join(',');
+  const geometry=source.geometry.clone();
+  for(const attribute of Object.keys(geometry.attributes))if(attribute!=='position'&&attribute!=='normal')geometry.deleteAttribute(attribute);
+  if(!geometry.index)geometry.setIndex(Array.from({length:geometry.attributes.position.count},(_,i)=>i));
+  geometry.applyMatrix4(rootMatrix.clone().multiply(inverse).multiply(source.matrixWorld));
+  const colors=new Float32Array(geometry.attributes.position.count*3);
+  const color=glow?source.material.emissive:source.material.color;
+  for(let i=0;i<colors.length;i+=3)color.toArray(colors,i);
+  geometry.setAttribute('color',new T.BufferAttribute(colors,3));
+  if(!batches.has(key))batches.set(key,{parts:[],glow});
+  batches.get(key).parts.push(geometry);
+}
 
-  const batches=new Map(), effects=new Map(), spinners=[], covers=[], characters=new Map();
+function build(data,library){
+  const {world,layout}=data;
+  const shape=landscape(data), group=new T.Group();
+  group.name=layout.title;
+  const ground=makeGround(data,shape),water=makeWater(data,shape);
+  group.add(ground,water);
+  const discoveries=createDiscoveries(data,shape), ambient=atmosphere(data,shape);
+  group.add(discoveries.group,ambient.group);
+  const effects=new Map(),characters=new Map(),batches=new Map();
+  const spinners=[],covers=[],idles=[],floating=[];
   const cast=new Map(layout.places.filter(p=>p.character).map(p=>[p.character,p.id]));
-  const matrix=new T.Matrix4(), origin=new T.Object3D();
+  const destinations=new Set(layout.places.map(p=>p.effect).filter(Boolean));
+  const transform=new T.Object3D();
   library.updateMatrixWorld(true);
   for(const [name,x,z,degrees,size] of layout.props){
     const model=library.getObjectByName(name);
     if(!model)throw Error(`Modelo ausente: ${name}`);
-    const y=name==='buoy'?-.39:shape.height(x,z);
-    const dynamic=cast.has(name)||model.children.some(o=>/^(effect_|prize_|spin_|stage|cover_)/.test(o.name));
-    if(dynamic){
-      const root=model.clone();
-      root.position.set(x,y,z);
-      root.scale.setScalar(size);
-      root.rotation.y=T.MathUtils.degToRad(degrees);
-      if(cast.has(name))characters.set(cast.get(name),{root,y,yaw:root.rotation.y,greeting:0});
-      const effect={};
-      root.traverse(o=>{
-        if(o.name.startsWith('effect_'))effect.moving=o;
-        if(o.name.startsWith('prize_'))effect.prize=o;
-        if(o.name.startsWith('spin_'))spinners.push([o,o.name.endsWith('reverse')?-.59:.42]);
-        if(o.name.startsWith('cover_'))covers.push({object:o,x,z});
-        if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
-      });
-      if(effect.moving||effect.prize){
-        Object.assign(effect,{amount:0,active:false});
-        if(effect.prize)effect.prize.visible=false;
-        effects.set(name,effect);
-      }
-      group.add(root);
+    const floats=name==='buoy', y=floats?-.39:shape.height(x,z), yaw=T.MathUtils.degToRad(degrees);
+    const dynamic=floats||cast.has(name)||destinations.has(name)||model.children.some(o=>/^(idle_|spin_|cover_)/.test(o.name));
+    if(!dynamic){
+      transform.position.set(x,y,z);
+      transform.rotation.y=yaw;
+      transform.scale.setScalar(size);
+      transform.updateMatrix();
+      const inverse=model.matrixWorld.clone().invert();
+      model.traverse(o=>{if(o.isMesh)appendMesh(batches,o,transform.matrix,inverse,x,z);});
       continue;
     }
-    origin.position.set(x,y,z);
-    origin.rotation.y=T.MathUtils.degToRad(degrees);
-    origin.scale.setScalar(size);
-    origin.updateMatrix();
-    const inverse=model.matrixWorld.clone().invert();
-    model.traverse(o=>{
-      if(!o.isMesh)return;
-      if(!batches.has(o.uuid))batches.set(o.uuid,{source:o,matrices:[]});
-      batches.get(o.uuid).matrices.push(matrix.multiplyMatrices(origin.matrix,inverse).multiply(o.matrixWorld).clone());
+
+    const root=model.clone();
+    root.position.set(x,y,z);
+    root.scale.setScalar(size);
+    root.rotation.y=yaw;
+    if(floats)floating.push({root,y,phase:x});
+    if(cast.has(name))characters.set(cast.get(name),{root,y,yaw,greeting:-Infinity});
+    const effect={root,x,y,z,yaw,active:false,start:-Infinity,parts:[]};
+    root.traverse(o=>{
+      if(o.name.startsWith('effect_'))effect.moving=o;
+      if(o.name.startsWith('prize_'))effect.prize=o;
+      if(o.name.startsWith('dial_'))effect.dial=o;
+      if(o.name.startsWith('bones'))effect.bones=o;
+      if(o.name.startsWith('assemble_'))effect.parts.push({node:o,home:o.position.clone()});
+      if(o.name.startsWith('spin_'))spinners.push([o,o.name.includes('reverse')?-.70:.49]);
+      if(o.name.startsWith('cover_'))covers.push({object:o,x,z});
+      if(o.name.startsWith('idle_'))idles.push({node:o,phase:x});
+      if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
     });
+    if(destinations.has(name))effects.set(name,effect);
+    group.add(root);
   }
-  for(const {source,matrices} of batches.values()){
-    const mesh=new T.InstancedMesh(source.geometry,source.material,matrices.length);
-    matrices.forEach((m,i)=>mesh.setMatrixAt(i,m));
-    mesh.castShadow=true;
-    mesh.receiveShadow=true;
-    group.add(mesh);
-  }
+  sceneryBatches(group,batches);
   const details=scatter(data,shape);
   group.add(details);
-  const progress=values=>{
-    for(const {id,effect} of layout.places)if(effect&&effects.has(effect)){
-      effects.get(effect).active=values.includes(id);
-    }
-  };
+  function progress(values){
+    discoveries.progress(values);
+    for(const {id,effect} of layout.places)if(effects.has(effect))effects.get(effect).active=values.includes(id);
+  }
+  let low=false;
   return {
-    group, ground, progress,
-    setEconomy(low){details.visible=!low;},
-    greet(id,time){if(characters.has(id))characters.get(id).greeting=time+1.4;},
+    group,ground,progress,
+    setEconomy(value){low=value;details.count=value?160:details.instanceMatrix.count;discoveries.setEconomy(value);},
+    greet(id,time){if(characters.has(id))characters.get(id).greeting=time;},
+    reveal(place,time){
+      const effect=effects.get(place.effect);
+      if(effect)effect.start=time;
+      const x=effect?.x??place.x,z=effect?.z??place.z;
+      discoveries.play(place,time,x,z);
+      return {x,z,y:shape.height(x,z)+(place.requires?1.3:.65)};
+    },
     tick(time,dt,still,player){
       water.material.uniforms.clock.value=still?0:time;
+      ambient.tick(time,still,low);
+      discoveries.tick(time,still,player);
       for(const {object,x,z} of covers)object.visible=Math.abs(player.x-x)>1.4||player.z>z+.4||player.z<z-2.4;
       for(const [wheel,speed] of spinners)wheel.rotation.z=still?0:time*speed;
+      for(const {root,y,phase} of floating){
+        root.position.y=y+(still?0:Math.sin(time*1.6+phase)*.115);
+        root.rotation.x=still?0:Math.sin(time*1.3+phase)*.14;
+      }
+      for(const {node,phase} of idles){
+        if(node.name.startsWith('idle_lens'))node.rotation.y=still?0:time*.83;
+        else if(node.name.startsWith('idle_claw'))node.rotation.z=still?0:Math.sin(time*2.48+phase)*(node.name.includes('-1')?.15:-.15);
+        else if(node.name.startsWith('idle_tail'))node.rotation.y=still?0:Math.sin(time*1.64+phase)*.19;
+        else node.rotation.x=still?0:.11*Math.sin(time*1.68+phase);
+      }
       for(const {root,y,yaw,greeting} of characters.values()){
-        const pulse=still?0:Math.sin(Math.PI*Math.max(0,greeting-time)/1.4);
+        const age=time-greeting;
+        const pulse=still||age>1.5?0:Math.sin(Math.PI*age/1.5);
         const toward=Math.atan2(player.x-root.position.x,player.z-root.position.z)-yaw;
-        const turn=T.MathUtils.clamp(Math.atan2(Math.sin(toward),Math.cos(toward)),-.48,.48);
+        const turn=T.MathUtils.clamp(Math.atan2(Math.sin(toward),Math.cos(toward)),-.51,.51);
         root.rotation.y=yaw+turn*pulse;
-        root.position.y=y+.14*pulse;
+        root.position.y=y+.13*pulse;
       }
-      for(const [name,{moving,prize,active,amount}] of effects){
-        const next=still?Number(active):T.MathUtils.lerp(amount,Number(active),Math.min(1,dt*3));
-        effects.get(name).amount=next;
-        if(prize){prize.visible=next>.02;prize.scale.setScalar(.4+.6*next);}
-        if(name==='chest'&&moving)moving.rotation.x=-1.42*next;
-        if(name==='automaton'&&moving){
-          moving.rotation.z=still?0:Math.sin(time*5.7)*.23*next;
-          moving.rotation.y=still?0:Math.sin(time*2.5)*.66*next;
-          moving.position.y=still?0:Math.abs(Math.sin(time*5.7))*.16*next;
-        }
-      }
+      for(const [name,effect] of effects)tickEffect(name,effect,time,still);
     },
     dispose(){disposeModel(group,library);},
   };
 }
 
-function scatter(data,shape) {
-  const beach=data.world==='praia',city=data.world==='inventores';
-  const geometry=city?new T.BoxGeometry(.34,.029,.19):new T.IcosahedronGeometry(1,0);
+function tickEffect(name,{root,y,yaw,start,moving,prize,bones,dial,parts,active},time,still){
+  const age=time-start;
+  const amount=active?(still?1:smoothstep(age,0,.83)):0;
+  const jump=active&&!still&&age>0&&age<1.48?Math.sin(Math.PI*age/1.48):0;
+  if(prize){
+    prize.visible=amount>.012;
+    prize.scale.setScalar(.44+.56*amount);
+  }
+  if(name.startsWith('shell-')){
+    root.position.y=y+amount*.19+jump*.83;
+    root.rotation.y=yaw+jump*2.3+(still?0:amount*.12*Math.sin(time*2));
+  }else if(bones){
+    bones.position.y=amount*.14+jump*.52;
+    bones.rotation.y=jump*1.83;
+  }
+  if(name==='chest'&&moving){
+    moving.rotation.x=-1.55*amount;
+    if(prize)prize.position.y=jump*.67+(still?0:amount*.078*Math.sin(time*2.8));
+  }
+  if(parts.length){
+    for(const [i,{node,home}] of parts.entries()){
+      const assembled=active?(still?1:smoothstep(age,.12+i*.29,.72+i*.29)):0;
+      node.visible=assembled>.004;
+      node.position.copy(home);
+      node.position.y+=(1-assembled)*(.65+i*.22);
+      node.position.x+=(1-assembled)*(.53-i*.47);
+      node.rotation.z=(1-assembled)*(.72-i*.67);
+    }
+  }
+  if(dial)dial.rotation.z=(-1.48+(still?0:jump*.31))*amount;
+  if(name==='automaton'&&moving){
+    moving.rotation.z=still?0:Math.sin(time*5.7)*.30*amount;
+    moving.rotation.y=still?0:Math.sin(time*2.5)*.84*amount;
+    moving.position.y=still?0:Math.abs(Math.sin(time*5.7))*.22*amount;
+    if(prize)prize.scale.setScalar(.87+amount*(still?.13:.13+.08*Math.sin(time*6)));
+  }
+}
+
+function scatter(data,shape){
+  const city=data.world==='inventores',beach=data.world==='praia';
+  const geometry=city?new T.BoxGeometry(.34,.025,.16):new T.IcosahedronGeometry(1,0);
   const palette=(beach?['#fbe9bd','#dbbd91','#f8d6a7','#e2a18c']:city?['#c6acbb','#d3b4ac','#9299b4','#c8c7d8']:['#a7bf71','#b1c87b','#929b53','#cea47b']).map(c=>new T.Color(c));
-  const layer=new T.InstancedMesh(geometry,new T.MeshStandardMaterial({roughness:1}),city?230:440);
-  let seed=431, placed=0;
-  const rnd=()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296);
-  const item=new T.Object3D(),[x0,x1,z0,z1]=data.map.bounds;
+  const layer=new T.InstancedMesh(geometry,new T.MeshStandardMaterial({roughness:1}),city?250:460);
+  const random=randomSequence(431), item=new T.Object3D(),[x0,x1,z0,z1]=data.map.bounds;
+  let placed=0;
   while(placed<layer.count){
-    const x=x0+(x1-x0)*rnd(), z=z0+(z1-z0)*rnd();
-    if(shape.coast(x,z)<.6 || shape.path(x,z)<(city?.43:1.4))continue;
-    const size=.055+rnd()*(beach?.11:.16);
+    const x=x0+(x1-x0)*random(), z=z0+(z1-z0)*random();
+    if(shape.coast(x,z)<.62||shape.path(x,z)<(city?.6:1.28))continue;
+    const size=.055+random()*(beach?.11:.16);
     item.position.set(x,shape.height(x,z)+.028,z);
-    item.scale.set(city?1+3*rnd():size,city?1:size*.48,city?1:size*.77);
-    item.rotation.y=city?0:rnd()*Math.PI;
+    item.scale.set(city?1+2*random():size,city?1:size*.48,city?1:size*.77);
+    item.rotation.y=city?0:random()*Math.PI;
     item.updateMatrix();
     layer.setMatrixAt(placed,item.matrix);
-    layer.setColorAt(placed++,palette[Math.floor(rnd()*palette.length)]);
+    layer.setColorAt(placed++,palette[Math.floor(random()*palette.length)]);
   }
   layer.receiveShadow=true;
   return layer;
 }
 
-export function disposeModel(...roots){
-  const geometry=new Set(), materials=new Set(), textures=new Set();
+function disposeModel(...roots){
+  const geoms=new Set(),materials=new Set(),textures=new Set();
   for(const root of roots)root?.traverse(o=>{
-    if(o.geometry)geometry.add(o.geometry);
+    if(o.geometry)geoms.add(o.geometry);
     if(o.isInstancedMesh)o.dispose();
     for(const material of (Array.isArray(o.material)?o.material:[o.material]))if(material)materials.add(material);
   });
   for(const mat of materials){
-    for(const v of Object.values(mat))if(v?.isTexture)textures.add(v);
+    for(const value of Object.values(mat))if(value?.isTexture)textures.add(value);
+    for(const uniform of Object.values(mat.uniforms??{}))if(uniform.value?.isTexture)textures.add(uniform.value);
     mat.dispose();
   }
-  for(const mesh of geometry)mesh.dispose();
+  for(const geometry of geoms)geometry.dispose();
   for(const texture of textures){texture.dispose();texture.image?.close?.();}
 }
