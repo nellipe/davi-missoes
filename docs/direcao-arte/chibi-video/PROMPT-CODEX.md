@@ -7,7 +7,7 @@
 **Executor recomendado:** GPT-6.2 Sol — Raciocínio Alto
 
 ## DECISÃO FINAL DO RESPONSÁVEL
-A direção artística escolhida é o **HTML do vídeo** (arquivo original aventur as-do-davi-chibi(1).html, grafia correta sem espaço: aventuras-do-davi-chibi(1).html). **Não é o HTML de navegação livre** que também foi enviado. O vídeo de ~20s é a referência de personagem, ambiente, contorno, paleta, HUD, câmera, narrativa, reações e clima.
+A direção artística escolhida é o **HTML do vídeo** (arquivo original aventuras-do-davi-chibi(1).html (sem espaço antes do parêntese)). **Não é o HTML de navegação livre** que também foi enviado. O vídeo de ~20s é a referência de personagem, ambiente, contorno, paleta, HUD, câmera, narrativa, reações e clima.
 
 Esta nova PR substitui a direção artística proposta na antiga PR #17, mas **não descarta seus recursos de jogo**. O objetivo é reconstruir a estética e o ritmo interativo dentro da experiência 3D real já existente.
 
