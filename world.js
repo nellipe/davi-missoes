@@ -117,6 +117,15 @@ window.DaviWorld=(()=>{
     });
     on(svg,'focusin',e=>{if(keyboardNavigation&&e.target.dataset.x)camera({x:Number(e.target.dataset.x),y:Number(e.target.dataset.y)});});
     on(window,'resize',()=>camera());frame=0;
+    host.watchWorldBalance?.(abort.signal,()=>w.stars,stars=>{
+      w.stars=stars;
+      if(dialog && (dialog==='shop'||item(dialog)))render();
+      else {
+        const amount=document.getElementById('worldStars');
+        amount.textContent=stars;
+        amount.parentElement.setAttribute('aria-label',`${stars} estrelas guardadas`);
+      }
+    });
   }
   async function action(action,b){
     const name=action.replace('world-','');await save();

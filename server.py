@@ -466,13 +466,14 @@ class Handler(BaseHTTPRequestHandler):
                 with LOCK, db() as c:result=forest.move(c,body)
                 return self.send(200,result)
             if path.startswith('/api/world'):
-                if path in ('/api/world/config','/api/world/revoke','/api/world/inventory') and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                if path in ('/api/world/config','/api/world/revoke','/api/world/inventory','/api/world/balance') and session['role']!='parent': return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c:
                     c.execute('BEGIN IMMEDIATE')
                     if path=='/api/world/buy' and method=='POST': result=world.buy(c,body)
                     elif path=='/api/world/equip' and method=='PUT': result=world.equip(c,body)
                     elif path=='/api/world/move' and method=='PUT': result=world.move(c,body)
                     elif path=='/api/world/config' and method=='PUT': result=world.configure(c,body)
+                    elif path=='/api/world/balance' and method=='PUT': result=world.adjust_balance(c,body)
                     elif path=='/api/world/revoke' and method=='POST': result=world.revoke(c,body)
                     elif path=='/api/world/inventory' and method=='PUT': result=world.inventory_control(c,body)
                     elif path=='/api/world/real' and method=='POST':

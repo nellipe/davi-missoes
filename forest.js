@@ -69,6 +69,8 @@ let pipoActions = {},
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
 let motionChoice='system', systemMotionReduced=false;
 let wardrobeBack=false, outfitPending=null;
+let refreshBalance;
+const shopping = name => ['shop','wardrobe','bridge','portal','house'].includes(name);
 let mixers = [],
   actions = {},
   clip = "Idle",
@@ -1199,6 +1201,15 @@ function bind() {
     else if(player)map2d?.draw(player.position,pipo.position,data,clock,still);
   });
   observer.observe(stage);
+  refreshBalance=host.watchWorldBalance?.(abort.signal,()=>outfitPending?undefined:data.economy.stars,stars=>{
+    data.economy.stars=stars;
+    document.querySelector('#forestBalance strong').textContent=stars;
+    if(shopping(modal)){
+      const previous=document.activeElement?.dataset;
+      renderDialog();
+      if(previous?.action)document.querySelector(`#forestDialog [data-action="${CSS.escape(previous.action)}"]${previous.id?`[data-id="${CSS.escape(previous.id)}"]`:''}`)?.focus({preventScroll:true});
+    }
+  });
 }
 function renderDialog() {
   let title = "",
@@ -1277,6 +1288,7 @@ function dialog(name) {
   waving = clock + 1.6;
   renderDialog();
   document.getElementById("forestDialog").showModal();
+  if(shopping(name))refreshBalance?.();
 }
 async function refresh() {
   const token=generation;

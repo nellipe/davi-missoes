@@ -90,6 +90,22 @@ async function api(path, method = "GET", body) {
   if (!r.ok) throw Error(j.error || "Não foi possível completar a ação");
   return j;
 }
+function watchWorldBalance(signal, current, apply) {
+  let pending;
+  const refresh=()=>{
+    if (pending || document.hidden || signal.aborted) return pending;
+    const previous=current();
+    if (previous===undefined) return;
+    pending=api('/api/world').then(({stars})=>{
+      if (!signal.aborted && previous===current() && stars!==previous) apply(stars);
+    }).catch(()=>{}).finally(()=>{pending=null;});
+    return pending;
+  };
+  const timer=setInterval(refresh,2500);
+  signal.addEventListener('abort',()=>clearInterval(timer),{once:true});
+  document.addEventListener('visibilitychange',refresh,{signal});
+  return refresh;
+}
 let busy = false,
   actionFocus = null;
 async function safe(fn) {
@@ -440,7 +456,7 @@ async function child() {
     if(state.forestMode!=='island'){
       await DaviWorld.close();
       try{const forest=await import('/forest.js');
-        const options={layout,api,run:safe,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,reward:state.forestReward,
+        const options={layout,api,watchWorldBalance,run:safe,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,reward:state.forestReward,
           onCalendar:async()=>{state.childSurface='calendar';await child();},
           onFallback:async()=>{state.forestMode='2d';try{localStorage.setItem('davi-forest-mode','2d');}catch{}await child();}};
         const ready=await forest.open({...options,mode:state.forestMode});
@@ -451,7 +467,7 @@ async function child() {
       }catch(e){if(typeof DaviForest!=='undefined')await DaviForest.close();console.warn('Ilha 2D disponível:',e.message);}
     }
     if(typeof DaviForest!=='undefined') await DaviForest.close();
-    await DaviWorld.open({layout,api,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,
+    await DaviWorld.open({layout,api,watchWorldBalance,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,
       onCalendar:async()=>{state.childSurface='calendar';await child();}});
     return;
   }
@@ -842,14 +858,21 @@ async function missionAction(a,b) {
     renderMissionEditor();
   }
 }
-async function worldSettings() {
+async function worldSettings(updated) {
   state.view='parent-world-settings';
-  state.worldConfig=await api('/api/world/config');
+  state.worldConfig=updated ?? await api('/api/world/config');
   const config=state.worldConfig;
-  layout('<div class="row between"><h1>Mundo e estrelas</h1><button data-action="calendar">← Calendário</button></div><p>Estrelas reconhecem esforço e prática. Cuidados essenciais continuam independentes de recompensas. Saldo atual: '+config.world.stars+' estrelas.</p><details><summary>Ajustar recompensas e preços</summary><form id="worldSettingsForm" class="panel"><div class="form-grid">'+
+  const formatStars=value=>value.toLocaleString('pt-BR');
+  const adjustment='<section class="panel"><h2>Saldo de validação</h2><p>Saldo disponível: <strong>'+formatStars(config.world.stars)+' estrelas</strong>.</p><div class="actions"><button data-action="parent-stars-max">Definir 10.000 estrelas</button><button data-action="parent-stars-zero">Zerar saldo</button></div><form id="worldBalanceForm"><label for="worldBalance">Outro saldo (0 a 10.000)</label><input id="worldBalance" type="number" min="0" max="10000" step="1" required><button type="submit">Definir saldo</button></form></section>';
+  layout('<div class="row between"><h1>Mundo e estrelas</h1><button data-action="calendar">← Calendário</button></div><p>Estrelas reconhecem esforço e prática. Cuidados essenciais continuam independentes de recompensas.</p>'+adjustment+'<details><summary>Ajustar recompensas e preços</summary><form id="worldSettingsForm" class="panel"><div class="form-grid">'+
     [['learn','Aprender (por ocorrência)'],['memory','Cada minigame (por ocorrência)'],['real','Esforço em Fazer (rotinas elegíveis)'],['daily_limit','Máximo de estrelas por dia']].map(([key,label])=>'<div><label for="reward-'+key+'">'+label+'</label><input id="reward-'+key+'" type="number" min="0" max="'+(key==='daily_limit'?100:10)+'" required value="'+config.settings[key]+'"></div>').join('')+
     '</div><p>Zero desativa a concessão. Repetir, editar ou desfazer não gera estrelas extras. Fazer só recompensa roteiros originais de preparação/organização elegíveis; medicação e higiene essencial ficam excluídas.</p>'+config.world.catalog.map(i=>'<fieldset><legend>'+esc(i.name)+'</legend><label><input type="checkbox" id="available-'+i.id+'" '+(i.available?'checked':'')+'>Disponível na oficina</label><label for="price-'+i.id+'">Preço em estrelas</label><input type="number" id="price-'+i.id+'" min="0" max="100" required value="'+i.price+'"><span>'+(i.removed?'Adquirido · removido':i.owned?'Já adquirido':'Ainda não adquirido')+'</span></fieldset>').join('')+
-    '<button type="submit" class="primary">Salvar combinados</button></form></details><section class="panel"><h2>Itens adquiridos</h2><p>Remover oculta o item e seus acessórios sem devolver estrelas. Reativar não cobra novamente.</p>'+config.inventory.map(i=>'<p>'+esc(config.world.catalog.find(c=>c.id===i.item_id).name)+' · '+(i.active?'Ativo':'Removido')+' <button data-action="parent-inventory" data-item="'+i.item_id+'" data-active="'+!i.active+'">'+(i.active?'Remover':'Reativar')+'</button></p>').join('')+'</section><section class="panel"><h2>Histórico de estrelas e conquistas</h2><p>Revogar preserva o registro e impede novo crédito pela mesma atividade, data e modalidade. Saldo negativo bloqueia compras até recompor; nenhum item é retirado automaticamente. Passos e conclusão são corrigidos separadamente no calendário.</p>'+ (config.history.length?'<ul>'+config.history.map(h=>'<li><p>'+esc(h.created)+' (UTC) · '+esc(h.label)+' · '+(h.delta>0?'+':'')+h.delta+' estrelas'+(h.context.activity?' · '+esc(h.context.activity)+' · '+esc(h.context.date)+' · '+esc(({learn:'Aprender',order:'Trilha da memória',bag:'O que vai na bolsa?',real:'Fazer'})[h.context.mode] || h.context.mode):'')+(h.context.reason?' · Motivo: '+esc(h.context.reason):'')+' · '+(h.context.item_state || (h.revoked?'Revogada':h.id.startsWith('award:')?'Registrada':'Ajuste registrado'))+'</p>'+(h.id.startsWith('award:')&&h.delta>0&&!h.revoked?'<button data-action="parent-revoke" data-credit="'+esc(h.id)+'">Revogar esta concessão</button>':'')+'</li>').join('')+'</ul>':'<p>Nenhum registro.</p>')+'</section>');
+    '<button type="submit" class="primary">Salvar combinados</button></form></details><section class="panel"><h2>Itens adquiridos</h2><p>Remover oculta o item e seus acessórios sem devolver estrelas. Reativar não cobra novamente.</p>'+config.inventory.map(i=>'<p>'+esc(config.world.catalog.find(c=>c.id===i.item_id).name)+' · '+(i.active?'Ativo':'Removido')+' <button data-action="parent-inventory" data-item="'+i.item_id+'" data-active="'+!i.active+'">'+(i.active?'Remover':'Reativar')+'</button></p>').join('')+'</section><section class="panel"><h2>Histórico de estrelas e conquistas</h2><p>Revogar preserva o registro e impede novo crédito pela mesma atividade, data e modalidade. Saldo negativo bloqueia compras até recompor; nenhum item é retirado automaticamente. Passos e conclusão são corrigidos separadamente no calendário.</p>'+ (config.history.length?'<ul>'+config.history.map(h=>'<li><p>'+esc(h.created)+' (UTC) · '+esc(h.label)+' · '+(h.delta>0?'+':'')+h.delta+' estrelas'+(h.context.activity?' · '+esc(h.context.activity)+' · '+esc(h.context.date)+' · '+esc(({learn:'Aprender',order:'Trilha da memória',bag:'O que vai na bolsa?',real:'Fazer'})[h.context.mode] || h.context.mode):'')+(h.context.new_balance===undefined?'':' · '+formatStars(h.context.previous_balance)+' → '+formatStars(h.context.new_balance)+' estrelas')+(h.context.reason?' · Motivo: '+esc(h.context.reason):'')+' · '+(h.context.item_state || (h.revoked?'Revogada':h.id.startsWith('award:')?'Registrada':'Ajuste registrado'))+'</p>'+(h.id.startsWith('award:')&&h.delta>0&&!h.revoked?'<button data-action="parent-revoke" data-credit="'+esc(h.id)+'">Revogar esta concessão</button>':'')+'</li>').join('')+'</ul>':'<p>Nenhum registro.</p>')+'</section>');
+}
+async function setWorldBalance(stars) {
+  const config=await api('/api/world/balance','PUT',{stars});
+  await worldSettings(config);
+  $('status').textContent='Saldo definido em '+config.world.stars.toLocaleString('pt-BR')+' estrelas.';
 }
 async function settings() {
   state.view = "parent-settings";
@@ -889,6 +912,7 @@ async function action(e) {
       await child();
     }
     else if (a==='world-settings') await worldSettings();
+    else if (a==='parent-stars-max' || a==='parent-stars-zero') await setWorldBalance(a==='parent-stars-max'?10000:0);
     else if (a==='parent-revoke') {
       const h=state.worldConfig.history.find(h=>h.id===b.dataset.credit);
       const reason=prompt('Motivo da revogação (opcional):','');
@@ -988,6 +1012,8 @@ document.addEventListener("submit", (e) => {
   safe(async () => {
     if (e.target.id === 'scheduleForm') {
       await api('/api/schedule/config','PUT',{after_minutes:Number($('afterMinutes').value)});await settings();
+    } else if (e.target.id === 'worldBalanceForm') {
+      await setWorldBalance($('worldBalance').valueAsNumber);
     } else if (e.target.id === 'worldSettingsForm') {
       const body=Object.fromEntries(['learn','memory','real','daily_limit'].map(k=>[k,Number($('reward-'+k).value)]));
       body.catalog=state.worldConfig.world.catalog.map(i=>({id:i.id,price:Number($('price-'+i.id).value),available:$('available-'+i.id).checked}));
