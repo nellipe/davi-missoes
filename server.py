@@ -584,6 +584,12 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError,TypeError,KeyError,json.JSONDecodeError) as e:return self.fail(str(e))
         except Exception:print("Erro interno de escrita.");return self.fail("Erro interno.",500)
 
+class DaviHTTPServer(ThreadingHTTPServer):
+    # Caddy multiplexes a page's HTTP/2 requests into concurrent upstream
+    # connections. Python 3.13's default of five drops bursts on Windows.
+    request_queue_size = 128
+
+
 def main():
     initialize()
     if CONFIG.simple_lan:
@@ -594,7 +600,7 @@ def main():
     if CONFIG.secure:
         from maintenance import scheduled_backup
         Thread(target=scheduled_backup, args=(DB, DATA / 'backups', stop), daemon=True).start()
-    httpd=ThreadingHTTPServer((HOST,PORT),Handler)
+    httpd=DaviHTTPServer((HOST,PORT),Handler)
     httpd.daemon_threads=True
     try: httpd.serve_forever()
     except KeyboardInterrupt: pass
