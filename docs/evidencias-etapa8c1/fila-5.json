@@ -1,0 +1,159 @@
+{
+  "backlog_override": 5,
+  "concurrency": 24,
+  "runs": [
+    {
+      "start": 1,
+      "build": {
+        "version": "0.7B-chibi.2",
+        "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad"
+      },
+      "ready_ms": 307,
+      "alive": true,
+      "samples": {
+        "alive:0": 9,
+        "alive:10035": 3
+      },
+      "build_after": 200,
+      "requests": 960,
+      "failed": [
+        {
+          "path": "/assets/forest/chibi.mjs",
+          "status": 502
+        },
+        {
+          "path": "/forest.js",
+          "status": 502
+        },
+        {
+          "path": "/api/build",
+          "status": 502
+        },
+        {
+          "path": "/api/forest/map",
+          "status": 502
+        },
+        {
+          "path": "/forest.css",
+          "status": 502
+        },
+        {
+          "path": "/assets/forest/sight.mjs",
+          "status": 502
+        }
+      ],
+      "protocol": "h2",
+      "caddy_502": 600,
+      "caddy_refused": 600,
+      "example": {
+        "path": "/assets/forest/chibi.mjs",
+        "upstream_refused": true,
+        "time": "2026-11-19T17:21:37.859554+00:00"
+      },
+      "python_traceback": false,
+      "failure_count": 600
+    },
+    {
+      "start": 2,
+      "build": {
+        "version": "0.7B-chibi.2",
+        "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad"
+      },
+      "ready_ms": 346,
+      "alive": true,
+      "samples": {
+        "alive:0": 10,
+        "alive:10035": 1
+      },
+      "build_after": 200,
+      "requests": 960,
+      "failed": [
+        {
+          "path": "/forest.css",
+          "status": 502
+        },
+        {
+          "path": "/assets/forest/navigation.mjs",
+          "status": 502
+        },
+        {
+          "path": "/assets/forest/sight.mjs",
+          "status": 502
+        },
+        {
+          "path": "/api/build",
+          "status": 502
+        },
+        {
+          "path": "/assets/forest/trail.mjs",
+          "status": 502
+        },
+        {
+          "path": "/",
+          "status": 502
+        }
+      ],
+      "protocol": "h2",
+      "caddy_502": 612,
+      "caddy_refused": 612,
+      "example": {
+        "path": "/forest.css",
+        "upstream_refused": true,
+        "time": "2026-11-19T17:21:38.969406+00:00"
+      },
+      "python_traceback": false,
+      "failure_count": 612
+    },
+    {
+      "start": 3,
+      "build": {
+        "version": "0.7B-chibi.2",
+        "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad"
+      },
+      "ready_ms": 345,
+      "alive": true,
+      "samples": {
+        "alive:0": 10,
+        "alive:10035": 1
+      },
+      "build_after": 200,
+      "requests": 960,
+      "failed": [
+        {
+          "path": "/forest.css",
+          "status": 502
+        },
+        {
+          "path": "/assets/forest/chibi.mjs",
+          "status": 502
+        },
+        {
+          "path": "/assets/forest/companion.mjs",
+          "status": 502
+        },
+        {
+          "path": "/assets/forest/trail.mjs",
+          "status": 502
+        },
+        {
+          "path": "/app.js",
+          "status": 502
+        },
+        {
+          "path": "/assets/forest/sight.mjs",
+          "status": 502
+        }
+      ],
+      "protocol": "h2",
+      "caddy_502": 625,
+      "caddy_refused": 625,
+      "example": {
+        "path": "/forest.css",
+        "upstream_refused": true,
+        "time": "2026-11-19T17:21:39.845633+00:00"
+      },
+      "python_traceback": false,
+      "failure_count": 625
+    }
+  ]
+}
