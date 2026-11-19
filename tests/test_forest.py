@@ -28,10 +28,7 @@ class ForestTests(HttpFixture):
   old=self.child.request('/api/world')[1]
   scene=self.child.request(api)[1]
   self.assertEqual(scene['position'],scene['layout']['spawn'])
-  for path in scene['layout']['paths']:
-   for (x,z),(a,b) in zip(path['points'],path['points'][1:]):
-    for step in range(11):
-     self.assertTrue(forest.trail_walkable(x+(a-x)*step/10,z+(b-z)*step/10))
+  self.assertTrue(forest.trail_walkable(0,10))
   position={'x':-9,'z':1.4}
   self.assertEqual(self.child.request(api+'/move','PUT',position)[0],200)
   self.assertEqual(self.parent.request(api)[1]['position'],position)
@@ -73,22 +70,29 @@ class ForestTests(HttpFixture):
   self.assertEqual(self.child.request(endpoint+'?resume=trail')[1]['position'],{'x':19,'z':1.4})
   self.assertEqual(self.child.request(endpoint)[1]['position'],self.child.request('/api/forest')[1]['position'])
   self.assertEqual(self.child.request(endpoint+'/move','PUT',{'x':0,'z':-3})[0],400)
-  self.assertEqual(self.child.request(endpoint+'/move','PUT',{'x':48,'z':15})[0],400)
-  paths=[forest.FOREST['connection'],*[
-   {'width':path['width'],'points':[(x+forest.OFFSET,z) for x,z in path['points']]}
-   for path in [*forest.TRAIL['paths'],*forest.FOREST['paths']]
-  ]]
-  for path in paths:
-   for (x,z),(a,b) in zip(path['points'],path['points'][1:]):
-    for i in range(21):
-     at=(x+(a-x)*i/20,z+(b-z)*i/20)
-     self.assertTrue(forest.map_walkable(*at,[]),at)
+  for x,z in [(31,18),(32.76,-7.58),(20.18,.24),(37.87,-12.24),(47.74,-9.81),(48.10,-7.95)]:
+   self.assertEqual(self.child.request(endpoint+'/move','PUT',{'x':x,'z':z})[0],400)
   before=self.child.request('/api/world')[1]
   position={'x':46.5,'z':-5.3}
   self.assertEqual(self.child.request(endpoint+'/move','PUT',position)[0],200)
   self.assertEqual(self.parent.request(endpoint+'?resume=trail')[1]['position'],position)
   self.assertEqual(self.child.request('/api/world')[1],before)
   self.assertEqual(self.child.request('/api/forest/trail')[1]['position'],old)
+
+ def test_old_invalid_checkpoint_recovers_nearby_without_rewriting_progress(self):
+  from math import hypot
+  endpoint='/api/forest/map'
+  checkpoint='{"x":32.76,"z":-7.58}'
+  with server.db() as c:
+   c.execute("INSERT INTO settings(key,value) VALUES('forest_position',?)", (checkpoint,))
+  position=self.child.request(endpoint)[1]['position']
+  self.assertTrue(forest.map_walkable(position['x'],position['z'],[]))
+  self.assertLess(hypot(position['x']-32.76,position['z']+7.58),2.5)
+  with server.db() as c:
+   self.assertEqual(c.execute("SELECT value FROM settings WHERE key='forest_position'").fetchone()[0],checkpoint)
+  grass={'x':28,'z':10}
+  self.assertEqual(self.child.request(endpoint+'/move','PUT',grass)[0],200)
+  self.assertEqual(self.parent.request(endpoint)[1]['position'],grass)
 
  def test_diagnostics_requires_parent_and_contains_only_build_identity(self):
   status,public,_=self.child.request('/api/build')

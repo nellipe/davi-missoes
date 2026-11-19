@@ -22,7 +22,7 @@ session(stem, async ({ page, api, guided, write }) => {
   const rotate = () => page.locator('[data-action=forest-rotate][data-turn="1"]').evaluate(button => button.click());
   const point = (x, z) => page.evaluate(([a, b]) => {
     const p = DaviForest.project(a+28, b);
-    return { ...p, free: document.elementFromPoint(p.x, p.y)?.id === 'forestCanvas' };
+    return { ...p, free: DaviForest.walkable(a+28,b) && document.elementFromPoint(p.x, p.y)?.id === 'forestCanvas' };
   }, [x, z]);
   const touch = (p) => mobile ? page.touchscreen.tap(p.x, p.y) : page.mouse.click(p.x, p.y);
   async function walk(x, z) {
@@ -33,7 +33,7 @@ session(stem, async ({ page, api, guided, write }) => {
       const len = Math.hypot(x - a, z - b);
       if (len < .19) return;
       let target;
-      for (const step of [2.5, 1.8, 1.2, .65, .38]) {
+      for (const step of [len, 2.5, 1.8, 1.2, .65, .38]) {
         const t = Math.min(1, step / len);
         const p = await point(a + (x - a) * t, b + (z - b) * t);
         if (p.groundVisible && p.free) {

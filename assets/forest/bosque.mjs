@@ -60,7 +60,7 @@ export function inSceneMaster(x,z) {
   return inBosque(x,z)||(z>=9.8 && z<17.8 && x>-7 && x<8);
 }
 
-export function installBosque(group, library, layout, floor, edge, paint) {
+export function installBosque(group, library, layout, floor, edge, paint, registerSolid) {
   const art = new T.Group();
   const details = new T.Group();
   const economy = new T.Group(), full = new T.Group();
@@ -91,6 +91,10 @@ export function installBosque(group, library, layout, floor, edge, paint) {
       mesh.receiveShadow = true;
       parent.add(mesh);
       blockers.push(mesh);
+      if(registerSolid){
+        mesh.updateMatrix();
+        registerSolid('Bosque:'+name,geometry,mesh.matrix);
+      }
       return mesh;
     }
     const key = name + (detail ? '.detail' : '');
@@ -178,6 +182,7 @@ export function installBosque(group, library, layout, floor, edge, paint) {
         pose.quaternion.setFromUnitVectors(vertical,surfaceUp).multiply(turnAroundY.setFromAxisAngle(vertical,turn));
       }
       pose.updateMatrix();
+      if(solid && registerSolid)registerSolid('Bosque:'+name,geometry,pose.matrix,name.endsWith('_Tronco'));
       mesh.setMatrixAt(i,pose.matrix);
       if(name==='Seixo_da_Travessia')steppingStones.push({mesh,i,x,z,matrix:pose.matrix.clone()});
       if(solid)visibleSolids.add(i);
@@ -223,7 +228,8 @@ export function installBosque(group, library, layout, floor, edge, paint) {
       for(const item of screening){
         if(!item.parent.visible)continue;
         const {center,radius}=item.sphere;
-        const blocks=sight.covers(center,radius*.90,item.foreground?.09:.21,item.foreground);
+        const closeSolid=item.solid&&Math.hypot(hero.x-center.x,hero.z-center.z)<1.25;
+        const blocks=!closeSolid&&sight.covers(center,radius*.90,item.foreground?.09:.21,item.foreground);
         if (blocks !== item.hidden) {
           item.hidden=blocks;
           item.mesh.setMatrixAt(item.i,blocks?invisible:item.matrix);

@@ -6,9 +6,24 @@ const esc = (value) => String(value).replace(/[&<>"']/g, c => ({
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 }[c]));
 
+function floorPath(bounds,{rows,cell},kind) {
+  const [xmin,,zmin]=bounds;
+  let path='';
+  rows.forEach((row,j)=>{
+    for(let i=0;i<row.length;){
+      if(row[i]!==kind){i++;continue;}
+      const start=i;
+      while(row[i]===kind)i++;
+      const length=(i-start)*cell;
+      path+=`M${xmin+start*cell} ${zmin+j*cell}h${length}v${cell}h-${length}z`;
+    }
+  });
+  return path;
+}
+
 export function createMap() {
-  let svg, davi, pipo, shelter, bridge, ownedMarks, boats, clothes, accessoryMarks;
-  let avatar;
+  let svg, davi, pipo, shelter, bridge, ownedMarks, boats, clothes, accessoryMarks, controlledSolids;
+  let avatar, inventory;
   const release={wheel:null,source:null};
   let view = [-8,0,16,16];
   return {
@@ -24,12 +39,16 @@ export function createMap() {
       const circles=data.layout.clearings.map(([x,z,r])=>`<circle cx="${x+trailOffset}" cy="${z}" r="${r}" fill="#c7b28b"/>`).join('');
       svg.innerHTML=`
         <rect x="-60" y="-65" width="170" height="140" fill="#416d59"/>
-        <ellipse cx="0" cy="0" rx="17" ry="11.5" fill="#8ea975"/>
-        <path d="M-18 -2 Q-10 0 0 -2 T18 -2" fill="none" stroke="#4a9e9b" stroke-width="5.3"/>
+        <path d="M-18 -2 Q-10 0 0 -2 T17.2 -2 M17.2 -14V3.1" fill="none" stroke="#4a9e9b" stroke-width="2.1"/>
+        <path d="${floorPath(data.map.bounds,data.collision,'1')}" fill="#8ea975"/>
+        <path d="${floorPath(data.map.bounds,data.collision,'3')}" fill="#829472"/>
         <path d="M-4 7 Q3 4 10 6" fill="none" stroke="#d5c196" stroke-width="2.1"/>
         <g stroke-linecap="round" stroke-linejoin="round" fill="none">${routes}</g>
         ${circles}
         <path id="forest2dBridge" d="M0 -5.5V1.4" fill="none" stroke="#9b714f" stroke-width="1.8"/>
+        <g aria-hidden="true">${data.collision.solids.map(([name,vertices,owner])=>
+          `<polygon points="${vertices.map(p=>p.join(',')).join(' ')}" fill="${/Tronco|oak|trunk/i.test(name)?'#856743':/Ard|Seixo|Pedra|landmark|ledge/i.test(name)?'#89908b':'#ad8159'}" stroke="#455945" stroke-width=".08"${owner?` data-solid-owner="${owner}"`:''}/>`
+        ).join('')}</g>
         <g transform="translate(${trailOffset} 0)">
           <path d="M-1.38 10.36v3.31 M18.9 -6.13Q17 -8.4 11.38 -10.04" fill="none" stroke="#5ab8ae" stroke-width=".42"/>
           <path data-boat="wheel" d="M0 -.32Q.40 -.03 0 .28Q-.40 -.03 0 -.32Z" fill="#ffd477" stroke="#76523c" stroke-width=".06"/>
@@ -50,18 +69,19 @@ export function createMap() {
       boats=Array.from(svg.querySelectorAll('[data-boat]'));
       clothes=svg.querySelector('[data-clothes]');
       accessoryMarks=svg.querySelectorAll('[data-accessory]');
+      controlledSolids=svg.querySelectorAll('[data-solid-owner]');
     },
     interact(id,time) {
       if(Object.hasOwn(release,id))release[id]=time;
     },
-    draw(player,buddy,data,time=0,still=false) {
+    draw(player,buddy,data,time=0,still=false,buddyScale=1) {
       const width=svg.clientWidth, height=svg.clientHeight;
       if(!width||!height)return;
       const w=width<640?14:25, h=w*height/width;
       view=[player.x-w/2,player.z-h*.53,w,h];
       svg.setAttribute('viewBox',view.join(' '));
       davi.setAttribute('transform',`translate(${player.x} ${player.z})`);
-      pipo.setAttribute('transform',`translate(${buddy.x} ${buddy.z})`);
+      pipo.setAttribute('transform',`translate(${buddy.x} ${buddy.z}) scale(${buddyScale})`);
       if(avatar!==data.economy.avatar){
         avatar=data.economy.avatar;
         clothes.setAttribute('fill',(colors[avatar.color]??colors.mint).cloth);
@@ -77,6 +97,11 @@ export function createMap() {
       shelter.setAttribute('transform',data.leaf_up?'translate(-1.02 1)':'translate(.2 1.25)');
       for(const mark of ownedMarks)
         mark.setAttribute('opacity',data.economy.inventory.includes(mark.dataset.ownedMark)?1:.65);
+      if(inventory!==data.economy.inventory){
+        inventory=data.economy.inventory;
+        for(const solid of controlledSolids)
+          solid.setAttribute('visibility',inventory.includes(solid.dataset.solidOwner)?'visible':'hidden');
+      }
     },
     ndc(x,z) {
       return {x:2*(x-view[0])/view[2]-1,y:1-2*(z-view[1])/view[3],z:0};

@@ -71,7 +71,7 @@ export function buildWaterSurfaces(floor, clock) {
   return water;
 }
 
-export function dressWaterWheel(parent, paint, floor) {
+export function dressWaterWheel(parent, paint, floor, registerSolid) {
   const wheel = new T.Group();
   wheel.name='Soleira:Roda';
   wheel.position.set(-1.28,floor(-1.28,13)+.90,13);
@@ -124,6 +124,11 @@ export function dressWaterWheel(parent, paint, floor) {
     -1.28,wheel.position.y,13);
   for(const x of [-1.84,-.92]){
     add(new T.BoxGeometry(.13,.33,5.64),'#ad7750',x,.173,11.17);
+  }
+  if(registerSolid){
+    const span=new T.BoxGeometry(1,1,1);
+    registerSolid('Soleira:Calha',span,new T.Matrix4().makeScale(1.05,.4,5.64).setPosition(-1.38,.17,11.17));
+    registerSolid('Soleira:Roda',span,new T.Matrix4().makeScale(1.9,1,.90).setPosition(-1.28,.50,13));
   }
   for(const z of [8.85,10.30,11.68]){
     add(new T.BoxGeometry(1.06,.14,.17),'#dba775',-1.38,.117,z);

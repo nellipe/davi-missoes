@@ -3,11 +3,13 @@ import * as T from "/vendor/three/three.module.min.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "/vendor/three/addons/utils/SkeletonUtils.js";
 import { mergeGeometries } from "/vendor/three/addons/utils/BufferGeometryUtils.js";
-import { walkable as validPosition, terrainHeight, route, advance } from '/assets/forest/navigation.mjs';
+import { bankHeight as clearingHeight, createNavigation, terrainHeight, route, advance, seamCreek, segmentClear, terrainRim } from '/assets/forest/navigation.mjs';
+import { createCompanion } from '/assets/forest/companion.mjs';
 import { applyOutfit, colors, drawOutfit, outfitDiagnostics, portrait, worn } from '/assets/forest/wardrobe.mjs';
 import { createSight } from '/assets/forest/sight.mjs';
 import { createChibiPaint } from '/assets/forest/chibi.mjs';
 let Trail;
+let navigation, companion;
 let trailScene=null, trailLoading=null, currentRegion='', legacy=null, map2d=null;
 const localCamera=new T.Vector3(), localHero=new T.Vector3(), localBuddy=new T.Vector3();
 const skySoft=new T.Color('#dff2e7'), skyDefault=new T.Color('#ddf2fa');
@@ -136,18 +138,11 @@ function prepareDeck(root) {
   deckHitMesh = new T.Mesh(geometry,material);
 }
 function walkable(x, z) {
-  if (beyondSeam(x)) return (!renderer || !!trailScene) && Trail.walkable(trailX(x),z);
-  if (validPosition(x,z,data.economy.inventory,data.obstacles)) return true;
-  return Trail.pathGap(x,z,data.map.connection)<=0 &&
-    !data.obstacles.some(([a,b,r])=>Math.hypot(x-a,z-b)<r+.23);
+  return navigation(x,z);
 }
+walkable.segmentClear=(a,b)=>navigation.segmentClear(a,b);
 function bankHeight(x,z) {
-  const ground=terrainHeight(data.terrain,x,z);
-  // The banks meet at the passage. Beside the shelter, the slope rolls down
-  // to the trail instead of presenting the clearing's cut edge as a wall.
-  const transition=T.MathUtils.smoothstep(x,data.map.seam-2.6,data.map.seam)*
-    T.MathUtils.smoothstep(z,-4,-2)*(1-T.MathUtils.smoothstep(z,2,3.45));
-  return T.MathUtils.lerp(ground,.07*Math.sin(z*.64),transition);
+  return clearingHeight(data.terrain,data.map,x,z);
 }
 function floor(x, z) {
   if(beyondSeam(x))return Trail.floor(trailX(x),z);
@@ -165,9 +160,6 @@ function groundHit(ray, includeDeck=true) {
   const surfaces=[terrain,trailScene?.terrain,includeDeck&&owned('bridge')?deckHitMesh:null].filter(Boolean);
   return ray.intersectObjects(surfaces,false).find(hit=>
     hit.object===deckHitMesh || (hit.object===trailScene?.terrain)===beyondSeam(hit.point.x));
-}
-function blockedTap(ray,hit) {
-  return beyondSeam(hit.point.x) && trailScene?.blocksTap(ray,hit);
 }
 function characterFraming() {
   if(!camera||!player||!pipo)return null;
@@ -205,8 +197,11 @@ function paintBank() {
       const mix=1-T.MathUtils.smoothstep(edge+Math.sin(point.x*4.4+point.z*6.1)*.10,-.6,.36);
       if(mix>0)color.setXYZ(i,T.MathUtils.lerp(source.getX(i),earth.r,mix),
         T.MathUtils.lerp(source.getY(i),earth.g,mix),T.MathUtils.lerp(source.getZ(i),earth.b,mix));
-      if(point.x>data.map.seam-2.6 && point.z>-4 && point.z<3.45){
+      if(terrainRim(point.x,point.z,data.map.bounds) || point.x>data.map.seam-2.6){
         point.y=bankHeight(point.x,point.z);
+        const shade=Math.max(terrainRim(point.x,point.z,data.map.bounds),seamCreek(point.x,point.z,data.map.seam));
+        color.setXYZ(i,T.MathUtils.lerp(color.getX(i),.16,shade),
+          T.MathUtils.lerp(color.getY(i),.26,shade),T.MathUtils.lerp(color.getZ(i),.20,shade));
         point.applyMatrix4(inverse);
         positions.setXYZ(i,point.x,point.y,point.z);
       }
@@ -234,9 +229,8 @@ function paintBank() {
 function destination(x,z) {
   keys.clear();
   selectedPlace=null;
-  path = route({x:player.position.x,z:player.position.z},{x,z},walkable,[50,17]);
+  path = route({x:player.position.x,z:player.position.z},{x,z},walkable,data.map.bounds);
   target = path.shift() || null;
-  if(!target) message('Pipo: Vamos pelo caminho. Talvez seja preciso construir a ponte.');
 }
 // Sample the actual skinned asset once at load, not its bounding box on every frame.
 // This compensates for the raised stance foot in the existing walk rig.
@@ -596,7 +590,7 @@ function layout() {
       ${map2d?'<button class="f-button" data-action="world-forest">Vista 3D</button>':''}
       ${button("Ver agenda","calendar")}
       ${button('<span aria-hidden="true">★</span> <span id="forestBalance"><strong>'+data.economy.stars+'</strong><span class="sr-only"> estrelas disponíveis</span></span>',"shop",'aria-label="Oficina" aria-describedby="forestBalance"',"forest-wallet")}
-    </div><p id="forestInstructions" class="forest-instructions">Toque no caminho · setas ou WASD para andar · E para explorar</p>
+    </div><p id="forestInstructions" class="forest-instructions">Toque no chão · setas ou WASD para andar · E para explorar</p>
     </section><dialog id="forestDialog" class="forest-dialog" aria-labelledby="forestDialogTitle"><div id="forestDialogBody"></div></dialog>`);
   document.body.classList.add("forest-view");
   stage=document.getElementById("forestStage");
@@ -613,9 +607,9 @@ function createFeatures() {
     {id:'wardrobe',x:5.2,z:6.8,title:'Meu personagem',icon:'♧'},
     {id:'portal',x:8.3,z:1.5,title:'Portal dos jogos',icon:'✧'}
   ];
-  const slots=[[-2.7,4.8],[3,3.4],[-1.8,9],[2.7,9],[-7.2,7.3],[8.2,6.5]].filter(([x,z])=>validPosition(x,z,[],data.obstacles));
+  const slots=[[-2.7,4.8],[3,3.4],[-1.8,9],[2.7,9],[-7.2,7.3],[8.2,6.5]].filter(([x,z])=>walkable(x,z));
   // Additional activities extend along valid trail edges, never disappear into a menu.
-  for(let z=2;z<=9;z+=1.5)for(let x=-11;x<=11;x+=2) if(validPosition(x,z,[],data.obstacles)&&features.every(f=>Math.hypot(x-f.x,z-f.z)>1.6)&&slots.every(([a,b])=>Math.hypot(x-a,z-b)>1.3))slots.push([x,z]);
+  for(let z=2;z<=9;z+=1.5)for(let x=-11;x<=11;x+=2) if(walkable(x,z)&&features.every(f=>Math.hypot(x-f.x,z-f.z)>1.6)&&slots.every(([a,b])=>Math.hypot(x-a,z-b)>1.3))slots.push([x,z]);
   host.missions.forEach((activity,i)=>{
     const [x,z]=slots[i%slots.length];features.push({id:'activity-'+activity.id,x,z,title:activity.title,icon:activity.icon||'⚑',activity});
   });
@@ -744,8 +738,9 @@ function animateClip(next) {
 function updateCamera(dt = 1) {
   const pos = player.position,
     follow = pos.clone().add(new T.Vector3(0, 1.02, 0));
-  follow.x+=(pipo.position.x-pos.x)*.25;
-  follow.z+=(pipo.position.z-pos.z)*.25;
+  const buddyWeight=.25/Math.max(1,Math.hypot(pipo.position.x-pos.x,pipo.position.z-pos.z)/1.5);
+  follow.x+=(pipo.position.x-pos.x)*buddyWeight;
+  follow.z+=(pipo.position.z-pos.z)*buddyWeight;
   // A small pullback at the fork keeps both treads in the portrait frame.
   const portraitTrail=beyondSeam(pos.x) && camera.aspect<.85;
   const x=trailX(pos.x);
@@ -839,12 +834,15 @@ function tick(now) {
   movingNow = moving;
   const oldBuddy={x:pipo.position.x,z:pipo.position.z};
   const goal=pipoGoal(player.position);
-  const buddyDelta={x:goal.x-oldBuddy.x,z:goal.z-oldBuddy.z};
-  const buddyGap=Math.hypot(buddyDelta.x,buddyDelta.z);
-  const budget=buddyGap>(moving?.005:.06)?Math.min(buddyGap,2.3*dt):0;
-  const buddy=advance(oldBuddy,buddyDelta,budget,walkable);
+  const nextBuddy=companion.update(oldBuddy,player.position,goal,dt,point=>{
+    if(map2d)return map2d.project(point.x,point.z).visible;
+    const screen=new T.Vector3(point.x,floor(point.x,point.z)+1,point.z).project(camera);
+    return Math.abs(screen.x)<1.05&&Math.abs(screen.y)<1.05&&Math.abs(screen.z)<1;
+  });
+  const buddy=nextBuddy.position;
   pipo.position.x=buddy.x;pipo.position.z=buddy.z;
-  const buddyMoving=Math.hypot(buddy.x-oldBuddy.x,buddy.z-oldBuddy.z)>.00001;
+  pipo.scale.setScalar(nextBuddy.scale);
+  const buddyMoving=!nextBuddy.relocated&&Math.hypot(buddy.x-oldBuddy.x,buddy.z-oldBuddy.z)>.00001;
   const buddyClip = buddyMoving ? "Walk" : "Hover";
   if (buddyClip !== pipoClip) {
     pipoActions[pipoClip]?.fadeOut(0.2);
@@ -901,7 +899,7 @@ function tick(now) {
   }
   const near=nearest();
   if(map2d){
-    map2d.draw(player.position,pipo.position,data,clock,still);
+    map2d.draw(player.position,pipo.position,data,clock,still,nextBuddy.scale);
   }else{
     const heroScene=currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas';
     scene.fog.color.lerp(heroScene?skySoft:skyDefault,still?1:Math.min(1,dt*2.3));
@@ -999,14 +997,16 @@ function pipoHeight() {
     +(still?0:.072*Math.sin(clock*4.2)+.17*Math.sin(Math.PI*reaction));
 }
 function pipoGoal({x,z}) {
+  const hero={x,z};
+  const closeToHero=point=>walkable(point.x,point.z)&&segmentClear(hero,point,walkable);
   const near=beyondSeam(x)?1-T.MathUtils.smoothstep(nearMill(x,z),2,5):0;
   const desired={x:x+T.MathUtils.lerp(-.78,.84,near),z:z+T.MathUtils.lerp(.48,-.24,near)};
-  if(walkable(desired.x,desired.z))return desired;
+  if(closeToHero(desired))return desired;
   if(beyondSeam(x)&&Math.hypot(trailX(x)+9,z-1.4)<3){
     for(const [dx,dz] of [[.74,.10],[.48,-.55],[-.57,-.47]])
-      if(walkable(x+dx,z+dz))return{x:x+dx,z:z+dz};
+      if(closeToHero({x:x+dx,z:z+dz}))return{x:x+dx,z:z+dz};
   }
-  return {x,z};
+  return hero;
 }
 function bind() {
   abort = new AbortController();
@@ -1124,8 +1124,8 @@ function bind() {
         return;
       }
     }
-    if(hit && walkable(hit.point.x,hit.point.z) && !blockedTap(ray,hit)) destination(hit.point.x,hit.point.z);
-    else {target=null;path=[];message('Pipo: Vamos pelo chão firme.');}
+    if(hit && walkable(hit.point.x,hit.point.z)) destination(hit.point.x,hit.point.z);
+    else {target=null;path=[];}
   });
   on(canvas, "webglcontextlost", (e) => {
     e.preventDefault();
@@ -1243,6 +1243,7 @@ async function refresh() {
   const fresh=await host.api("/api/forest/map");
   if(token!==generation)return false;
   data=fresh;
+  navigation=createNavigation(data.map,data.collision,data.economy.inventory);
   syncOwned();
   if (!walkable(player.position.x, player.position.z)) {
     player.position.set(data.position.x, 0, data.position.z);
@@ -1285,7 +1286,7 @@ async function action(a, b) {
       destination(...point);
       if (target) {selectedPlace=place;return;}
     }
-    message('Pipo: A ponte abre o caminho até a outra margem.');
+    if(!owned('bridge') && !beyondSeam(x) && z<-4)message('Pipo: A ponte abre o caminho até a outra margem.');
     return;
   }
   if (name === "rotate") {
@@ -1461,9 +1462,11 @@ async function open(options) {
   host = options;
   data=await host.api('/api/forest/map'+(preference('place','forest')==='trail'?'?resume=trail':''));
   if(token!==generation)return false;
+  navigation=createNavigation(data.map,data.collision,data.economy.inventory);
+  companion=createCompanion(walkable,data.map.bounds);
   Trail=await import('/assets/forest/trail.mjs');
   if(token!==generation)return false;
-  Trail.configure(data.layout,z=>bankHeight(data.map.seam,z));
+  Trail.configure(data.layout,z=>bankHeight(data.map.seam,z),data.map);
   const mapModule=host.mode==='2d'?await import('/assets/forest/map-2d.mjs'):null;
   if(token!==generation)return false;
   if(mapModule)map2d=mapModule.createMap();
@@ -1694,6 +1697,7 @@ window.DaviForest = {
   close,
   action,
   characterFraming,
+  walkable(x,z) {return walkable(x,z);},
   telemetry() {
     return {
       view:map2d?'2d':renderer?'3d':'agenda',
@@ -1714,7 +1718,7 @@ window.DaviForest = {
     if(visible){
       const ray=new T.Raycaster();ray.setFromCamera(new T.Vector2(p.x,p.y),camera);
       const hit=groundHit(ray);
-      groundVisible=!!hit && Math.hypot(hit.point.x-x,hit.point.z-z)<.2 && !blockedTap(ray,hit);
+      groundVisible=!!hit && Math.hypot(hit.point.x-x,hit.point.z-z)<.2;
     }
     return {x:rect.left+(p.x*.5+.5)*rect.width,y:rect.top+(-p.y*.5+.5)*rect.height,visible,groundVisible};
   },
@@ -1772,6 +1776,7 @@ window.DaviForest = {
       features: features.map(f=>({id:f.id,x:f.x,z:f.z,title:f.title,window:f.activity?.window?.state,hasMission:f.activity?.has_mission})),
       navigationValid: player ? walkable(player.position.x,player.position.z) : null,
       pipoNavigationValid: pipo ? walkable(pipo.position.x,pipo.position.z) : null,
+      companion: companion?.diagnostics(),
       frameActive: !!frame,
       geometries: renderer?.info.memory.geometries,
       textures: renderer?.info.memory.textures,

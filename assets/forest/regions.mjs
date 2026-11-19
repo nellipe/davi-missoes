@@ -4,7 +4,7 @@ import { createSight } from './sight.mjs';
 import { inSceneMaster } from './bosque.mjs';
 
 // Shared silhouettes from the Bosque library, composed as separate groups within the same terrain.
-export function installRegions(root, library, layout, floor, edge) {
+export function installRegions(root, library, layout, floor, edge, registerSolid) {
   const themes=[
     {x:-5,z:11,tree:'Amieiro',stone:'#a8a692',foliage:'#9fb18a',seed:7},
     {x:-1,z:-10,tree:'Carvalho',stone:'#849a99',foliage:'#859e98',seed:17},
@@ -46,6 +46,14 @@ export function installRegions(root, library, layout, floor, edge) {
   function block(parent,color,x,z,w,h,d,lift=0) {
     return mesh(parent,wood,color,x,floor(x,z)+lift+h/2,z,w,h,d);
   }
+  function solidBlock(name,parent,color,x,z,w,h,d,lift=0) {
+    const part=block(parent,color,x,z,w,h,d,lift);
+    if(registerSolid){
+      part.updateMatrix();
+      registerSolid(name,wood,part.matrix);
+    }
+    return part;
+  }
   function stamps(parent, model, color, positions) {
     if(!positions.length)return;
     const source=library.getObjectByName(model);
@@ -63,13 +71,15 @@ export function installRegions(root, library, layout, floor, edge) {
       stamp.rotation.y=turn;
       stamp.updateMatrix();
       batch.setMatrixAt(i,stamp.matrix);
+      if(registerSolid && (model.endsWith('_Tronco')||/^(Ardosia|Pedra_fendida)$/.test(model)))
+        registerSolid('Região:'+model,source.geometry,stamp.matrix,model.endsWith('_Tronco'));
       if(crown || foreground || model.endsWith('_Tronco')){
         const bounds=crown||foreground?source.geometry.boundingSphere.clone().applyMatrix4(stamp.matrix):null;
         occluders.push({
           parent,batch,index:i,matrix:stamp.matrix.clone(),hidden:false,
           center:bounds?.center??new T.Vector3(x,stamp.position.y+2.7*sy,z),
           radius:bounds?bounds.radius*(foreground?.87:.93):1.77*sy,
-          foreground,
+          foreground, solid:model.endsWith('_Tronco')||/^(Ardosia|Pedra_fendida)$/.test(model),
         });
       }
     }
@@ -109,18 +119,19 @@ export function installRegions(root, library, layout, floor, edge) {
 
   // The strip of blue cloth repeats from the free bank to the low wheel.
   function pennant(parent,x,z,blue=true) {
-    block(parent,'#735843',x,z,.085,1.72,.085);
+    solidBlock('Marco',parent,'#735843',x,z,.085,1.72,.085);
     const cloth=block(parent,blue?'#6bacc0':'#ead2a0',x+.21,z,.44,.39,.035,1.19);
     cloth.rotation.z=-.12;
   }
-  for(const [x,z] of [[-10.1,6.25],[-7.3,9.3],[-4.2,12.4],[-.4,15.72]])pennant(margin,x,z);
-  const crossing=[[-9.65,8.27,.62,.47,.69,1],[-8.18,8,.80,.71,.57,2],[-4.3,10.45,.88,.72,.75,-1],
-    [2,-8.45,1.20,1.01,.91,.40],[4.7,-8.85,1.45,1.54,1,-.34],[6.3,-8.88,.9,1.52,1.14,.21]];
+  for(const [x,z] of [[-10.1,6.25],[-6.85,9.3],[-4.2,12.4],[-.4,15.72]])pennant(margin,x,z);
+  const crossing=[[-10.04,8.27,.62,.47,.69,1],[-6.80,8,.80,.71,.57,2],[-4.3,10.45,.88,.72,.75,-1],
+    // The tall layered rocks frame the path to the workshop from the upper bank.
+    [1,-4.85,1.20,1.01,.91,.40],[4.7,-7.65,1.45,1.54,1,-.34],[6.3,-8.88,.9,1.52,1.14,.21]];
   stamps(gorge,'Ardosia','#aab4ae',crossing.slice(3));
   stamps(margin,'Ardosia','#bcc2aa',crossing.slice(0,3));
   // Terracotta worktable beside a blue fabric awning, with a recognizable utensil wall.
   for(const [x,z] of [[8.9,-12.54],[11.15,-12.54],[8.9,-10.91],[11.15,-10.91]])
-    block(patio,'#865a42',x,z,.14,2.36,.14);
+    solidBlock('Pátio:Pilar',patio,'#865a42',x,z,.14,2.36,.14);
   for(let i=0;i<5;i++){
     const x=9.03+i*.50;
     const awning=block(patio,i%2?'#ad7d9d':'#c895af',x,-11.82,.55,.19,1.95,2.14);
@@ -128,7 +139,7 @@ export function installRegions(root, library, layout, floor, edge) {
     block(patio,i%2?'#d29782':'#ecc7a0',x,-10.89,.49,.28,.09,1.96);
   }
   for(const x of [9.39,10.34])block(patio,'#79563c',x,-12.24,.16,.85,.49);
-  block(patio,'#c29362',9.87,-12.24,1.58,.15,.71,.81);
+  solidBlock('Pátio:Bancada',patio,'#c29362',9.87,-12.24,1.58,.15,.71,.81);
   for(let i=0;i<3;i++){
     const tool=block(patio,i===1?'#90a6a3':'#e1b467',9.38+i*.34,-12.20,.13,.14,.27,.99);
     tool.rotation.y=i*.64;
@@ -138,7 +149,7 @@ export function installRegions(root, library, layout, floor, edge) {
   patio.add(bird);
   mesh(bird,leaf,'#d1aa74',0,.08,0,.42,.24,.17).rotation.z=.3;
   mesh(bird,leaf,'#f2ce8e',.27,.26,-.12,.25,.20,.12).rotation.z=.72;
-  block(patio,'#b98e62',11.02,-10.35,.09,.68,.12);
+  solidBlock('Pátio:Pedestal',patio,'#b98e62',11.02,-10.35,.09,.68,.12);
   for(const [x,z] of [[14.2,-10.77],[16.55,-8.85],[19.22,-5.96],[19.91,-2.70],[16.91,5.4],[11.8,10.25],[6.87,13.75]])
     pennant(x>15&&z<-1?copa:returnPath,x,z,false);
 
@@ -156,12 +167,29 @@ export function installRegions(root, library, layout, floor, edge) {
     mesh(wheel,wood,'#966847',0,0,0,.08,2.03,.12).rotation.z=a;
     mesh(wheel,leaf,i%2?'#cdb762':'#b2c17d',1.04*Math.cos(a),1.04*Math.sin(a),-.11,.22,.31,.23).rotation.z=a;
   }
-  for(const x of [18.23,20.55])block(headwater,'#967650',x,-6.43,.21,1.42,.28);
+  for(const x of [18.23,20.55])solidBlock('Nascente:Suporte',headwater,'#967650',x,-6.43,.21,1.42,.28);
+  if(registerSolid){
+    const footprint=new T.Matrix4().makeScale(2.27,1,.38).setPosition(crownX,crownY+.5,crownZ);
+    registerSolid('Nascente:Roda',wood,footprint);
+  }
   const course=[[18.90,-6.13],[18.55,-6.86],[17.6,-7.49],[16.6,-8.35],[15.43,-9.16],[13.65,-9.59],[11.38,-10.04]];
   const coursePoints=course.map(([x,z])=>new T.Vector3(x,floor(x,z)+.36,z));
   const current=new T.CatmullRomCurve3(coursePoints);
   mesh(headwater,new T.TubeGeometry(current,24,.19,5,false),'#71c6be',0,0,0,1,1,1);
   mesh(headwater,new T.TubeGeometry(current,24,.27,5,false).translate(0,-.14,0),'#ad8259',0,0,0,1,1,1);
+  if(registerSolid){
+    const [a,...points]=course;
+    let previous=a;
+    for(const [x,z] of points){
+      const [u,v]=previous;
+      stamp.position.set((x+u)/2,floor(x,z)+.25,(z+v)/2);
+      stamp.scale.set(.43,.24,Math.hypot(x-u,z-v)+.16);
+      stamp.rotation.y=Math.atan2(x-u,z-v);
+      stamp.updateMatrix();
+      registerSolid('Nascente:Calha',wood,stamp.matrix);
+      previous=[x,z];
+    }
+  }
   const boat=mesh(headwater,leaf,'#f2c569',0,0,0,.19,.064,.38);
   mesh(headwater,leaf,'#8ed4cc',19.66,crownY+2.22,-6.75,.19,.66,.19).rotation.z=-.38;
   for(const [x,z,angle] of [[17.73,-6.76,.26],[18.15,-4.46,-.6],[19.86,-4.62,-1.2]]){
@@ -202,7 +230,8 @@ export function installRegions(root, library, layout, floor, edge) {
       sight.update(camera,hero,buddy,landmarks);
       for(const item of occluders) {
         if(!item.parent.visible||item.parent.parent?.visible===false)continue;
-        const hide=sight.covers(item.center,item.radius,item.foreground?.09:.23,item.foreground);
+        const closeSolid=item.solid&&Math.hypot(hero.x-item.center.x,hero.z-item.center.z)<2.1;
+        const hide=!closeSolid&&sight.covers(item.center,item.radius,item.foreground?.09:.23,item.foreground);
         if(hide!==item.hidden){
           item.hidden=hide;
           item.batch.setMatrixAt(item.index,hide?hiddenMatrix:item.matrix);

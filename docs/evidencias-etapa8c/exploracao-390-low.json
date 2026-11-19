@@ -1,0 +1,195 @@
+{
+  "width": 390,
+  "height": 850,
+  "profile": "low",
+  "checkpoints": [
+    {
+      "label": "diante-da-rocha",
+      "seconds": 0.668,
+      "view": "3d",
+      "position": [
+        33.04,
+        0.606253170689417,
+        -5.4
+      ],
+      "pipo": [
+        32.26,
+        1.6472468543549617,
+        -4.92
+      ],
+      "gap": 0.9158602513484261,
+      "follower": {
+        "replans": 0,
+        "recoveries": 0,
+        "waypoints": 0
+      },
+      "fps": 52.938062466913706,
+      "p95ms": 16.799999999999955,
+      "openingMs": 927.3000000119209,
+      "calls": 68,
+      "triangles": 173718,
+      "profile": "low"
+    },
+    {
+      "label": "direcional-barra-na-rocha",
+      "seconds": 3.962,
+      "view": "3d",
+      "position": [
+        32.08581892132957,
+        0.3824241225359019,
+        -6.710524071759945
+      ],
+      "pipo": [
+        31.330915757913214,
+        1.3265176255317443,
+        -6.215973100015266
+      ],
+      "gap": 0.9024740715331525,
+      "follower": {
+        "replans": 0,
+        "recoveries": 0,
+        "waypoints": 0
+      },
+      "fps": 60,
+      "p95ms": 16.800000000000182,
+      "openingMs": 927.3000000119209,
+      "calls": 62,
+      "triangles": 161502,
+      "profile": "low"
+    },
+    {
+      "label": "desvio-da-rocha-com-pipo",
+      "seconds": 7.345,
+      "view": "3d",
+      "position": [
+        32.64848463970001,
+        0.07200379335147593,
+        -9.821084832090092
+      ],
+      "pipo": [
+        31.838725456221866,
+        1.0524571542945438,
+        -9.319470768353368
+      ],
+      "gap": 0.9525369306046136,
+      "follower": {
+        "replans": 0,
+        "recoveries": 0,
+        "waypoints": 0
+      },
+      "fps": 60.01200240048014,
+      "p95ms": 16.700000000000728,
+      "openingMs": 927.3000000119209,
+      "calls": 47,
+      "triangles": 91436,
+      "profile": "low"
+    },
+    {
+      "label": "passagem-apos-a-bancada",
+      "seconds": 10.493,
+      "view": "3d",
+      "position": [
+        41.0022885374558,
+        0.29579132024839283,
+        -11.317463915395424
+      ],
+      "pipo": [
+        40.17760092814208,
+        1.2606736101733582,
+        -10.838658769864466
+      ],
+      "gap": 0.9536057992391305,
+      "follower": {
+        "replans": 1,
+        "recoveries": 0,
+        "waypoints": 0
+      },
+      "fps": 60,
+      "p95ms": 16.799999999999727,
+      "openingMs": 507,
+      "calls": 61,
+      "triangles": 93590,
+      "profile": "low"
+    },
+    {
+      "label": "soleira-fora-da-trilha",
+      "seconds": 12.727,
+      "view": "3d",
+      "position": [
+        27.988355827775646,
+        0.015129469538488224,
+        9.978186811618095
+      ],
+      "pipo": [
+        28.42887175940156,
+        0.9542538203123417,
+        9.966584667335727
+      ],
+      "gap": 0.44066869161332034,
+      "follower": {
+        "replans": 0,
+        "recoveries": 0,
+        "waypoints": 0
+      },
+      "fps": 59.99999999999997,
+      "p95ms": 16.799999999999955,
+      "openingMs": 769.3999999761581,
+      "calls": 62,
+      "triangles": 135902,
+      "profile": "low"
+    },
+    {
+      "label": "exploracao-no-mapa-2d",
+      "seconds": 16.403,
+      "view": "2d",
+      "position": [
+        30.100000015909092,
+        0.04401890012851989,
+        9.850000189204664
+      ],
+      "pipo": [
+        29.884553418013464,
+        1.0579189127477364,
+        10.067037597490405
+      ],
+      "gap": 0.305814442334223,
+      "follower": {
+        "replans": 0,
+        "recoveries": 0,
+        "waypoints": 0
+      },
+      "fps": 60.01200240048014,
+      "p95ms": 16.800000000000182,
+      "openingMs": 26.30000001192093,
+      "profile": "low"
+    },
+    {
+      "label": "retomada-na-floresta-3d",
+      "seconds": 17.228,
+      "view": "3d",
+      "position": [
+        30.100000015909092,
+        0.029018904966357555,
+        9.850000189204664
+      ],
+      "pipo": [
+        29.901280973764848,
+        1.057231361719995,
+        10.071653096824328
+      ],
+      "gap": 0.29768988757930126,
+      "follower": {
+        "replans": 0,
+        "recoveries": 0,
+        "waypoints": 0
+      },
+      "fps": 58.072009291521546,
+      "p95ms": 16.700000000000728,
+      "openingMs": 244.80000001192093,
+      "calls": 60,
+      "triangles": 139824,
+      "profile": "low"
+    }
+  ],
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

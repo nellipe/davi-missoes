@@ -6,7 +6,7 @@ const {spawn,execFileSync}=require('node:child_process');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),net=require('node:net');
 const root=path.resolve(__dirname,'..'), python=process.env.PYTHON || 'python';
 const data=fs.mkdtempSync(path.join(os.tmpdir(),'davi-gameplay-synthetic-'));
-const evidence=path.join(root,'docs','evidencias-etapa-b');
+const evidence=process.env.FOREST_EVIDENCE_DIR || path.join(root,'docs','evidencias-etapa-b');
 fs.mkdirSync(evidence,{recursive:true});
 let server,browser;
 const checks=[];
@@ -16,7 +16,7 @@ async function main() {
   const base=`http://127.0.0.1:${port}`;
   const env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!k.startsWith('DAVI_')));
   Object.assign(env,{DAVI_DATA_DIR:data,DAVI_PORT:String(port),DAVI_HOST:'127.0.0.1'});
-  server=spawn(python,['-c',"import server; server.initialize(); server.set_setting('password',server.hash_password('SyntheticPassword123')); server.main()"],{cwd:root,env,stdio:'ignore',windowsHide:true});
+  server=spawn(python,['-c',"import datetime, server; server.timing.now=lambda:datetime.datetime(2026,11,17,11,0,tzinfo=server.TZ); server.initialize(); server.set_setting('password',server.hash_password('SyntheticPassword123')); server.main()"],{cwd:root,env,stdio:'ignore',windowsHide:true});
   const api=await request.newContext({baseURL:base,extraHTTPHeaders:{Origin:base}});
   let ready=false;
   for(let i=0;i<100;i++) {try{if((await api.get('/api/me')).ok()){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,50));}
@@ -38,7 +38,7 @@ async function main() {
   const code=(await write('/api/devices/code',{})).code;
   await context.request.post(base+'/api/pair',{data:{code}});
   const page=await context.newPage(), errors=[];
-  await page.clock.setFixedTime(new Date('2026-11-17T13:00:00Z'));
+  await page.clock.setFixedTime(new Date('2026-11-17T14:00:00Z'));
   await page.addInitScript(()=>{
     window.SpeechSynthesisUtterance=class{constructor(text){this.text=text;}};
     Object.defineProperty(window,'speechSynthesis',{value:{cancel(){},getVoices(){return [{lang:'pt-BR'}];},speak(u){window.__spoken={lang:u.lang,text:u.text};}}});
@@ -62,7 +62,7 @@ async function main() {
     if(await page.locator('#worldMap').count())await click('.w-hud [data-action="world-calendar"]');
     await click(`[data-action="mission-open"][data-id="${event.id}"]`);
   };
-  const worldEvidence=path.join(root,'docs','evidencias-etapa-c');fs.mkdirSync(worldEvidence,{recursive:true});
+  const worldEvidence=process.env.FOREST_EVIDENCE_DIR || path.join(root,'docs','evidencias-etapa-c');fs.mkdirSync(worldEvidence,{recursive:true});
   async function worldCapture(name,width) {
     await page.setViewportSize({width,height:1000});await page.evaluate(()=>window.scrollTo(0,0));
     await page.locator('#content').focus();
@@ -135,7 +135,7 @@ async function main() {
     await capture(event.template+'-fazer',360);await capture(event.template+'-fazer',1366);
     await page.locator('[data-action="game-confirm"]').focus();await page.keyboard.press('Enter');await idle();
     assert.equal(await page.locator('#gameStepTitle').count(),1);
-    assert.equal(await page.evaluate(()=>document.activeElement.id),'gameStepTitle');
+    await page.waitForFunction(()=>document.activeElement.id==='gameStepTitle');
     await game('previous');await game('undo');
     await game('confirm');await game('exit');
     await page.reload();await idle();
@@ -155,8 +155,14 @@ async function main() {
   assert.equal(dbState().completions.length,0);
   // O responsável ajusta preços pela interface protegida, só nesta fixture.
   const adminContext=await browser.newContext();await adminContext.addCookies((await api.storageState()).cookies);
-  const admin=await adminContext.newPage();await admin.goto(base);await admin.locator('#parentTab').click();
-  await admin.locator('[data-action="world-settings"]').click();await admin.locator('#worldSettingsForm').waitFor();
+  const admin=await adminContext.newPage();
+  await admin.addInitScript(()=>localStorage.setItem('davi-forest-mode','island'));
+  await admin.goto(base);
+  await admin.waitForFunction(()=>!document.querySelector('#content').hasAttribute('aria-busy'));
+  await admin.locator('#parentTab').click();
+  await admin.locator('[data-action="world-settings"]').click();
+  await admin.getByText('Ajustar recompensas e preços',{exact:true}).click();
+  await admin.locator('#worldSettingsForm').waitFor();
   for(const id of ['house','portal','buddy','cape'])await admin.locator('#price-'+id).fill('1');
   await admin.locator('#worldSettingsForm').evaluate(form=>form.requestSubmit());
   await admin.waitForFunction(()=>!document.querySelector('#content').hasAttribute('aria-busy'));
@@ -183,7 +189,9 @@ async function main() {
   const saved=await (await second.request.get(base+'/api/world')).json();
   assert.equal(saved.stars,1);assert.equal(saved.avatar.hat,'hat');assert.equal(saved.avatar.cape,'cape');assert.equal(saved.avatar.buddy,'buddy');
   assert.equal(saved.avatar.color,'sky');assert(saved.inventory.includes('bridge'));assert.equal(Math.round(saved.avatar.x),220);
-  const otherPage=await second.newPage();await otherPage.goto(base);await otherPage.locator('#worldMap').waitFor();
+  const otherPage=await second.newPage();
+  await otherPage.addInitScript(()=>localStorage.setItem('davi-forest-mode','island'));
+  await otherPage.goto(base);await otherPage.locator('#worldMap').waitFor();
   assert.equal(await otherPage.locator('.w-map [data-building="bridge"]').getAttribute('data-owned'),'true');
   await page.reload();await idle();await worldCapture('exploracao',360);
   await adminContext.close();await second.close();

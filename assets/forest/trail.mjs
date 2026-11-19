@@ -1,5 +1,5 @@
 import * as T from '/vendor/three/three.module.min.js';
-import { terrainHeight } from './navigation.mjs';
+import { terrainHeight, seamCreek, terrainRim } from './navigation.mjs';
 import { buildShelter } from './beetle.mjs';
 import { inBosque, inSceneMaster, installBosque } from './bosque.mjs';
 import { installRegions } from './regions.mjs';
@@ -9,8 +9,8 @@ import { gem } from './chibi.mjs';
 import { buildWaterSurfaces, dressWaterWheel } from './cenario-agua.mjs';
 
 let layout, grid;
-export function configure(map, seamHeight) {
-  layout = map;
+export function configure(map, seamHeight, world) {
+  layout = {...map,world};
   const bounds = [map.bounds[0], 29, -21, 22];
   grid = { n: 116, bounds, heights: [] };
   const [xmin,xmax,zmin,zmax] = bounds;
@@ -21,7 +21,9 @@ export function configure(map, seamHeight) {
     for(let i=0;i<=grid.n;i++){
       const x=xmin+(xmax-xmin)*i/grid.n;
       const blend=T.MathUtils.smoothstep(x,xmin,xmin+seamWidth);
-      grid.heights.push(T.MathUtils.lerp(bank,height(x,z),blend));
+      const wx=x+world.trailOffset;
+      const land=height(x,z)-2.5*seamCreek(wx,z,world.seam)-2.6*terrainRim(wx,z,world.bounds);
+      grid.heights.push(T.MathUtils.lerp(bank,land,blend));
     }
   }
 }
@@ -78,12 +80,6 @@ export function description(id) {
     lookout:'As bandeiras claras acompanham a descida até a roda baixa.',
     carving:'As duas peças formam um pássaro quando vistas pelo lado da bancada.',
   }[id]??'';
-}
-export function walkable(x, z) {
-  const [xmin, xmax, zmin, zmax] = layout.bounds;
-  if (!Number.isFinite(x + z) || x < xmin || x > xmax || z < zmin || z > zmax) return false;
-  if (layout.blocked.some(([a, b, c, d]) => x > a && x < b && z > c && z < d)) return false;
-  return edge(x, z) <= 0;
 }
 const bell = (x, z, a, b, w, h) => Math.exp(-(((x - a) / w) ** 2) - ((z - b) / h) ** 2);
 function waterfall() {
@@ -157,7 +153,7 @@ function height(x, z) {
 }
 export const floor = (x, z) => terrainHeight(grid, x, z) + 0.012;
 
-export function build(scene, leafUp, library, paint) {
+export function build(scene, leafUp, library, paint, solid) {
   let seed = 7239;
   const random = () => (seed = (Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296;
   const group = new T.Group();
@@ -183,6 +179,8 @@ export function build(scene, leafUp, library, paint) {
     dummy.rotation.set(rx, ry, rz);
     dummy.scale.set(sx, sy, sz);
     dummy.updateMatrix();
+    if(solid && ((shape==='stone' && sy>.48)||shape==='trunk'))
+      solid(shape==='stone'?'Trilha:Ardósia':'Trilha:Tronco',shapes[shape],dummy.matrix,shape==='trunk');
     if (!batches.has(shape)) batches.set(shape, []);
     batches
       .get(shape)
@@ -198,6 +196,7 @@ export function build(scene, leafUp, library, paint) {
     moss = new T.Color('#62b860');
   const groveLight=new T.Color('#9bd96d'),groveShade=new T.Color('#59b668');
   const groveColor=new T.Color(),rimColor=new T.Color('#e4b477');
+  const cliffColor=new T.Color('#406459'),creekColor=new T.Color('#397880');
   for (let j = 0; j <= grid.n; j++)
     for (let i = 0; i <= grid.n; i++) {
       const [xmin,xmax,zmin,zmax] = grid.bounds;
@@ -225,6 +224,9 @@ export function build(scene, leafUp, library, paint) {
       if(x>6&&z<-7.6)c.lerp(new T.Color('#c99873'),(1-T.MathUtils.smoothstep(border,-.8,.55))*.69);
       if(x>13&&z>-10)c.lerp(new T.Color('#9da882'),(1-T.MathUtils.smoothstep(border,-.6,.45))*.55);
       if(x<-6&&z>5)c.lerp(new T.Color('#c1a674'),(1-T.MathUtils.smoothstep(border,-.6,.44))*.66);
+      const worldX=x+layout.world.trailOffset;
+      c.lerp(cliffColor,terrainRim(worldX,z,layout.world.bounds));
+      c.lerp(creekColor,seamCreek(worldX,z,layout.world.seam));
       colors.push(c.r, c.g, c.b);
       positions.push(x, y, z);
       uv.push(x/3.4,z/3.4);
@@ -277,7 +279,7 @@ export function build(scene, leafUp, library, paint) {
     [0.1, 0.1, 2.2, 3.8, 2.4],
     [2, -0.6, 1.6, 3.2, 1.8],
     [-1.6, -1.4, 1.3, 3.6, 1.5],
-    [2.4, -9.7, 1.4, 4.2, 1.6],
+    [2.4, -11.45, 1.4, 4.2, 1.6],
     [-5.5, -8.9, 1.3, 3.8, 1.3],
     [-7, -12.7, 1.15, 4.8, 1.7],
     [0.4, -13.1, 1.5, 5.3, 1.7],
@@ -323,7 +325,7 @@ export function build(scene, leafUp, library, paint) {
   }
   const water=buildWaterSurfaces(floor,waterClock);
   group.add(water);
-  const wheel=dressWaterWheel(group,paint,floor);
+  const wheel=dressWaterWheel(group,paint,floor,solid);
   const moving = (parent, shape, tint, x, y, z, sx, sy, sz) => {
     const mesh = new T.Mesh(shapes[shape], paint.toon(tint));
     mesh.position.set(x, y, z);
@@ -382,9 +384,9 @@ export function build(scene, leafUp, library, paint) {
       }
     }
   }
-  const art = installBosque(group, library, layout, floor, edge,paint);
-  const regions = installRegions(group, library, layout, floor, edge);
-  const shelter = buildShelter(floor, leafUp,paint);
+  const art = installBosque(group, library, layout, floor, edge,paint,solid);
+  const regions = installRegions(group, library, layout, floor, edge,solid);
+  const shelter = buildShelter(floor, leafUp,paint,solid);
   group.add(shelter.group);
   for (let i = 0; i < 3; i++) rock(8 + 0.22 * i, 0.9 - 0.65 * i, 0.43, 0.8 + i * 0.3, 0.35, '#e2ded7');
   const pulse = moving(group, 'ring', '#f9da8e', 7.8, floor(7.8, 0.35) + 1, 0.35, 0.1, 0.1, 0.1);
@@ -484,7 +486,8 @@ export function build(scene, leafUp, library, paint) {
       }
       if (pulse.visible) pulse.scale.setScalar(still ? 0.6 : 0.2 + (age % 0.6));
       for (const {mesh,i,item,bounds,foreground} of fade) {
-        const obscures=gaze.covers(bounds.center,bounds.radius*.83,.13,foreground);
+        const near=Math.hypot(hero.x-bounds.center.x,hero.z-bounds.center.z)<(foreground?1.7:1.0);
+        const obscures=!near&&gaze.covers(bounds.center,bounds.radius*.83,.13,foreground);
         if (obscures !== !!item.hidden) {
           mesh.setMatrixAt(i,obscures?hideMatrix:item.matrix);
           mesh.instanceMatrix.needsUpdate=true;

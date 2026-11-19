@@ -5,7 +5,7 @@ const FLIP_SECONDS = .58;
 const CARRY_START = 1.02;
 const CARRY_END = 2.42;
 
-export function buildShelter(floor, leafUp, paint) {
+export function buildShelter(floor, leafUp, paint, registerSolid) {
   const group = new T.Group();
   group.position.set(-9.71, floor(-9.71, -.52), -.52);
   const sphere = new T.SphereGeometry(1, 14, 9);
@@ -40,14 +40,21 @@ export function buildShelter(floor, leafUp, paint) {
   leafEdge.material= new T.MeshBasicMaterial({color:0x34264a,side:T.DoubleSide});
   leafMark.material= new T.MeshBasicMaterial({color:gem,side:T.DoubleSide});
   part(hinge, sphere, '#3e9b55', [0, .13, -.04], [.031, .052, .69]);
+  function registerPost(post){
+    if(!registerSolid)return;
+    post.updateWorldMatrix(true,false);
+    registerSolid('Abrigo:Suporte',stick,post.matrixWorld);
+  }
   for (const side of [-1, 1]) {
     const leg = part(group, stick, wood, [-.59 + side * .25, .36, -.28], [.087, .77, .10]);
     leg.rotation.z = side * .29;
+    registerPost(leg);
   }
   const twig = part(group, stick, wood, [-.59, 1.40, -.66], [.12, .11, .81]);
   twig.rotation.x = .18;
   const stem = part(group, stick, wood, [-.62, .68, -1.08], [.14, 1.42, .14]);
   stem.rotation.z = -.05;
+  registerPost(stem);
   const water = '#39aebc';
   const glint = '#b5ecdf';
   const inlet = new T.Vector3(-.59, 1.34, -.28);
