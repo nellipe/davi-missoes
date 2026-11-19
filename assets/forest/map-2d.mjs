@@ -1,5 +1,6 @@
 import { boatProgress } from './boat.mjs';
 import { colors, worn } from './wardrobe.mjs';
+import { recanto } from './recanto.mjs';
 
 const COLORS = ['#ddc299','#a77655','#cfceae','#a98262','#bfc4a7','#b9ad91','#d2966d','#e3d9ab','#d4c394'];
 const esc = (value) => String(value).replace(/[&<>"']/g, c => ({
@@ -22,7 +23,7 @@ function floorPath(bounds,{rows,cell},kind) {
 }
 
 export function createMap() {
-  let svg, davi, pipo, shelter, bridge, ownedMarks, boats, clothes, accessoryMarks, controlledSolids;
+  let svg, davi, pipo, shelter, beetle, bridge, ownedMarks, boats, clothes, accessoryMarks, controlledSolids;
   let avatar, inventory;
   const release={wheel:null,source:null};
   let view = [-8,0,16,16];
@@ -54,9 +55,15 @@ export function createMap() {
           <path data-boat="wheel" d="M0 -.32Q.40 -.03 0 .28Q-.40 -.03 0 -.32Z" fill="#ffd477" stroke="#76523c" stroke-width=".06"/>
           <path data-boat="source" d="M0 -.32Q.40 -.03 0 .28Q-.40 -.03 0 -.32Z" fill="#ffd477" stroke="#76523c" stroke-width=".06"/>
         </g>
-        <g id="forest2dShelter" transform="translate(${trailOffset-9.71} -.46)">
-          <ellipse cx="-1.02" cy="1" rx=".5" ry=".27" fill="#78634b"/><ellipse cx=".2" cy="1.25" rx=".5" ry=".27" fill="#78634b"/>
+        <g id="forest2dShelter" transform="translate(${trailOffset+recanto.leaf[0]} ${recanto.leaf[1]})">
+          ${recanto.basins.map(([x,z])=>`<ellipse cx="${x}" cy="${z}" rx=".5" ry=".27" fill="#78634b"/>`).join('')}
+          <path d="M0 .64Q-1 .02 0 -.74Q1 .02 0 .64Z" fill="#72c45a" stroke="#3c7246" stroke-width=".10"/>
           <g id="forest2dWet"><ellipse rx=".35" ry=".18" fill="#5ac9c7"/></g>
+          <g id="forest2dBeetle"><ellipse rx=".18" ry=".27" fill="#da9552" stroke="#553345" stroke-width=".10"/><circle cy=".19" r=".11" fill="#553345"/></g>
+        </g>
+        <g transform="translate(${trailOffset+recanto.log[0]+1.9*Math.sin(recanto.openingYaw)} ${recanto.log[1]+1.9*Math.cos(recanto.openingYaw)})">
+          <path d="M-.31 .05L-.39 -.14l.15 .03.02-.23.15 .14.12-.22.10 .19.19-.09-.05 .23.14 .01-.09 .17z" fill="#824c34"/>
+          <ellipse cy=".1" rx=".26" ry=".19" fill="#ffd8a0"/><circle cy=".25" r=".055" fill="#34264a"/>
         </g>
         ${features.map(f=>`<g transform="translate(${f.x} ${f.z})" ${['house','portal'].includes(f.id)?`data-owned-mark="${f.id}"`:''}><circle r=".62" fill="#314e45" stroke="#f5e5ae" stroke-width=".07"/><text y=".25" text-anchor="middle" font-size=".78" fill="#ffebbf">${esc(f.icon)}</text></g>`).join('')}
         <g id="forest2dPipo"><circle r=".36" fill="#75d5ba" stroke="#24473e" stroke-width=".06"/><circle cy="-.08" r=".17" fill="#f6dda5"/><path data-accessory="buddy" d="M-.34 .12Q0 .28.34 .12l-.02 .14-.13 .01 .09 .20-.14 .04-.08-.22Q-.12 .34-.28 .25Z" fill="#e77a4d"/></g>
@@ -64,6 +71,7 @@ export function createMap() {
       davi=svg.querySelector('#forest2dDavi');
       pipo=svg.querySelector('#forest2dPipo');
       shelter=svg.querySelector('#forest2dWet');
+      beetle=svg.querySelector('#forest2dBeetle');
       bridge=svg.querySelector('#forest2dBridge');
       ownedMarks=svg.querySelectorAll('[data-owned-mark]');
       boats=Array.from(svg.querySelectorAll('[data-boat]'));
@@ -94,7 +102,9 @@ export function createMap() {
         boat.setAttribute('transform',`translate(${x} ${z})`);
       }
       bridge.style.visibility=data.economy.inventory.includes('bridge')?'visible':'hidden';
-      shelter.setAttribute('transform',data.leaf_up?'translate(-1.02 1)':'translate(.2 1.25)');
+      const basin=data.leaf_up?0:1;
+      shelter.setAttribute('transform',`translate(${recanto.basins[basin].join(' ')})`);
+      beetle.setAttribute('transform',`translate(${recanto.shelters[basin].join(' ')})`);
       for(const mark of ownedMarks)
         mark.setAttribute('opacity',data.economy.inventory.includes(mark.dataset.ownedMark)?1:.65);
       if(inventory!==data.economy.inventory){

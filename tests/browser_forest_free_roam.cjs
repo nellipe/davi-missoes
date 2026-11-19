@@ -107,7 +107,7 @@ session(name,async({page,context,api,write})=>{
   await press('forest-options');await press('forest-fallback');
   await page.locator('#worldMap[data-ready=true]').waitFor();
   assert(distance(explorado.position,(await diag(page)).position)<.08);
-  const terrain=await page.evaluate(()=>[[28,10],[32.76,-7.58],[20.18,.24],[37.87,-12.24]].map(p=>DaviForest.walkable(...p)));
+  const terrain=await page.evaluate(()=>[[28,10],[32.76,-7.58],[21.96,.08],[37.87,-12.24]].map(p=>DaviForest.walkable(...p)));
   assert.deepEqual(terrain,[true,false,false,false]);
   await tapWorld({x:30.1,z:9.85});
   await stable();await waitBuddy();

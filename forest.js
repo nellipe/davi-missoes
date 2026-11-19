@@ -5,6 +5,7 @@ import { clone as cloneRig } from "/vendor/three/addons/utils/SkeletonUtils.js";
 import { mergeGeometries } from "/vendor/three/addons/utils/BufferGeometryUtils.js";
 import { bankHeight as clearingHeight, createNavigation, terrainHeight, route, advance, seamCreek, segmentClear, terrainRim } from '/assets/forest/navigation.mjs';
 import { createCompanion } from '/assets/forest/companion.mjs';
+import { recanto } from '/assets/forest/recanto.mjs';
 import { applyOutfit, colors, drawOutfit, outfitDiagnostics, portrait, worn } from '/assets/forest/wardrobe.mjs';
 import { createSight } from '/assets/forest/sight.mjs';
 import { createChibiPaint } from '/assets/forest/chibi.mjs';
@@ -18,11 +19,11 @@ const trailX=(x)=>x-data.map.trailOffset;
 const beyondSeam=(x)=>x>=data.map.seam;
 const regionAt=(x,z)=>beyondSeam(x)?Trail.region(trailX(x),z):'Clareira do Riacho';
 const nearMill=(x,z)=>Math.hypot(trailX(x),z-13);
+const nearRecanto=(x,z)=>Math.hypot(trailX(x)-recanto.action[0],z-recanto.action[1]);
 function cameraYaw(x,z) {
   if(map2d)return 0;
   if(!beyondSeam(x))return .55;
   if(nearMill(x,z)<3.6)return .58;
-  if(Math.hypot(trailX(x)+9,z-1.4)<3.0)return .70;
   return .18;
 }
 let buddyHead=null, reactUntil=0;
@@ -141,6 +142,10 @@ function walkable(x, z) {
   return navigation(x,z);
 }
 walkable.segmentClear=(a,b)=>navigation.segmentClear(a,b);
+function discoveryStep(x,z,u,v) {
+  const offset=data.map.trailOffset;
+  return segmentClear({x:x+offset,z},{x:u+offset,z:v},walkable);
+}
 function bankHeight(x,z) {
   return clearingHeight(data.terrain,data.map,x,z);
 }
@@ -161,6 +166,12 @@ function groundHit(ray, includeDeck=true) {
   return ray.intersectObjects(surfaces,false).find(hit=>
     hit.object===deckHitMesh || (hit.object===trailScene?.terrain)===beyondSeam(hit.point.x));
 }
+function picksLeaf(ray, ground) {
+  const near=nearest();
+  if(near.id!=='leaf'||near.d>=1.8||!trailScene)return false;
+  const leafHit=trailScene.shelter.pickLeaf(ray,ground);
+  return !!leafHit&&!trailScene.blocksTap(ray,leafHit);
+}
 function characterFraming() {
   if(!camera||!player||!pipo)return null;
   const scenery=[];
@@ -180,6 +191,37 @@ function characterFraming() {
     });
   }
   return {davi:sample(player,[.74,1.28,1.58]),pipo:sample(pipo,[.32,.65,.87])};
+}
+function discoveryFraming() {
+  if(!camera||!trailScene?.shelter.group.visible)return null;
+  function sample(actor, points) {
+    const scenery=[];
+    scene.traverseVisible(object=>{
+      if(!object.isMesh||object.material?.isShaderMaterial||object.material?.opacity<.15)return;
+      for(let part=object;part;part=part.parent)if(part===actor)return;
+      scenery.push(object);
+    });
+    const ray=new T.Raycaster();
+    return points.map(offset=>{
+      const point=actor.localToWorld(new T.Vector3(...offset));
+      const projected=point.clone().project(camera);
+      ray.set(camera.position,point.clone().sub(camera.position).normalize());
+      ray.far=camera.position.distanceTo(point)-.035;
+      const hit=ray.intersectObjects(scenery,false)[0];
+      let cover=null;
+      for(let object=hit?.object;object;object=object.parent){
+        if(object===player){cover='Davi'; break;}
+        if(object===pipo){cover='Pipo'; break;}
+        if(object.name){cover??=object.name;}
+      }
+      return {x:projected.x,y:projected.y,clear:!hit,cover};
+    });
+  }
+  const {shelter,hedgehog}=trailScene;
+  return {
+    beetle:sample(shelter.beetle,[[-.10,.29,.43],[.10,.29,.43],[0,.45,.04]]),
+    hedgehog:hedgehog.group.visible?sample(hedgehog.head,[[-.14,.09,.33],[.14,.09,.33],[0,.02,.48]]):[],
+  };
 }
 function paintBank() {
   const source=terrain.geometry.getAttribute('color');
@@ -747,22 +789,21 @@ function updateCamera(dt = 1) {
   const forkView=portraitTrail
     ? 1.3*Math.max(0,1-Math.hypot(x-2.6,pos.z-6.6)/3)
     : 0;
-  if(portraitTrail){
-    follow.x-=.55*Math.max(0,1-Math.hypot(x+9,pos.z-1.4)/2.3);
-  }
   const heroScene=currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas';
-  const log=heroScene?Math.max(0,1-Math.hypot(x+9,pos.z-1.4)/3.7):0;
-  const framing=distance+forkView-(heroScene ? (portraitTrail?.85:2.6) : 0)+(portraitTrail?log*.54:0);
+  const log=heroScene?1-T.MathUtils.smoothstep(nearRecanto(pos.x,pos.z),2.2,4.2):0;
+  const framing=distance+forkView-(heroScene ? (portraitTrail?.85:2.6) : 0)+log*(portraitTrail?.15:-.35);
   if(heroScene){
     const wheel=Math.max(0,1-nearMill(pos.x,pos.z)/4.0);
-    follow.x+=log*.45-wheel*.95;
-    follow.z-=wheel*.93+log*.65;
-    follow.y-=log*.19;
+    follow.x-=wheel*.95;
+    follow.z-=wheel*.93;
+    follow.x=T.MathUtils.lerp(follow.x,recanto.focus[0]+data.map.trailOffset,log*.77);
+    follow.z=T.MathUtils.lerp(follow.z,recanto.focus[1],log*.77);
+    follow.y-=log*.24;
   }
   look.lerp(follow, still?1:Math.min(1, dt * 5));
   const offset = new T.Vector3(
     Math.sin(angle) * framing,
-    framing * (heroScene ? (portraitTrail ? .42 : .39) : .72),
+    framing * (heroScene ? (portraitTrail ? .42 + log*.10 : .39 + log*.24) : .72),
     Math.cos(angle) * framing,
   );
   camera.position.lerp(follow.clone().add(offset), still?1:Math.min(1, dt * 4));
@@ -920,21 +961,22 @@ function tick(now) {
     }
     if(trailScene)trailScene.group.visible=player.position.x>8;
     if(trailScene?.group.visible){
-      const shelter=trailScene.shelter;
-      const gap=Math.hypot(localX+9,z-1.4);
-      shelter.group.visible=gap<10;
-      if(shelter.group.visible && shelter.tick(clock,still,gap<2.3)) reactUntil=clock+1.5;
+      const gap=nearRecanto(player.position.x,z);
       if(gap<1.7 && !moving && !target){
-        const sight=shelter.group.position;
         for(const character of buddyMoving?[player]:[player,pipo]){
-          const turn=Math.atan2(sight.x+data.map.trailOffset-character.position.x,sight.z-character.position.z)-character.rotation.y;
+          const dx=(character===pipo?camera.position.x:recanto.focus[0]+data.map.trailOffset)-character.position.x;
+          const dz=(character===pipo?camera.position.z:recanto.focus[1])-character.position.z;
+          const turn=Math.atan2(dx,dz)-character.rotation.y;
           character.rotation.y+=Math.atan2(Math.sin(turn),Math.cos(turn))*(still?1:Math.min(1,dt*6));
         }
       }
+      const greetingPitch=gap<1.7&&!buddyMoving?-.28:0;
+      pipo.rotation.x=T.MathUtils.lerp(pipo.rotation.x,greetingPitch,still?1:Math.min(1,dt*6));
       localCamera.copy(camera.position).x-=data.map.trailOffset;
       localHero.copy(player.position).x-=data.map.trailOffset;
       localBuddy.copy(pipo.position).x-=data.map.trailOffset;
-      trailScene.tick(clock,still,localCamera,localHero,localBuddy,near.d<1.8?near.id:'',moving);
+      if(trailScene.tick(clock,still,localCamera,localHero,localBuddy,near.d<1.8?near.id:'',moving,dt,discoveryStep))
+        reactUntil=clock+1.5;
     }
     if(!low && Math.abs(sunLight.target.position.x-player.position.x)>5){
       sunLight.target.position.x=player.position.x;
@@ -999,13 +1041,15 @@ function pipoHeight() {
 function pipoGoal({x,z}) {
   const hero={x,z};
   const closeToHero=point=>walkable(point.x,point.z)&&segmentClear(hero,point,walkable);
+  if(beyondSeam(x)&&nearRecanto(x,z)<3.45){
+    for(const [dx,dz] of [[.55,-1.10],[-.48,-.85],[.80,-.5],[-.57,.82],[.10,1.0],[.69,.17]]){
+      const side={x:x+dx,z:z+dz};
+      if(closeToHero(side))return side;
+    }
+  }
   const near=beyondSeam(x)?1-T.MathUtils.smoothstep(nearMill(x,z),2,5):0;
   const desired={x:x+T.MathUtils.lerp(-.78,.84,near),z:z+T.MathUtils.lerp(.48,-.24,near)};
   if(closeToHero(desired))return desired;
-  if(beyondSeam(x)&&Math.hypot(trailX(x)+9,z-1.4)<3){
-    for(const [dx,dz] of [[.74,.10],[.48,-.55],[-.57,-.47]])
-      if(closeToHero({x:x+dx,z:z+dz}))return{x:x+dx,z:z+dz};
-  }
   return hero;
 }
 function bind() {
@@ -1116,13 +1160,9 @@ function bind() {
     camera.updateMatrixWorld(true);
     ray.setFromCamera(p,camera);
     const hit=groundHit(ray);
-    const near=nearest();
-    if(near.id==='leaf' && near.d<1.8 && trailScene){
-      const leafHit=trailScene.shelter.pickLeaf(ray,hit);
-      if(leafHit && !trailScene.blocksTap(ray,leafHit)){
-        host.run(() => action('forest-nearby',{}));
-        return;
-      }
+    if(picksLeaf(ray,hit)){
+      host.run(() => action('forest-nearby',{}));
+      return;
     }
     if(hit && walkable(hit.point.x,hit.point.z)) destination(hit.point.x,hit.point.z);
     else {target=null;path=[];}
@@ -1328,7 +1368,6 @@ async function action(a, b) {
             data.leaf_up=result.leaf_up;
             trailScene?.shelter.set(data.leaf_up,clock);
             reactUntil=clock+1.5;
-            message('Pipo: O besouro mudou de abrigo!');
           }
         } finally {
           leafPending=null;
@@ -1697,6 +1736,7 @@ window.DaviForest = {
   close,
   action,
   characterFraming,
+  discoveryFraming,
   walkable(x,z) {return walkable(x,z);},
   telemetry() {
     return {
@@ -1718,7 +1758,7 @@ window.DaviForest = {
     if(visible){
       const ray=new T.Raycaster();ray.setFromCamera(new T.Vector2(p.x,p.y),camera);
       const hit=groundHit(ray);
-      groundVisible=!!hit && Math.hypot(hit.point.x-x,hit.point.z-z)<.2;
+      groundVisible=!!hit && Math.hypot(hit.point.x-x,hit.point.z-z)<.2 && !picksLeaf(ray,hit);
     }
     return {x:rect.left+(p.x*.5+.5)*rect.width,y:rect.top+(-p.y*.5+.5)*rect.height,visible,groundVisible};
   },
@@ -1746,6 +1786,10 @@ window.DaviForest = {
       vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : null,
       place:player&&beyondSeam(player.position.x)?"trail":"forest",region:currentRegion,view:map2d?"2d":"3d",
       shelter:trailScene?.shelter.diagnostics()??null,
+      hedgehog:trailScene?{
+        progress:trailScene.hedgehog.progress,
+        position:trailScene.hedgehog.group.getWorldPosition(new T.Vector3()).toArray(),
+      }:null,
       frames: stats.frames,
       frameMs: stats.times.slice(),
       loadMs: stats.loads,

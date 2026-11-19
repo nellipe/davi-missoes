@@ -1,5 +1,6 @@
 import * as T from '/vendor/three/three.module.min.js';
 import { createSight } from './sight.mjs';
+import { recanto } from './recanto.mjs';
 
 const trees = [
   ['Aveleira', -3.7, 10.52, .94, .32],
@@ -108,7 +109,7 @@ export function installBosque(group, library, layout, floor, edge, paint, regist
     place(key+'_Copa_economica',x,z,size,size,size,turn);
   }
   for(const [x,z,sx,sy,sz,turn] of shelves)place('Seixo_de_Margem',x,z,sx,sy*.76,sz,turn,{solid:true});
-  const log=place('Tronco_Chibi', -7.78, .24, 1, 1, 1, Math.PI+.21, { solid: true, lift: .87 });
+  const log=place('Tronco_Chibi', ...recanto.log, 1, 1, 1, Math.PI+recanto.openingYaw, { solid: true, lift: .83 });
   paint.outline(log,1.55);
   place('Varal', 2.95, 2.95, 1, 1, 1, -.06, { solid: true });
   for(const [x,z,size,turn] of [

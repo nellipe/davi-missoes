@@ -1,6 +1,8 @@
 import * as T from '/vendor/three/three.module.min.js';
 import { terrainHeight, seamCreek, terrainRim } from './navigation.mjs';
 import { buildShelter } from './beetle.mjs';
+import { buildHedgehog } from './hedgehog.mjs';
+import { recanto } from './recanto.mjs';
 import { inBosque, inSceneMaster, installBosque } from './bosque.mjs';
 import { installRegions } from './regions.mjs';
 import { boatProgress } from './boat.mjs';
@@ -29,7 +31,7 @@ export function configure(map, seamHeight, world) {
 }
 export const places = [
   { id: 'wheel', x: 0, z: 13, title: 'Soltar um barquinho' },
-  { id: 'leaf', x: -9, z: 1.4, title: 'Virar a folha' },
+  { id: 'leaf', x: recanto.action[0], z: recanto.action[1], title: 'Virar a folha' },
   { id: 'echo', x: 7, z: 0.3, title: 'Bater na laje' },
   { id: 'falls', x: -4, z: -12.5, title: 'Olhar pela janela' },
   { id: 'patio-shop', action:'shop', x:9.9, z:-11.4, title:'Bancada dos Remendos', icon:'⚒' },
@@ -388,6 +390,8 @@ export function build(scene, leafUp, library, paint, solid) {
   const regions = installRegions(group, library, layout, floor, edge,solid);
   const shelter = buildShelter(floor, leafUp,paint,solid);
   group.add(shelter.group);
+  const hedgehog = buildHedgehog(floor,paint);
+  group.add(hedgehog.group);
   for (let i = 0; i < 3; i++) rock(8 + 0.22 * i, 0.9 - 0.65 * i, 0.43, 0.8 + i * 0.3, 0.35, '#e2ded7');
   const pulse = moving(group, 'ring', '#f9da8e', 7.8, floor(7.8, 0.35) + 1, 0.35, 0.1, 0.1, 0.1);
   // Water drops through a notch between two limestone faces, beyond the walkable shelf.
@@ -407,8 +411,7 @@ export function build(scene, leafUp, library, paint, solid) {
   const gaze=createSight();
   const lowLandmarks=[wheel.position,new T.Vector3(-1.38,.30,11.8),new T.Vector3(-1.38,.30,9.25)];
   const forkLandmarks=[[1.25,4.72],[3.72,4.21],[4.2,3.8]].map(([x,z])=>new T.Vector3(x,floor(x,z),z));
-  const logLandmarks=[shelter.group.position.clone().add(new T.Vector3(-.59,.78,.10)),
-    new T.Vector3(-8.36,floor(-8.36,1.03)+.84,1.03)];
+  const logLandmarks=[new T.Vector3(),new T.Vector3(),new T.Vector3()];
   const noLandmarks=[];
   for (const [shape, list] of batches) {
     const geometry=shapes[shape];
@@ -437,6 +440,7 @@ export function build(scene, leafUp, library, paint, solid) {
     group,
     terrain,
     shelter,
+    hedgehog,
     setEconomy(low) { art.setEconomy(low); regions.setEconomy(low); },
     living() { return { lowWheel:wheel.rotation.z, lowBoat:boat.position.toArray(), lowWater:waterClock.value, stonePressure:art.stonePressure(), ...regions.living() }; },
     blocksTap(ray, hit) {
@@ -461,10 +465,18 @@ export function build(scene, leafUp, library, paint, solid) {
       regions.interact(id,t);
       return description(id);
     },
-    tick(t, still, camera, hero, buddy, action, moving) {
+    tick(t, still, camera, hero, buddy, action, moving, dt, reachable) {
+      const gap=Math.hypot(hero.x-recanto.action[0],hero.z-recanto.action[1]);
+      const recantoVisible=gap<9;
+      shelter.group.visible=recantoVisible;
+      const reaction=recantoVisible && shelter.tick(t,still,gap<2.3,camera,hero,buddy,dt,reachable);
+      hedgehog.tick(dt,t,still,camera,gap<(hedgehog.progress>0?3.45:1.85),hero,buddy,reachable);
+      logLandmarks[0].copy(shelter.beetle.position).add(shelter.group.position).y+=.37;
+      logLandmarks[1].copy(hedgehog.group.position).y+=.47;
+      logLandmarks[2].copy(shelter.group.position).y+=.35;
       const landmarks=Math.hypot(hero.x,hero.z-13)<3.6?lowLandmarks
         :Math.hypot(hero.x-2.68,hero.z-6.5)<3.0?forkLandmarks
-        :Math.hypot(hero.x+9,hero.z-1.4)<3.4?logLandmarks:noLandmarks;
+        :gap<5?logLandmarks:noLandmarks;
       art.clearSight(camera,hero,buddy,landmarks);
       art.step(hero,still,moving);
       shelter.highlight(action==='leaf');
@@ -494,6 +506,7 @@ export function build(scene, leafUp, library, paint, solid) {
           item.hidden=obscures;
         }
       }
+      return reaction;
     },
   };
 }

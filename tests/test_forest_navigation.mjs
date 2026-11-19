@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createNavigation,terrainHeight,route,advance,segmentClear} from '../assets/forest/navigation.mjs';
 import {createCompanion} from '../assets/forest/companion.mjs';
+import {recanto,visibleSpot} from '../assets/forest/recanto.mjs';
 import fs from 'node:fs';
 import {spawnSync} from 'node:child_process';
 const asset=name=>JSON.parse(fs.readFileSync(new URL('../assets/forest/'+name+'.json',import.meta.url)));
@@ -57,6 +58,19 @@ test('free ground and both paths stay connected; the patio rocks require a real 
     const {x,z}=center(polygon);
     assert.equal(unowned(x,z),false,name);
   }
+});
+test('the trunk is solid and all three discovery stops are on safe ground',()=>{
+  const [x,z]=recanto.log;
+  assert(!unowned(x+map.trailOffset,z));
+  const [leafX,leafZ]=recanto.leaf;
+  for(const [u,v] of recanto.shelters)assert(unowned(leafX+u+map.trailOffset,leafZ+v));
+  const exit=point(x+2*Math.sin(recanto.openingYaw)+map.trailOffset,z+2*Math.cos(recanto.openingYaw));
+  assert(unowned(exit.x,exit.z));
+  assert(route(point(19,1.4),exit,unowned,map.bounds).length);
+  const camera=point(0,5), davi=point(0,1), pipo=point(2,0);
+  const reachable=(_x,_z,u)=>u>0;
+  assert(visibleSpot(0,0,camera,davi,pipo,reachable)[0]>.55);
+  assert.deepEqual(visibleSpot(0,0,camera,davi,pipo,()=>false),[0,0]);
 });
 test('Pipo takes the detour and recovers across a disconnected obstacle without a visible crossing',()=>{
   let buddy=point(29,12);

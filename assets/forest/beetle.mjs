@@ -1,5 +1,6 @@
 import * as T from '/vendor/three/three.module.min.js';
 import { gem } from './chibi.mjs';
+import { recanto, visibleSpot } from './recanto.mjs';
 
 const FLIP_SECONDS = .58;
 const CARRY_START = 1.02;
@@ -7,7 +8,8 @@ const CARRY_END = 2.42;
 
 export function buildShelter(floor, leafUp, paint, registerSolid) {
   const group = new T.Group();
-  group.position.set(-9.71, floor(-9.71, -.52), -.52);
+  const [leafX,leafZ] = recanto.leaf;
+  group.position.set(leafX, floor(leafX,leafZ), leafZ);
   const sphere = new T.SphereGeometry(1, 14, 9);
   const stick = new T.BoxGeometry(1, 1, 1);
   const drop = new T.OctahedronGeometry(1);
@@ -31,12 +33,12 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
   leaf.computeVertexNormals();
   const wood = '#a67749', shell = '#dd7946', dark = '#34264a';
   const hinge = new T.Group();
-  hinge.position.set(-.59, .73, .02);
+  hinge.position.set(0, .27, 0);
   group.add(hinge);
-  const roof = part(hinge, leaf, '#6ed36e', [0, 0, 0], [1.55, 1, 1.15]);
+  const roof = part(hinge, leaf, '#6ed36e', [0, 0, 0], [1.25, 1, 1.08]);
   roof.material.side = T.DoubleSide;
-  const leafEdge=part(hinge,leaf,'#34264a',[0,-.026,0],[1.65,1,1.22]);
-  const leafMark=part(hinge,leaf,gem,[0,-.040,0],[1.77,1,1.30]);
+  const leafEdge=part(hinge,leaf,'#34264a',[0,-.026,0],[1.34,1,1.15]);
+  const leafMark=part(hinge,leaf,gem,[0,-.040,0],[1.46,1,1.22]);
   leafEdge.material= new T.MeshBasicMaterial({color:0x34264a,side:T.DoubleSide});
   leafMark.material= new T.MeshBasicMaterial({color:gem,side:T.DoubleSide});
   part(hinge, sphere, '#3e9b55', [0, .13, -.04], [.031, .052, .69]);
@@ -46,18 +48,18 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
     registerSolid('Abrigo:Suporte',stick,post.matrixWorld);
   }
   for (const side of [-1, 1]) {
-    const leg = part(group, stick, wood, [-.59 + side * .25, .36, -.28], [.087, .77, .10]);
+    const leg = part(group, stick, wood, [side * .22, .125, -.35], [.087, .27, .10]);
     leg.rotation.z = side * .29;
     registerPost(leg);
   }
-  const twig = part(group, stick, wood, [-.59, 1.40, -.66], [.12, .11, .81]);
+  const twig = part(group, stick, wood, [0, .81, -.63], [.12, .11, .72]);
   twig.rotation.x = .18;
-  const stem = part(group, stick, wood, [-.62, .68, -1.08], [.14, 1.42, .14]);
+  const stem = part(group, stick, wood, [-.036, .40, -.95], [.12, .84, .13]);
   stem.rotation.z = -.05;
   registerPost(stem);
   const water = '#39aebc';
   const glint = '#b5ecdf';
-  const inlet = new T.Vector3(-.59, 1.34, -.28);
+  const inlet = new T.Vector3(0, .76, -.28);
   const fall = part(group, thread, water, [0, 0, 0], [1, 1, 1]);
   const spill = part(group, thread, water, [0, 0, 0], [1, 1, 1]);
   const falling = part(group, drop, glint, [0, 0, 0], [.034, .073, .034]);
@@ -66,9 +68,7 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
   ring.rotateX(-Math.PI / 2);
   const ripple = part(group, ring, glint, [0, 0, 0], [.18, 1, .14]);
   const splash = [-1, 0, 1].map(() => part(group, drop, glint, [0, 0, 0], [.033, .05, .028]));
-  const left = createBasin(-1.02, 1.02, -.55);
-  const right = createBasin(.20, 1.27, .58);
-  const basins = [left, right];
+  const basins = recanto.basins.map(([x,z],i)=>createBasin(x,z,i===0?-.55:.58));
 
   function createBasin(x, z, side) {
     const ground = floor(group.position.x + x, group.position.z + z) - group.position.y;
@@ -107,11 +107,12 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
   }
 
   const beetle = new T.Group();
-  beetle.scale.setScalar(1.32);
+  beetle.name='Recanto:Besouro';
+  beetle.scale.setScalar(1.39);
   group.add(beetle);
   part(beetle, sphere, dark, [0, .21, .04], [.26, .17, .35]);
   for (const side of [-1, 1]) {
-    const wing = part(beetle, sphere, shell, [side * .141, .31, -.075], [.154, .16, .32]);
+    part(beetle, sphere, shell, [side * .141, .31, -.075], [.154, .16, .32]);
     part(beetle, sphere, '#e8a253', [side * .17, .433, .035], [.073, .045, .101]);
   }
   part(beetle, sphere, dark, [0, .24, .29], [.206, .17, .162]);
@@ -160,11 +161,11 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
     }
   }
   const carriedLeaf = new T.Group();
-  carriedLeaf.position.set(0, .51, -.26);
+  carriedLeaf.position.set(0, .51, -.33);
   beetle.add(carriedLeaf);
-  const tile = part(carriedLeaf, leaf, '#d5e1aa', [0, 0, 0], [.79, .68, .72]);
+  const tile = part(carriedLeaf, leaf, '#bbce88', [0, 0, 0], [.53, .65, .51]);
   tile.material.side = T.DoubleSide;
-  part(carriedLeaf, sphere, '#8d9753', [0, .095, -.01], [.022, .025, .46]);
+  part(carriedLeaf, sphere, '#8d9753', [0, .095, -.01], [.022, .025, .33]);
   carriedLeaf.rotation.x = -.13;
 
   let up = leafUp;
@@ -181,12 +182,8 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
   const leafLip = new T.Vector3();
   const splashPoint = new T.Vector3();
   const leafInlet = new T.Vector3();
-  function shelter(target) {
-    const x = target ? .21 : -.93;
-    const z = target ? .84 : .31;
-    return [x, floor(group.position.x + x, group.position.z + z) - group.position.y + .015, z];
-  }
-  const shelters = [shelter(true), shelter(false)];
+  const shelters = recanto.shelters.map(([x,z])=>
+    [x, floor(leafX+x,leafZ+z)-group.position.y+.015, z]);
   beetle.position.set(...shelters[streamSide]);
   basins[streamSide].fill = 1;
 
@@ -198,7 +195,8 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
     mesh.scale.set(radius, length, radius);
   }
 
-  function update(time, still) {
+  let faceYaw=0, sidestepX=0, sidestepZ=0;
+  function update(time, still, camera, hero, buddy, dt, reachable) {
     age = still ? 10 : time - movedAt;
     const target = up ? 0 : 1;
     const flip = T.MathUtils.smoothstep(age, 0, FLIP_SECONDS);
@@ -248,8 +246,22 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
       if (!still)
         beetle.position.x += (up ? -.11 : .16) * Math.sin(Math.PI * T.MathUtils.smoothstep(time - arrivedAt, 0, 1.42));
     }
+    if(reachable){
+      const x=beetle.position.x+leafX,z=beetle.position.z+leafZ;
+      const [u,v]=moving?[x,z]:visibleSpot(x,z,camera,hero,buddy,reachable);
+      sidestepX=still?u-x:T.MathUtils.damp(sidestepX,u-x,13,dt);
+      sidestepZ=still?v-z:T.MathUtils.damp(sidestepZ,v-z,13,dt);
+      beetle.position.x+=sidestepX;
+      beetle.position.z+=sidestepZ;
+      beetle.position.y=floor(beetle.position.x+leafX,beetle.position.z+leafZ)-group.position.y+.015;
+    }
     const look = Math.sin(Math.PI * T.MathUtils.smoothstep(age, .51, 2.5));
-    beetle.rotation.y = (up ? 1 : -1) * (look * .92) + .04;
+    if(camera){
+      const yaw=Math.atan2(camera.x-leafX-beetle.position.x,camera.z-leafZ-beetle.position.z);
+      const delta=Math.atan2(Math.sin(yaw-faceYaw),Math.cos(yaw-faceYaw));
+      faceYaw+=delta*(still?1:.15);
+    }
+    beetle.rotation.y = faceYaw+(up ? 1 : -1)*look*.55;
     const stepping = !still && (moving || time - arrivedAt < 1.42);
     const gait = age * 19;
     carriedLeaf.rotation.z = stepping ? .13 * Math.sin(gait) : -.13 * (up ? 1 : -1);
@@ -269,6 +281,7 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
   update(0, true);
   return {
     group,
+    beetle,
     highlight(active) { leafMark.visible=active; },
     // The same crease can be used directly or through the contextual action.
     pickLeaf(ray, groundHit) {
@@ -277,16 +290,17 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
     },
     set(value, time) {
       oldPosition.copy(beetle.position);
+      sidestepX=sidestepZ=0;
       startingRoll = hinge.rotation.z;
       for (const basin of basins) basin.startFill = basin.fill;
       up = value;
       movedAt = time;
     },
-    tick(time, still, near) {
+    tick(time, still, near, camera, hero, buddy, dt, reachable) {
       const reaction = near && !seen;
       if (reaction) arrivedAt = time;
       seen = near;
-      update(time, still);
+      update(time, still, camera, hero, buddy, dt, reachable);
       return reaction;
     },
     diagnostics() {

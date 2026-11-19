@@ -70,7 +70,7 @@ class ForestTests(HttpFixture):
   self.assertEqual(self.child.request(endpoint+'?resume=trail')[1]['position'],{'x':19,'z':1.4})
   self.assertEqual(self.child.request(endpoint)[1]['position'],self.child.request('/api/forest')[1]['position'])
   self.assertEqual(self.child.request(endpoint+'/move','PUT',{'x':0,'z':-3})[0],400)
-  for x,z in [(31,18),(32.76,-7.58),(20.18,.24),(37.87,-12.24),(47.74,-9.81),(48.10,-7.95)]:
+  for x,z in [(31,18),(32.76,-7.58),(21.96,.08),(37.87,-12.24),(47.74,-9.81),(48.10,-7.95)]:
    self.assertEqual(self.child.request(endpoint+'/move','PUT',{'x':x,'z':z})[0],400)
   before=self.child.request('/api/world')[1]
   position={'x':46.5,'z':-5.3}
