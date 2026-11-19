@@ -325,8 +325,9 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith(('/assets/forest/','/vendor/three/')):
                 asset=(ROOT/path.lstrip('/')).resolve()
                 allowed=ROOT/('assets/forest' if path.startswith('/assets/forest/') else 'vendor/three')
-                if not asset.is_relative_to(allowed) or asset.suffix not in ('.js','.mjs','.glb','.png','.webp') or not asset.is_file():return self.fail('Não encontrado.',404)
-                kind={'.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.glb':'model/gltf-binary','.png':'image/png','.webp':'image/webp'}[asset.suffix]
+                kinds={'.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.glb':'model/gltf-binary','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2'}
+                if not asset.is_relative_to(allowed) or asset.suffix not in kinds or not asset.is_file():return self.fail('Não encontrado.',404)
+                kind=kinds[asset.suffix]
                 return self.send(200,asset.read_bytes(),kind)
             if path in ('/','/app.js','/app.css','/game.js','/game.css','/world.js','/world.css','/forest.js','/forest.css'):
                 name='app.html' if path=='/' else path[1:]

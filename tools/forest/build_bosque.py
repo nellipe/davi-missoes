@@ -150,11 +150,11 @@ def tree(kind, trunk, variant):
     ]
     for line, radii in boughs:
         stem.grain([(x*sway,y,z+(.25 if variant==1 else 0)) for x,y,z in line],radii,bark,10)
-    colors = ("508157","5b955e","7ca764","508c62","66a362","80af66") if variant == 0 else (
-        "517c62","51906d","6ca57b","57957a","437c66","87ad77")
+    colors = ("49ab65","54bd6c","86d87b","43a869","73c96c","8fda74") if variant == 0 else (
+        "429d70","56b67c","6bc894","53bd8b","359f76","85d9a1")
     clusters=CROWN
     if variant==2:
-        colors=("6a9857","83a85c","91ac61","6a9b55","599264","9eb96f")
+        colors=("65b963","8bd06a","94d56e","6fbe62","56ab68","a3de76")
         clusters=[(-1.91,.62,4.01,1.36,1.15,.72),(-.73,.88,4.37,1.40,1.30,.85),
                   (1.98,-1.35,4.09,1.35,1.20,.74),(2.31,.82,4.53,1.33,1.40,.80),
                   (.48,1.16,4.45,1.43,1.25,.80),(1.28,-.64,5.06,1.36,1.13,.98)]
@@ -178,15 +178,15 @@ outline = [(-.87,-.56), (-.23,-.78), (.55,-.69), (1.0,-.26), (.89,.38), (.27,.67
 shale = Sculpture("Ardosia")
 rings, tones = [], []
 for row, (height, spread, shift, tint) in enumerate([
-    (-.22,1.08,.04,"606478"), (.09,1.04,.06,"777d89"), (.38,1.00,-.02,"858d99"),
-    (.45,.964,-.045,"b9b3ad"), (.48,.924,-.06,"666e80"), (.56,.97,-.09,"8d929a"),
-    (1.13,.69,-.17,"a3a3a3"), (1.37,.38,-.28,"b8b6ad")
+    (-.22,1.08,.04,"79708f"), (.09,1.04,.06,"9995bc"), (.38,1.00,-.02,"a9a6cb"),
+    (.45,.964,-.045,"d6d2eb"), (.48,.924,-.06,"8e82a8"), (.56,.97,-.09,"aea7cc"),
+    (1.13,.69,-.17,"c5bddc"), (1.37,.38,-.28,"ccc5e4")
 ]):
     rings.append([(x*spread+shift+.045*math.sin(i*1.51+row*.25),
                    y*spread+.032*math.cos(i*4.07-row*.25),
                    height+.10*x+.052*math.sin(i*2.34))
                   for i,(x,y) in enumerate(outline)])
-    tones.append([paint("87985e" if row==6 and i in (1,2) else tint, .94+.11*math.sin(i*.95+row*.61)**2)
+    tones.append([paint("91cd67" if row==6 and i in (1,2) else tint, .94+.11*math.sin(i*.95+row*.61)**2)
                   for i in range(len(outline))])
 shale.rings(rings, tones)
 shale.export_mesh()
@@ -201,7 +201,7 @@ def rounded_stone(name, outline, levels, palette):
             seam=.085 if name=="Pedra_fendida" and i==3 and row in (2,3) else 0
             ring.append((x*spread+shift, y*spread+.055*math.sin(i*2.2+row), height-seam+.06*math.sin(i*1.9)))
             hue=palette[1] if row==len(levels)-2 and i in (0,1) else palette[0]
-            if row==2 and i in (4,5,6):hue="b4aa9d"
+            if row==2 and i in (4,5,6):hue="bcb3d1"
             if seam:hue=palette[2]
             tonal.append(paint(hue,.88+row*.054+.08*math.cos(i*1.76)))
         rings.append(ring)
@@ -251,9 +251,9 @@ for kind,petal,foliage,spread in [
     shrub.export_mesh()
 
 for name, outline2, hue in [
-    ("Passo_Pedra", [(-.7,-.19),(-.47,-.35),(.26,-.37),(.59,-.17),(.54,.20),(.02,.29),(-.45,.20)], "b4b6a3"),
+    ("Passo_Pedra", [(-.7,-.19),(-.47,-.35),(.26,-.37),(.59,-.17),(.54,.20),(.02,.29),(-.45,.20)], "c4bfdb"),
     ("Passo_Casca", [(-.71,-.09),(-.63,-.23),(.07,-.16),(.59,-.13),(.68,.01),(.43,.13),(-.27,.17)], "916340"),
-    ("Cascalho", [(-.44,-.31),(-.04,-.56),(.39,-.17),(.42,.08),(.11,.45),(-.46,.33)], "a3a38b"),
+    ("Cascalho", [(-.44,-.31),(-.04,-.56),(.39,-.17),(.42,.08),(.11,.45),(-.46,.33)], "cbc5de"),
 ]:
     model = Sculpture(name)
     model.rings([[(x,y,-.065) for x,y in outline2],
@@ -299,11 +299,11 @@ flowers.export_mesh()
 log = Sculpture("Tronco_Oco")
 n = 30
 rings, colors = [], []
-for j,(axis,radius,hue) in enumerate([(-1.19,.72,"463829"),(-1.09,1.01,"8b6347"),
-                                     (-.29,1.08,"69523b"),(.65,1.08,"775336"),
-                                     (1.18,.99,"987252"),(1.21,.89,"a27950"),(1.23,.84,"6a462f"),
-                                     (1.25,.78,"c89a6c"),(1.20,.72,"786047"),(1.03,.66,"463c2c"),
-                                     (.67,.66,"332e26"),(-.78,.67,"403426")]):
+for j,(axis,radius,hue) in enumerate([(-1.19,.72,"463829"),(-1.09,1.01,"a06d47"),
+                                     (-.29,1.08,"96613e"),(.65,1.08,"a6744b"),
+                                     (1.18,.99,"c08d62"),(1.21,.89,"e8b77c"),(1.23,.84,"b07b53"),
+                                     (1.25,.78,"efd3a0"),(1.20,.72,"a66e47"),(1.03,.66,"56352c"),
+                                     (.67,.66,"39283c"),(-.78,.67,"403426")]):
     ring = []
     for i in range(n):
         a = math.tau*i/n
@@ -315,6 +315,24 @@ log.rings([list(reversed(row)) for row in rings+[rings[0]]],
           [list(reversed(row)) for row in colors+[colors[0]]], False)
 log.export_mesh()
 
+mushrooms = Sculpture("Cogumelos")
+for x, y, scale, cap in [(-.18,.04,1,"ff7567"),(.20,.13,.72,"ff9b62"),(.06,-.19,.49,"ee7291")]:
+    mushrooms.grain([(x,y,-.02),(x,y,.17*scale),(x+.03,y,.34*scale)],
+                    [.072*scale,.071*scale,.050*scale], ["fff1d8"], 10)
+    rings, pigments = [], []
+    for level, radius, tint in [(.25,.16,"efe0ca"),(.30,.236,cap),(.40,.21,cap),(.49,.145,cap),(.53,.035,cap)]:
+        rings.append([(x+scale*radius*math.cos(i*math.tau/14),y+scale*radius*math.sin(i*math.tau/14),
+                       scale*level) for i in range(14)])
+        pigments.append([paint(tint,1)]*14)
+    mushrooms.rings(rings,pigments)
+    for angle, distance, level in [(0,.16,.47),(1.8,.14,.48),(3.1,.18,.451),(4.6,.16,.47)]:
+        px=x+scale*distance*math.cos(angle)
+        py=y+scale*distance*math.sin(angle)
+        spot=[(px+scale*.046*math.cos(i*math.tau/8),py+scale*.046*math.sin(i*math.tau/8),
+               scale*level) for i in range(8)]
+        mushrooms.surface(spot,[tuple(range(8))],[paint("fff5ec",1)]*8)
+mushrooms.export_mesh()
+
 marker = Sculpture("Varal")
 for x, tilt in [(-.72,-.10),(.72,.08)]:
     marker.grain([(x,0,-.07),(x-.035,.04,.67),(x+tilt*.3,.04,1.49),(x+tilt,0,2.51)],
@@ -323,8 +341,8 @@ marker.grain([(-.87,.02,2.49),(-.42,.025,2.53),(.15,.039,2.48),(.90,.025,2.44)],
              [.038,.049,.042,.027], BARK, 9)
 marker.grain([(-.79,-.055,2.39),(-.39,-.075,2.35),(.0,-.08,2.31),(.37,-.075,2.35),(.80,-.055,2.38)],
              [.014]*5, ["d1b880"], 5)
-for i, (x, hue, length) in enumerate([(-.54,"dfb56c",.46),(-.22,"b86a50",.63),
-                                      (.12,"ead497",.56),(.46,"c99754",.47)]):
+for i, (x, hue, length) in enumerate([(-.54,"f7cf80",.46),(-.22,"ff7a65",.63),
+                                      (.12,"62d2c4",.56),(.46,"ae94ed",.47)]):
     panels, pigments = [], []
     for row in range(5):
         for col in range(5):

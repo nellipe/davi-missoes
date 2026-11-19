@@ -22,6 +22,9 @@ async function session(
     viewport = { width: 1100, height: 820 },
     videoSize = { width: 880, height: 656 },
     videoFps = 12,
+    checkout = root,
+    position,
+    beforeOpen,
   } = {}
 ) {
   fs.mkdirSync(out, { recursive: true });
@@ -54,7 +57,7 @@ async function session(
     'server.main()',
   ].join('\n');
   const server = spawn('python', ['-c', seed], {
-    cwd: root,
+    cwd: checkout,
     env,
     stdio: ['ignore', 'ignore', 'pipe'],
     windowsHide: true,
@@ -90,6 +93,7 @@ async function session(
       duration: 30,
       start_date: '2026-11-17',
     });
+    if(position)await write('/api/forest/map/move',position,'put');
     browser = await chromium.launch({
       args: ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu', '--disable-software-rasterizer'],
     });
@@ -109,14 +113,22 @@ async function session(
       ).ok()
     );
     const page = await context.newPage(),
-      errors = [];
+      errors = [],
+      warnings = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => {
       if (m.type() === 'error') errors.push(m.text());
+      if (m.type() === 'warning') warnings.push(m.text());
     });
     page.setDefaultTimeout(9000);
+    await beforeOpen?.(page);
     await page.goto(base);
-    await ready(page);
+    try {
+      await ready(page);
+    } catch (error) {
+      console.error('Forest initialization:', { errors, warnings, text: await page.locator('#content').innerText() });
+      throw error;
+    }
     await run({ page, context, api, guided, plain, errors, write, browser, parentPassword: password });
     assert.deepEqual(errors, []);
     const video = page.video();

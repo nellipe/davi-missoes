@@ -45,6 +45,14 @@ class ForestTests(HttpFixture):
   import http.client
   for path,status in [('/assets/forest/davi.glb',200),('/vendor/three/addons/loaders/GLTFLoader.js',200),('/assets/forest/../../server.py',404),('/assets/forest/asset-report.json',404)]:
    c=http.client.HTTPConnection('127.0.0.1',self.port);c.request('GET',path);r=c.getresponse();self.assertEqual(r.status,status,path);r.read();c.close()
+  c=http.client.HTTPConnection('127.0.0.1',self.port)
+  try:
+   c.request('GET','/assets/forest/fonts/fredoka-latin.woff2')
+   response=c.getresponse()
+   self.assertEqual((response.status,response.getheader('Content-Type')),(200,'font/woff2'))
+   self.assertEqual(response.read()[:4],b'wOF2')
+  finally:
+   c.close()
 
  def test_shelter_leaf_is_reversible_and_independent_of_world_progress(self):
   trail='/api/forest/trail'

@@ -38,27 +38,15 @@
     },
     {
       "asset": "davi.glb",
-      "bytes": 558532,
+      "bytes": 568624,
       "errors": 0,
-      "warnings": 25,
+      "warnings": 23,
       "messages": [
         {
           "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
           "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
           "severity": 1,
-          "pointer": "/meshes/12/primitives/0/material"
-        },
-        {
-          "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
-          "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
-          "severity": 1,
-          "pointer": "/meshes/17/primitives/0/material"
-        },
-        {
-          "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
-          "message": "Material requires a tangent space but the mesh primitive does not provide it. Runtime-generated tangent space may be non-portable across implementations.",
-          "severity": 1,
-          "pointer": "/meshes/20/primitives/0/material"
+          "pointer": "/meshes/21/primitives/0/material"
         },
         {
           "code": "NODE_SKINNED_MESH_NON_ROOT",
@@ -196,9 +184,9 @@
     },
     {
       "asset": "pipo.glb",
-      "bytes": 189596,
+      "bytes": 151176,
       "errors": 0,
-      "warnings": 14,
+      "warnings": 11,
       "messages": [
         {
           "code": "NODE_SKINNED_MESH_NON_ROOT",
@@ -265,24 +253,6 @@
           "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
           "severity": 1,
           "pointer": "/nodes/16"
-        },
-        {
-          "code": "NODE_SKINNED_MESH_NON_ROOT",
-          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
-          "severity": 1,
-          "pointer": "/nodes/17"
-        },
-        {
-          "code": "NODE_SKINNED_MESH_NON_ROOT",
-          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
-          "severity": 1,
-          "pointer": "/nodes/18"
-        },
-        {
-          "code": "NODE_SKINNED_MESH_NON_ROOT",
-          "message": "Node with a skinned mesh is not root. Parent transforms will not affect a skinned mesh.",
-          "severity": 1,
-          "pointer": "/nodes/19"
         }
       ]
     },
@@ -295,7 +265,7 @@
     },
     {
       "asset": "bosque.glb",
-      "bytes": 428984,
+      "bytes": 447944,
       "errors": 0,
       "warnings": 0,
       "messages": []

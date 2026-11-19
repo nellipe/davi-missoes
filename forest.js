@@ -6,13 +6,18 @@ import { mergeGeometries } from "/vendor/three/addons/utils/BufferGeometryUtils.
 import { walkable as validPosition, terrainHeight, route, advance } from '/assets/forest/navigation.mjs';
 import { applyOutfit, colors, drawOutfit, outfitDiagnostics, portrait, worn } from '/assets/forest/wardrobe.mjs';
 import { createSight } from '/assets/forest/sight.mjs';
+import { createChibiPaint } from '/assets/forest/chibi.mjs';
 let Trail;
 let trailScene=null, trailLoading=null, currentRegion='', legacy=null, map2d=null;
 const localCamera=new T.Vector3(), localHero=new T.Vector3(), localBuddy=new T.Vector3();
 const clearingSight=createSight();
 const trailX=(x)=>x-data.map.trailOffset;
 const beyondSeam=(x)=>x>=data.map.seam;
+const regionAt=(x,z)=>beyondSeam(x)?Trail.region(trailX(x),z):'Clareira do Riacho';
 let buddyHead=null, reactUntil=0;
+let chibi;
+let regionBannerUntil=0, messageUntil=0, actionTarget='';
+const speechAnchor=new T.Vector3();
 let shadows=[], lossTimer;
 const contextEvents=[];
 function recordContext(type) {
@@ -24,7 +29,7 @@ const headBase=new T.Quaternion();
 let generation = 0, savePending = null, path = [], movingNow = false;
 let ownedMaterials = new Set(), ownedGeometry = new Set(), ownedTextures = new Set();
 const supportCache = new Map();
-let playerSupport, pipoSupport;
+let playerSupport;
 let features=[], labels=[], selectedPlace=null;
 let lastCalendarRefresh=0,calendarPending=false;
 let sunLight,
@@ -250,7 +255,38 @@ function supportHeight(table, list) {
 }
 function message(text) {
   const el = document.getElementById("forestMessage");
-  if (el) el.textContent = text;
+  if (el) {
+    el.textContent = text;
+    el.classList.toggle('pipo-speech',text.startsWith('Pipo:'));
+    messageUntil=text ? clock+6 : 0;
+  }
+}
+function positionSpeech() {
+  const el=document.getElementById('forestMessage');
+  if(!el?.textContent)return;
+  if(clock>=messageUntil){message('');return;}
+  if(map2d || !el.classList.contains('pipo-speech'))return;
+  speechAnchor.copy(pipo.position).y+=1.02;
+  speechAnchor.project(camera);
+  const width=stage.clientWidth,height=stage.clientHeight;
+  const margin=el.offsetWidth/2+10;
+  const x=T.MathUtils.clamp((speechAnchor.x*.5+.5)*width,margin,width-margin);
+  const y=T.MathUtils.clamp((.5-speechAnchor.y*.5)*height, Math.min(height*.58,126+el.offsetHeight), height*.69);
+  el.style.setProperty('--speech-x',x+'px');
+  el.style.setProperty('--speech-y',y+'px');
+}
+function showForestReward(reward) {
+  if(!(reward?.delta>0))return;
+  const {delta}=reward;
+  message(`+${delta} ${delta===1?'estrela guardada':'estrelas guardadas'}!`);
+  if(still)return;
+  document.querySelector('.forest-wallet').classList.add('forest-earned');
+  const spark=document.createElement('span');
+  spark.setAttribute('aria-hidden','true');
+  spark.className='forest-star-spark';
+  spark.textContent='★';
+  spark.addEventListener('animationend',()=>spark.remove(),{once:true});
+  stage.append(spark);
 }
 function preference(key, fallback) {
   try {
@@ -267,6 +303,8 @@ function store(key, value) {
 function syncMotion() {
   systemMotionReduced=reducedMotion.matches;
   still=motionChoice==='reduced'||(motionChoice==='system'&&systemMotionReduced);
+  document.querySelector('.trail-shell')?.classList.toggle('forest-motion-reduced',still);
+  if(still)stage?.querySelector('.forest-star-spark')?.remove();
   const status=document.getElementById('forestMotionStatus');
   if(status)status.textContent=still
     ? (motionChoice==='system'?'Movimento reduzido pela preferência do aparelho.':'Movimento reduzido por sua escolha.')
@@ -288,18 +326,9 @@ function asset(name) {
 function loadTrail(token) {
   if(trailLoading)return trailLoading;
   const started=performance.now();
-  trailLoading=Promise.all([
-    asset('bosque'),
-    new T.TextureLoader().loadAsync('/assets/forest/bosque-solo.png').catch(()=>null),
-  ]).then(([library,grain])=>{
-    if(token!==generation){grain?.dispose();return;}
-    if(grain){
-      grain.wrapS=grain.wrapT=T.RepeatWrapping;
-      grain.colorSpace=T.SRGBColorSpace;
-      grain.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
-      ownedTextures.add(grain);
-    }
-    trailScene=Trail.build(scene,data.leaf_up,library.scene,grain);
+  trailLoading=asset('bosque').then(library=>{
+    if(token!==generation)return;
+    trailScene=Trail.build(scene,data.leaf_up,library.scene,chibi);
     trailScene.group.position.x=data.map.trailOffset;
     trailScene.group.traverse(o=>{if(o.isMesh){ownedGeometry.add(o.geometry);ownedMaterials.add(o.material);}});
     trailScene.setEconomy(low);
@@ -534,7 +563,7 @@ function motes() {
 function layout() {
   const now = '<button class="f-button forest-now" type="button" data-action="child-now">Agora</button>';
   const options = button("☷","options",'aria-label="Opções do mundo"');
-  const chapter='<header class="trail-hud"><div><small>Floresta Encantada</small><h1 id="forestRegion"></h1><small id="forestMotionBadge" hidden>Movimento reduzido</small></div><div class="forest-tools">'+now+options+'</div></header>';
+  const chapter='<header class="trail-hud"><div class="forest-region"><span aria-hidden="true" class="forest-region-icon">❧</span><div><small>Floresta Encantada</small><h1 id="forestRegion">'+esc(currentRegion)+'</h1><small id="forestMotionBadge" hidden>Movimento reduzido</small></div></div><div class="forest-tools">'+now+options+'</div></header>';
   const cameraTools=map2d?'':button("↶","rotate",'data-turn="-1" aria-label="Girar câmera à esquerda"')
     +button("⌖","camera",'aria-label="Centralizar câmera"')+button("↷","rotate",'data-turn="1" aria-label="Girar câmera à direita"');
   const directions = [["up","↑","frente"],["left","←","esquerda"],["down","↓","trás"],["right","→","direita"]]
@@ -547,6 +576,7 @@ function layout() {
       <div id="forestLabels" class="forest-labels"></div>${chapter}
       <div class="forest-camera">${cameraTools}</div>
       <p id="forestMessage" role="status"></p>
+      <p id="forestArrival" role="status" hidden></p>
       <div class="forest-dpad" role="group" aria-label="Andar">${directions}</div>
       ${button("Perguntar a Pipo","hint","","forest-route")}
       <button id="forestInteract" class="forest-interact" data-action="forest-nearby">Explorar · E</button>
@@ -556,7 +586,7 @@ function layout() {
       ${button("⌘ Caminhos","paths",'aria-label="Lugares do bosque"')}
       ${map2d?'<button class="f-button" data-action="world-forest">Vista 3D</button>':''}
       ${button("Ver agenda","calendar")}
-      ${button("✦ <strong>"+data.economy.stars+"</strong>","shop",'aria-label="Oficina"',"forest-wallet")}
+      ${button('<span aria-hidden="true">★</span> <span id="forestBalance"><strong>'+data.economy.stars+'</strong><span class="sr-only"> estrelas disponíveis</span></span>',"shop",'aria-label="Oficina" aria-describedby="forestBalance"',"forest-wallet")}
     </div><p id="forestInstructions" class="forest-instructions">Toque no caminho · setas ou WASD para andar · E para explorar</p>
     </section><dialog id="forestDialog" class="forest-dialog" aria-labelledby="forestDialogTitle"><div id="forestDialogBody"></div></dialog>`);
   document.body.classList.add("forest-view");
@@ -654,6 +684,7 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  chibi.resize(w,h);
   composer?.setSize(w, h);
 }
 function setQuality() {
@@ -663,7 +694,7 @@ function setQuality() {
       (innerWidth < 700 || navigator.hardwareConcurrency <= 4 || adaptiveLow));
   if(!renderer)return;
   renderer.setPixelRatio(low ? Math.max(.65,Math.min(.94,devicePixelRatio*.83)) : Math.min(devicePixelRatio,1.35));
-  if(scene.fog)scene.fog.far=low?22:29;
+  if(scene.fog)scene.fog.far=low?32:42;
   renderer.shadowMap.enabled = !low;
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   const size = low ? 768 : 1536;
@@ -703,9 +734,9 @@ function animateClip(next) {
 }
 function updateCamera(dt = 1) {
   const pos = player.position,
-    follow = pos.clone().add(new T.Vector3(0, 0.9, 0));
-  follow.x+=(pipo.position.x-pos.x)*.14;
-  follow.z+=(pipo.position.z-pos.z)*.14;
+    follow = pos.clone().add(new T.Vector3(0, 1.02, 0));
+  follow.x+=(pipo.position.x-pos.x)*.25;
+  follow.z+=(pipo.position.z-pos.z)*.25;
   // A small pullback at the fork keeps both treads in the portrait frame.
   const portraitTrail=beyondSeam(pos.x) && camera.aspect<.85;
   const x=trailX(pos.x);
@@ -715,14 +746,22 @@ function updateCamera(dt = 1) {
   if(portraitTrail){
     follow.x-=.55*Math.max(0,1-Math.hypot(x+9,pos.z-1.4)/2.3);
   }
-  const framing=distance+forkView;
-  look.lerp(follow, Math.min(1, dt * 5));
+  const heroScene=currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas';
+  const framing=distance+forkView-(heroScene ? (portraitTrail?1.1:2.6) : 0);
+  if(heroScene){
+    const log=Math.max(0,1-Math.hypot(x+9,pos.z-1.4)/3.7);
+    const wheel=Math.max(0,1-Math.hypot(x,pos.z-13)/4.0);
+    follow.x-=wheel*.95+log*.32;
+    follow.z-=wheel*1.1+log*.65;
+    follow.y-=log*.19;
+  }
+  look.lerp(follow, still?1:Math.min(1, dt * 5));
   const offset = new T.Vector3(
     Math.sin(angle) * framing,
-    framing * .72,
+    framing * (heroScene ? (portraitTrail ?.47:.41) : .72),
     Math.cos(angle) * framing,
   );
-  camera.position.lerp(follow.clone().add(offset), Math.min(1, dt * 4));
+  camera.position.lerp(follow.clone().add(offset), still?1:Math.min(1, dt * 4));
   camera.lookAt(look);
   camera.updateMatrixWorld();
   clearingSight.update(camera.position,player.position,pipo.position);
@@ -790,7 +829,7 @@ function tick(now) {
   if (movingNow && !moving) save();
   movingNow = moving;
   const oldBuddy={x:pipo.position.x,z:pipo.position.z};
-  const desired={x:player.position.x-.7,z:player.position.z+.55};
+  const desired={x:player.position.x+pipoOffset(player.position.x,player.position.z),z:player.position.z+.48};
   const goal=walkable(desired.x,desired.z)?desired:{x:player.position.x,z:player.position.z};
   const buddyDelta={x:goal.x-oldBuddy.x,z:goal.z-oldBuddy.z};
   const buddyGap=Math.hypot(buddyDelta.x,buddyDelta.z);
@@ -808,6 +847,7 @@ function tick(now) {
   if(buddyHead)buddyHead.quaternion.copy(headBase);
   if(actions.Idle)actions.Idle.paused=still;
   if(pipoActions.Hover)pipoActions.Hover.paused=still;
+  if(pipoActions.Walk)pipoActions.Walk.paused=still;
   mixers.forEach((m) => m.update(dt));
   if(buddyHead){
     headBase.copy(buddyHead.quaternion);
@@ -815,7 +855,7 @@ function tick(now) {
     if(remaining>0&&!still)buddyHead.rotateZ(.26*Math.sin(Math.PI*remaining/1.5));
   }
   player.position.y = floor(player.position.x, player.position.z)-supportHeight(playerSupport,actions);
-  pipo.position.y = floor(pipo.position.x, pipo.position.z)-supportHeight(pipoSupport,pipoActions);
+  pipo.position.y = pipoHeight();
   if(buddyMoving){const rot=Math.atan2(buddy.x-oldBuddy.x,buddy.z-oldBuddy.z);pipo.quaternion.slerp(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),rot),Math.min(1,dt*7));}
   if (clock > blinkAt && clock < blinkAt + 0.13) {
     blinkUntil = 1;
@@ -826,20 +866,32 @@ function tick(now) {
     }
   }
   player.traverse((o) => {
-    if (o.isMesh && /^Blink_/.test(o.name)) o.visible = !blinkUntil;
+    if (o.isMesh && /^Blink_/.test(o.name)) o.visible = still || !blinkUntil;
   });
   for (const shader of wind)
     shader.uniforms.forestTime.value = still ? 0 : clock;
   if(water)water.material.uniforms.time.value = still ? 0 : clock;
   if (particles && !still) particles.rotation.y = Math.sin(clock * 0.1) * 0.035;
   const localX=trailX(player.position.x), z=player.position.z;
-  const region=beyondSeam(player.position.x)?Trail.region(localX,z):'Clareira do Riacho';
+  const region=regionAt(player.position.x,z);
   if(region!==currentRegion){
+    const arrival=document.getElementById('forestArrival');
+    if(currentRegion){
+      const article=/^(Bosque|Pátio)/.test(region)?'ao':'à';
+      arrival.textContent='Você chegou '+article+' '+region;
+      arrival.hidden=false;
+      regionBannerUntil=clock+2;
+      message('');
+    }
     currentRegion=region;
     reactUntil=clock+1.5;
     document.getElementById('forestRegion').textContent=region;
-    message('');
   }
+  if(regionBannerUntil && clock>=regionBannerUntil){
+    document.getElementById('forestArrival').hidden=true;
+    regionBannerUntil=0;
+  }
+  const near=nearest();
   if(map2d){
     map2d.draw(player.position,pipo.position,data,clock,still);
   }else{
@@ -873,7 +925,7 @@ function tick(now) {
       localCamera.copy(camera.position).x-=data.map.trailOffset;
       localHero.copy(player.position).x-=data.map.trailOffset;
       localBuddy.copy(pipo.position).x-=data.map.trailOffset;
-      trailScene.tick(clock,still,localCamera,localHero,localBuddy);
+      trailScene.tick(clock,still,localCamera,localHero,localBuddy,near.d<1.8?near.id:'',moving);
     }
     if(!low && Math.abs(sunLight.target.position.x-player.position.x)>5){
       sunLight.target.position.x=player.position.x;
@@ -887,6 +939,7 @@ function tick(now) {
     renderer.render(scene,camera);
   }
   updateLabels();
+  positionSpeech();
   stats.frames++;
   if (dt > 0) stats.times.push(rawMs);
   if (stats.times.length > 240) stats.times.shift();
@@ -911,18 +964,32 @@ function tick(now) {
       for(const f of features)if(f.activity&&activities.has(f.activity.id))f.activity=activities.get(f.activity.id);
     }).catch(e=>message(e.message)).finally(()=>{calendarPending=false;});
   }
-  const near = nearest(),
-    b = document.getElementById("forestInteract");
+  const b = document.getElementById("forestInteract");
   if (b) {
-    b.disabled = near.d > 1.8 || (near.id==='leaf' && !!leafPending);
-    b.textContent =
-      near.d < 1.8
-        ? near.discovery?near.title:`${near.icon} ${near.title} · E`
+    b.disabled = near.d >= 1.8 || (near.id==='leaf' && !!leafPending);
+    const next=near.d<1.8?near.id:'';
+    if(next!==actionTarget){
+      actionTarget=next;
+      const icon=near.id==='wheel'?'⛵':near.id==='leaf'?'❧':near.icon;
+      b.innerHTML=next
+        ? `<span aria-hidden="true">${esc(icon)}</span>${esc(near.title)}`
         : "Explorar por perto · E";
+    }
   }
+  for(const direction of document.querySelectorAll('[data-forest-dir]'))
+    direction.classList.toggle('pressed',keys.has(direction.dataset.forestDir));
   canvas.dataset.frames = stats.frames;
   canvas.dataset.calls = renderer?.info.render.calls??0;
   canvas.dataset.triangles = renderer?.info.render.triangles??0;
+}
+function pipoHeight() {
+  const reaction=still?0:Math.max(0,reactUntil-clock)/1.5;
+  return floor(pipo.position.x,pipo.position.z)+.95
+    +(still?0:.072*Math.sin(clock*4.2)+.17*Math.sin(Math.PI*reaction));
+}
+function pipoOffset(x,z) {
+  const atWheel=beyondSeam(x) ? 1-T.MathUtils.smoothstep(Math.hypot(trailX(x),z-13),2,5) : 0;
+  return T.MathUtils.lerp(-.78,.83,atWheel);
 }
 function bind() {
   abort = new AbortController();
@@ -997,9 +1064,25 @@ function bind() {
       save();
     });
   });
+  let gesture=null;
   on(canvas, "pointerdown", (e) => {
-    if (modal) return;
+    if (modal || e.button!==0 || gesture) return;
     canvas.focus({ preventScroll: true });
+    canvas.setPointerCapture(e.pointerId);
+    gesture={id:e.pointerId,x:e.clientX,y:e.clientY,lastX:e.clientX,turning:false};
+  });
+  on(canvas,'pointermove',e=>{
+    if(map2d || gesture?.id!==e.pointerId)return;
+    gesture.turning ||= Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)>8;
+    if(gesture.turning)angle-=(e.clientX-gesture.lastX)*.008;
+    gesture.lastX=e.clientX;
+  });
+  on(canvas,'lostpointercapture',e=>{if(gesture?.id===e.pointerId)gesture=null;});
+  on(canvas, "pointerup", (e) => {
+    if(gesture?.id!==e.pointerId)return;
+    const {turning}=gesture;
+    gesture=null;
+    if(turning||modal)return;
     if(map2d){
       const point=map2d.point(e.clientX,e.clientY);
       if(walkable(point.x,point.z))destination(point.x,point.z);
@@ -1227,7 +1310,7 @@ async function action(a, b) {
             data.leaf_up=result.leaf_up;
             trailScene?.shelter.set(data.leaf_up,clock);
             reactUntil=clock+1.5;
-            message('');
+            message('Pipo: O besouro mudou de abrigo!');
           }
         } finally {
           leafPending=null;
@@ -1236,7 +1319,7 @@ async function action(a, b) {
       }
       reactUntil=clock+1.5;
       map2d?.interact(near.id,clock);
-      message(trailScene?trailScene.interact(near.id,clock):Trail.description(near.id));
+      message('Pipo: '+(trailScene?trailScene.interact(near.id,clock):Trail.description(near.id)));
       if(near.id==='echo')pipo.rotation.y=Math.atan2(near.x-pipo.position.x,near.z-pipo.position.z);
       return;
     }
@@ -1330,6 +1413,7 @@ function dispose() {
   ownedMaterials.forEach(m=>m.dispose());ownedMaterials.clear();
   ownedGeometry.forEach(g=>g.dispose());ownedGeometry.clear();
   ownedTextures.forEach(t=>t.dispose());ownedTextures.clear();
+  chibi?.dispose();chibi=null;
   trailScene?.group.traverse(o=>{if(o.isInstancedMesh)o.dispose();});
   trailScene=null;trailLoading=null;currentRegion='';buddyHead=null;reactUntil=0;
   legacy=null;map2d=null;
@@ -1376,6 +1460,7 @@ async function open(options) {
   paused = false;
   last = 0;
   clock = 0;
+  regionBannerUntil=0;messageUntil=0;actionTarget='';
   lastCalendarRefresh=performance.now();calendarPending=false;
   angle=map2d ? 0 : beyondSeam(data.position.x) ? .18 : .55;
   distance=8.7;waving=0;blinkAt=3.2;blinkUntil=0;lastSave=0;movingNow=false;
@@ -1384,6 +1469,7 @@ async function open(options) {
   pipoClip = "Hover";
   pipoActions = {};
   stats = { frames: 0, times: [], loads: [] };
+  currentRegion=regionAt(data.position.x,data.position.z);
   layout();
   if(map2d){
     player=new T.Object3D();
@@ -1397,6 +1483,7 @@ async function open(options) {
     document.getElementById('forestLoading').remove();
     stats.readyMs=performance.now()-openStarted;
     canvas.dataset.ready='true';
+    showForestReward(options.reward);
     frame=requestAnimationFrame(tick);
     return true;
   }
@@ -1414,19 +1501,19 @@ async function open(options) {
   }
   renderer.localClippingEnabled=true;
   renderer.outputColorSpace = T.SRGBColorSpace;
-  renderer.toneMapping = T.NeutralToneMapping;
-  renderer.toneMappingExposure = .93;
+  renderer.toneMapping = T.NoToneMapping;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   renderer.info.autoReset = false;
   scene = new T.Scene();
-  scene.background=new T.Color('#bddbd4');
-  scene.fog=new T.Fog('#bddbd4',9.6,29);
+  scene.background=new T.Color('#ddf2fa');
+  scene.fog=new T.Fog('#ddf2fa',16,42);
+  chibi=createChibiPaint();
   legacy=new T.Group();
   scene.add(legacy);
   camera = new T.PerspectiveCamera(44, 1, 0.1, 120);
-  scene.add(new T.HemisphereLight("#fff1de", "#82aba0", 1.80));
-  const sun = new T.DirectionalLight("#ffe4b7", 1.75);
+  scene.add(new T.HemisphereLight("#fff9ee", "#c0cee3", 1.58));
+  const sun = new T.DirectionalLight("#fff3de", 2.1);
   sun.position.set(-12, 24, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1536, 1536);
@@ -1441,10 +1528,11 @@ async function open(options) {
   sun.shadow.normalBias = 0.025;
   sun.shadow.bias = -0.0002;
   sun.shadow.radius = 3;
+  sun.shadow.intensity = .48;
   scene.add(sun);
   scene.add(sun.target);
   sunLight = sun;
-  const rim = new T.DirectionalLight("#d6ebed", .72);
+  const rim = new T.DirectionalLight("#e5f7ff", .37);
   rim.position.set(10, 8, -13);
   scene.add(rim);
   const started = performance.now();
@@ -1455,7 +1543,9 @@ async function open(options) {
     if(asset.name==='activity')continue;
     const root = cloneRig(asset.scene);
     const materialCopies = new Map();
-    root.traverse((o) => {
+    if(['davi','pipo'].includes(asset.name)){
+      for(const material of chibi.person(root))ownedMaterials.add(material);
+    }else root.traverse((o) => {
       if (o.isMesh) {
         const source = o.material;
         if (!materialCopies.has(source.uuid)) {
@@ -1465,6 +1555,9 @@ async function open(options) {
       }
     });
     prepare(root);
+    if(['davi','pipo'].includes(asset.name))root.traverse(o=>{
+      if(o.isMesh && o.material.isShaderMaterial)o.castShadow=o.receiveShadow=false;
+    });
     if(!["davi","pipo"].includes(asset.name))legacy.add(root);
     if (asset.name === "forest") {
       root.updateMatrixWorld(true);
@@ -1538,7 +1631,6 @@ async function open(options) {
       for (const anim of asset.animations)
         pipoActions[anim.name] = mixer.clipAction(anim);
       if (pipoActions.Walk) pipoActions.Walk.timeScale = 2.1;
-      pipoSupport=supportTable('pipo',root,mixer,pipoActions);
       pipoActions.Hover?.reset().play();mixer.update(0);
       buddyHead=root.getObjectByName('Head');if(buddyHead)headBase.copy(buddyHead.quaternion);
     }
@@ -1548,9 +1640,12 @@ async function open(options) {
     floor(data.position.x, data.position.z)-supportHeight(playerSupport,actions),
     data.position.z,
   );
-  pipo.position.copy(player.position).add(new T.Vector3(-.7,0,.55));
+  pipo.position.copy(player.position).add(new T.Vector3(pipoOffset(player.position.x,player.position.z),0,.48));
   if(!walkable(pipo.position.x,pipo.position.z))pipo.position.copy(player.position);
-  pipo.position.y=floor(pipo.position.x,pipo.position.z)-supportHeight(pipoSupport,pipoActions);
+  pipo.position.y=pipoHeight();
+  if(currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas'){
+    player.rotation.y=pipo.rotation.y=angle;
+  }
   createContactShadows();
   look.copy(player.position).add(new T.Vector3(0, 0.9, 0));
   syncOwned();
@@ -1573,6 +1668,7 @@ async function open(options) {
   stats.readyMs = performance.now() - openStarted;
   document.getElementById("forestLoading").remove();
   canvas.dataset.ready = "true";
+  showForestReward(options.reward);
   frame = requestAnimationFrame(tick);
   return true;
 }

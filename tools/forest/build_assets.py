@@ -39,6 +39,15 @@ material('Birch','#e8d9ac');material('Bark dark','#68594b');material('Leaf blue'
 material('Window light','#ffd990',rough=.35,emission=.5);material('Pipo ceramic','#f0e7ca',rough=.39);material('Copper','#c08b59',rough=.4,metal=.3);material('Pipo screen','#123a3d',rough=.25,metal=.2);material('Pipo eye','#b5ffe4',rough=.32,emission=.45)
 material('Tunica','#ecebe7','cloth');material('Manga','#c3efdf');material('Hat felt','#daaa59');material('Hat ribbon','#6b443b')
 material('Cape lining','#7756ae');material('Scarf','#e77a4d');material('Pipo boot','#cd8851')
+# Flat pigments for the character surfaces rendered with the in-game toon ramp.
+for name, tint in {
+ 'Chibi skin':'#ffdabb', 'Chibi hair':'#78472f', 'Chibi hair light':'#8e5535',
+ 'Chibi cheek':'#ff9ca3', 'Chibi iris':'#5268b8', 'Chibi pupil':'#34264a',
+ 'Chibi white':'#ffffff', 'Chibi glasses':'#2584bf', 'Chibi pack':'#ff9f4a',
+ 'Chibi shorts':'#8a5c3d', 'Chibi shoe':'#f87859', 'Chibi sprout':'#7dd66c',
+ 'Chibi stem':'#397b50', 'Chibi shell':'#f4f8ff', 'Chibi screen':'#3a3157',
+ 'Chibi eye':'#7cf5ea', 'Chibi fin':'#46c2d9',
+}.items():material(name,tint)
 def mesh(name,verts,faces,mat,uv=None,pigment=None):
  me=bpy.data.meshes.new(name);me.from_pydata(verts,[],faces);me.update();ob=bpy.data.objects.new(name,me);bpy.context.collection.objects.link(ob);me.materials.append(M[mat])
  for p in me.polygons:p.use_smooth=True
@@ -398,29 +407,42 @@ canopy=leaves_mesh('Treehouse crown',defs,parent=house);canopy['wind']=True;curv
 # Expressive original child explorer: custom face topology, swept locks, tailored clothing.
 davi=empty('Davi');parts=[]
 def add(o):parts.append(o);return o
-add(loft('Tailored shirt',[(0,0,.78,.22,.14),(0,0,.9,.24,.15),(0,0,1.12,.28,.16),(0,0,1.3,.26,.13),(0,0,1.36,.13,.1)],'Tunica',20,davi,'Spine'));add(loft('Shorts',[(0,0,.63,.22,.15),(0,0,.87,.24,.17)],'Shorts',16,davi,'Root'));add(loft('Neck',[(0,0,1.29,.105,.1),(0,0,1.48,.11,.1)],'Skin',14,davi,'Head'));add(loft('Sculpted face',[(0,0,1.38,.08,.1),(0,-.015,1.42,.21,.18),(0,-.015,1.52,.31,.255),(0,.005,1.68,.345,.275),(0,.02,1.83,.31,.28),(0,.03,1.94,.22,.21),(0,.03,1.99,.03,.035)],'Skin',32,davi,'Head'))
+add(loft('Tailored shirt',[(0,0,.78,.22,.14),(0,0,.9,.24,.15),(0,0,1.12,.28,.16),(0,0,1.3,.26,.13),(0,0,1.36,.13,.1)],'Tunica',20,davi,'Spine'));add(loft('Chibi shorts',[(0,0,.63,.22,.15),(0,0,.87,.24,.17)],'Chibi shorts',16,davi,'Root'));add(loft('Neck',[(0,0,1.29,.105,.1),(0,0,1.48,.11,.1)],'Chibi skin',14,davi,'Head'));add(loft('Sculpted face',[(0,0,1.38,.08,.1),(0,-.015,1.42,.21,.18),(0,-.015,1.52,.31,.255),(0,.005,1.68,.345,.275),(0,.02,1.83,.31,.28),(0,.03,1.94,.22,.21),(0,.03,1.99,.03,.035)],'Chibi skin',32,davi,'Head'))
 for side in [-1,1]:
- label='L' if side<0 else 'R';add(ellipsoid('Ear '+label,(side*.325,.005,1.63),(.075,.065,.12),'Skin',davi,'Head',14,10));add(ellipsoid('Ear fold '+label,(side*.355,-.04,1.64),(.035,.025,.065),'Cheek',davi,'Head',10,8));add(ellipsoid('Sclera '+label,(side*.145,-.251,1.697),(.101,.045,.126),'White',davi,'Head',20,14));add(ellipsoid('Iris '+label,(side*.145,-.291,1.69),(.063,.025,.083),'Iris',davi,'Head',18,12));add(ellipsoid('Pupil '+label,(side*.145,-.313,1.69),(.035,.013,.055),'Eye',davi,'Head',16,10));add(ellipsoid('Eye sparkle '+label,(side*.145-.021,-.327,1.728),(.02,.009,.026),'White',davi,'Head',10,6));add(curve('Upper eyelid '+label,[(side*.145-.096,-.265,1.73),(side*.145,-.29,1.81),(side*.145+.09,-.265,1.73)],.011,'Hair',davi,'Head'));add(curve('Soft brow '+label,[(side*.145-.09,-.24,1.855),(side*.145,-.275,1.875),(side*.145+.08,-.24,1.845)],.022,'Hair',davi,'Head'));add(ellipsoid('Warm cheek '+label,(side*.215,-.233,1.57),(.072,.012,.036),'Cheek',davi,'Head',16,8))
- for i in range(2):add(ellipsoid('Freckle '+label,(side*(.18+i*.035),-.248+i*.007,1.59+(i%2)*.018),(.007,.006,.007),'Hair light',davi,'Head',6,4))
-add(ellipsoid('Nose sculpt',(0,-.28,1.59),(.066,.069,.059),'Skin',davi,'Head',18,12));add(ellipsoid('Smile opening',(0,-.270,1.502),(.088,.025,.052),'Hair',davi,'Head',14,8));add(ellipsoid('Smile warmth',(0,-.294,1.48),(.043,.009,.015),'Cheek',davi,'Head',10,6))
+ label='L' if side<0 else 'R';add(ellipsoid('Ear '+label,(side*.325,.005,1.63),(.075,.065,.12),'Chibi skin',davi,'Head',14,10));add(ellipsoid('Ear fold '+label,(side*.355,-.04,1.64),(.035,.025,.065),'Chibi cheek',davi,'Head',10,8));add(ellipsoid('Sclera '+label,(side*.145,-.251,1.697),(.101,.045,.126),'Chibi white',davi,'Head',20,14));add(ellipsoid('Iris '+label,(side*.145,-.291,1.69),(.063,.025,.083),'Chibi iris',davi,'Head',18,12));add(ellipsoid('Pupil '+label,(side*.145,-.313,1.69),(.035,.013,.055),'Chibi pupil',davi,'Head',16,10));add(ellipsoid('Eye sparkle '+label,(side*.145-.021,-.327,1.728),(.02,.009,.026),'Chibi white',davi,'Head',10,6));add(curve('Upper eyelid '+label,[(side*.145-.096,-.265,1.73),(side*.145,-.29,1.81),(side*.145+.09,-.265,1.73)],.011,'Chibi hair',davi,'Head'));add(curve('Soft brow '+label,[(side*.145-.09,-.24,1.855),(side*.145,-.275,1.875),(side*.145+.08,-.24,1.845)],.022,'Chibi hair',davi,'Head'));add(ellipsoid('Warm cheek '+label,(side*.215,-.233,1.57),(.072,.012,.036),'Chibi cheek',davi,'Head',16,8))
+ for i in range(2):add(ellipsoid('Freckle '+label,(side*(.18+i*.035),-.248+i*.007,1.59+(i%2)*.018),(.007,.006,.007),'Chibi hair light',davi,'Head',6,4))
+add(ellipsoid('Nose sculpt',(0,-.28,1.59),(.066,.069,.059),'Chibi skin',davi,'Head',18,12));add(ellipsoid('Smile opening',(0,-.270,1.502),(.088,.025,.052),'Chibi hair',davi,'Head',14,8));add(ellipsoid('Smile warmth',(0,-.294,1.48),(.043,.009,.015),'Chibi cheek',davi,'Head',10,6))
 verts=[];faces=[];seg=32;rows=10
 for j in range(rows+1):
  t=j/rows
  for i in range(seg+1):
-  a=i/seg*2*pi;front=max(0,-sin(a));bottom=1.57+front*.28+.025*sin(a*5);z=bottom+(2.035-bottom)*t;rad=cos(t*pi/2);verts.append((cos(a)*.35*rad,.025+sin(a)*.30*rad,z))
+  a=i/seg*2*pi
+  front=max(0,-sin(a))
+  bottom=1.57+front*.26+.014*sin(a*5)
+  z=bottom+(2.075-bottom)*t
+  radii_x=np.interp(z,[1.56,1.68,1.83,1.94,2.02,2.075],[.335,.378,.348,.267,.145,.002])
+  radii_y=np.interp(z,[1.56,1.68,1.83,1.94,2.02,2.075],[.286,.313,.318,.252,.136,.002])
+  verts.append((cos(a)*radii_x,.019+sin(a)*radii_y,z))
 for j in range(rows):
  for i in range(seg):a=j*(seg+1)+i;faces.append((a,a+1,a+seg+2,a+seg+1))
-hair=mesh('Swept hair',verts,faces,'Hair');hair.parent=davi;bind(hair,'Head');add(hair)
-for i in range(5):
- x=-.24+i*.107;add(tube('Rounded swept lock',[(x,.055,2.014),(x+.07,-.092,2.009),(x+.038,-.25,1.93+sin(i)*.037),(x-.059,-.287,1.84+sin(i)*.027)],[.079,.090,.068,.010],'Hair' if i%2 else 'Hair light',davi,'Head',12))
-add(curve('Scarf collar',[(-.14,-.08,1.33),(0,-.17,1.3),(.14,-.08,1.33)],.035,'Gold',davi,'Spine'))
-scarf=mesh('Folded scarf',[(-.06,-.19,1.29),(.08,-.19,1.29),(.1,-.205,1.05),(-.025,-.22,1.11),(0,-.235,1.25)],[(0,1,4),(1,2,4),(2,3,4),(3,0,4)],'Gold');scarf.parent=davi;bind(scarf,'Spine');add(scarf)
+hair=mesh('Swept hair',verts,faces,'Chibi hair');hair.parent=davi;bind(hair,'Head');add(hair)
+for i in range(3):
+ x=-.15+i*.115
+ add(ellipsoid('Franja',(x,-.245,1.918+sin(i)*.018),(.102,.078,.092),'Chibi hair',davi,'Head',16,10))
+add(tube('Topete',[(0,.03,2.03),(.015,.015,2.12),(.087,-.055,2.22)],[.046,.040,.020],'Chibi hair',davi,'Head',10))
 for side in [-1,1]:
- label='L' if side<0 else 'R';x=side*.115;add(loft('Leg '+label,[(x,0,.22,.074,.075),(x,0,.42,.08,.08),(x,0,.68,.095,.09)],'Skin',14,davi,'Leg'+label));add(loft('Shorts leg '+label,[(x,0,.55,.115,.11),(x,0,.77,.12,.12)],'Shorts',14,davi,'Leg'+label));add(loft('Sock '+label,[(x,0,.18,.08,.08),(x,0,.32,.083,.083)],'Cream',14,davi,'Leg'+label));add(loft('Boot '+label,[(x,-.035,.05,.107,.15),(x,-.06,.1,.115,.19),(x,-.025,.2,.10,.155),(x,.0,.27,.08,.08)],'Boot',18,davi,'Foot'+label));add(loft('Boot sole '+label,[(x,-.065,.025,.113,.19),(x,-.065,.08,.116,.192)],'Sole',18,davi,'Foot'+label))
+ lens_x=side*.151
+ frame=[(lens_x+.124*cos(i*2*pi/32),-.329+side*.32*.124*cos(i*2*pi/32),1.698+.124*sin(i*2*pi/32)) for i in range(33)]
+ add(tube('Armação dos óculos',frame,[.017]*len(frame),'Chibi glasses',davi,'Head',8))
+ add(curve('Haste dos óculos',[(side*.268,-.291,1.705),(side*.323,-.16,1.71),(side*.359,.004,1.68)],.014,'Chibi glasses',davi,'Head'))
+ add(ellipsoid('Eye sparkle small',(side*.145+.016,-.326,1.664),(.010,.006,.013),'Chibi white',davi,'Head',8,6))
+add(curve('Ponte dos óculos',[(-.035,-.369,1.714),(0,-.37,1.727),(.035,-.369,1.714)],.013,'Chibi glasses',davi,'Head'))
+for side in [-1,1]:
+ label='L' if side<0 else 'R';x=side*.115;add(loft('Leg '+label,[(x,0,.22,.074,.075),(x,0,.42,.08,.08),(x,0,.68,.095,.09)],'Chibi skin',14,davi,'Leg'+label));add(loft('Shorts leg '+label,[(x,0,.55,.115,.11),(x,0,.77,.12,.12)],'Chibi shorts',14,davi,'Leg'+label));add(loft('Sock '+label,[(x,0,.18,.08,.08),(x,0,.32,.083,.083)],'Cream',14,davi,'Leg'+label));add(loft('Boot '+label,[(x,-.035,.05,.107,.15),(x,-.06,.1,.115,.19),(x,-.025,.2,.10,.155),(x,.0,.27,.08,.08)],'Chibi shoe',18,davi,'Foot'+label));add(loft('Boot sole '+label,[(x,-.065,.025,.113,.19),(x,-.065,.08,.116,.192)],'Sole',18,davi,'Foot'+label))
  for k in range(3):add(curve('Boot lace '+label,[(x-.065,-.13+k*.038,.19),(x+.065,-.13+k*.038,.19)],.009,'Cream',davi,'Foot'+label))
- add(tube('Sleeve '+label,[(side*.29,0,1.27),(side*.37,0,1.07)],[.105,.10],'Manga',davi,'Arm'+label,14));add(tube('Arm '+label,[(side*.35,0,1.15),(side*.39,-.015,.98),(side*.4,-.035,.85)],[.075,.065,.052],'Skin',davi,'Arm'+label,14));add(ellipsoid('Hand '+label,(side*.405,-.035,.81),(.065,.07,.09),'Skin',davi,'Arm'+label,14,10));add(ellipsoid('Thumb '+label,(side*.35,-.065,.83),(.035,.04,.055),'Skin',davi,'Arm'+label,12,8));add(curve('Sleeve stitching '+label,[(side*.31,-.09,1.11),(side*.38,-.09,1.08),(side*.4,-.07,1.06)],.004,'Cream',davi,'Arm'+label))
-add(loft('Backpack',[(0,.17,.84,.19,.08),(0,.2,1,.21,.13),(0,.19,1.23,.17,.1),(0,.17,1.28,.09,.05)],'Dark timber',18,davi,'Spine'))
-for side in [-1,1]:add(curve('Pack strap',[(side*.14,.18,1.25),(side*.2,-.13,1.22),(side*.16,-.17,.94)],.022,'Warm timber',davi,'Spine'))
+ add(tube('Sleeve '+label,[(side*.29,0,1.27),(side*.37,0,1.07)],[.105,.10],'Manga',davi,'Arm'+label,14));add(tube('Arm '+label,[(side*.35,0,1.15),(side*.39,-.015,.98),(side*.4,-.035,.85)],[.075,.065,.052],'Chibi skin',davi,'Arm'+label,14));add(ellipsoid('Hand '+label,(side*.405,-.035,.81),(.065,.07,.09),'Chibi skin',davi,'Arm'+label,14,10));add(ellipsoid('Thumb '+label,(side*.35,-.065,.83),(.035,.04,.055),'Chibi skin',davi,'Arm'+label,12,8));add(curve('Sleeve stitching '+label,[(side*.31,-.09,1.11),(side*.38,-.09,1.08),(side*.4,-.07,1.06)],.004,'Cream',davi,'Arm'+label))
+add(loft('Backpack',[(0,.17,.84,.19,.08),(0,.2,1,.21,.13),(0,.19,1.23,.17,.1),(0,.17,1.28,.09,.05)],'Chibi pack',18,davi,'Spine'))
+for side in [-1,1]:add(curve('Pack strap',[(side*.14,.18,1.25),(side*.2,-.13,1.22),(side*.16,-.17,.94)],.022,'Chibi pack',davi,'Spine'))
 add(ellipsoid('Compass badge',(-.15,-.174,1.16),(.055,.018,.055),'Gold',davi,'Spine',14,10))
 hat=loft('Hat',[(0,.02,1.96,.47,.39),(0,.02,2.00,.48,.40),(0,.02,2.05,.34,.29),
                 (0,.04,2.24,.30,.27),(0,.05,2.31,.22,.20),(0,.05,2.34,.035,.035)],'Hat felt',24,davi,'Head')
@@ -445,11 +467,9 @@ def chibi_point(point, pilot):
  x,y,z=point
  if pilot=='Davi':
   body=min(1,max(0,(z-1.31)/.075))
-  height=float(np.interp(z,[0,.24,.70,1.30,1.385,2.35],[0,.164,.46,.884,.976,2.26]))
-  return Vector((x*(1.18+.34*body),y*(1.13+.18*body),height))
- body=min(1,max(0,(z-.51)/.068))
- height=float(np.interp(z,[0,.24,.55,.62,1.17],[0,.172,.39,.49,1.18]))
- return Vector((x*(1.12+.24*body),y*(1.12+.21*body),height))
+  height=float(np.interp(z,[0,.24,.70,1.30,1.385,2.35],[0,.144,.416,.821,.92,2.26]))
+  return Vector((x*(1.07+.60*body),y*(1.03+.44*body),height))
+ return Vector((x,y,z))
 def chibi_shapes(parts, pilot):
  for obj in parts:
   matrix=obj.matrix_basis.copy(); inverse=matrix.inverted()
@@ -461,7 +481,7 @@ def merge_skin(parts,root):
  groups={};accessories=[]
  for ob in parts:
   if ob.name.startswith(('Hat','Cape','Buddy scarf')):accessories.append(ob);continue
-  key=('Blink_' if ob.name.startswith(('Sclera','Iris','Pupil','Eye sparkle')) else 'Surface_')+ob.data.materials[0].name
+  key=('Blink_' if ob.name.startswith(('Sclera','Chibi iris','Pupil','Eye sparkle')) else 'Surface_')+ob.data.materials[0].name
   groups.setdefault(key,[]).append(ob)
  result=[]
  for name,objects in groups.items():
@@ -495,13 +515,8 @@ def rig_character(root,parts,bones,clips):
       if name=='Head':p.rotation_euler.z=.035*sin(phase*.5)
       if name.startswith('Arm'):p.rotation_euler.y=(.04+.025*sin(phase))*(1 if name.endswith('L') else -1)
     else:
-     if name=='Root':p.rotation_euler.y=sin(phase)*.043
-     if name.startswith('Leg') and clip=='Walk':
-      stride=phase+(0 if name.endswith('L') else pi)
-      local_axes=p.bone.matrix_local.to_3x3().inverted()
-      p.location=local_axes @ Vector((0,.082*cos(stride),.092*max(0,sin(stride))))
-      p.rotation_euler.x=.61*cos(stride)
-     if name.startswith('Wing'):p.rotation_euler.y=sin(phase*(2 if clip=='Walk' else 1))*.17*(1 if name.endswith('L') else -1)
+     if name=='Root':p.rotation_euler.x=.10 if clip=='Walk' else 0
+     if name.startswith('Wing'):p.rotation_euler.y=sin(phase*(2 if clip=='Walk' else 3))*.34*(1 if name.endswith('L') else -1)
      if name=='Head':p.rotation_euler.z=sin(phase)*(.065 if clip=='Walk' else .087)
     p.keyframe_insert('rotation_euler',frame=frame);p.keyframe_insert('location',frame=frame)
   arm.animation_data.action=None;track=arm.animation_data.nla_tracks.new();track.name=clip;track.strips.new(clip,1,action)
@@ -510,19 +525,30 @@ bones=[('Root',(0,0,.72),(0,0,.9),None),('Spine',(0,0,.9),(0,0,1.32),'Root'),('H
 chibi_shapes(parts+costume,'Davi')
 rig_character(davi,merge_skin(parts+costume,davi),chibi_bones(bones,'Davi'),[('Idle',91),('Walk',25),('Wave',61)]);export(davi,'davi.glb',True)
 pipo=empty('Pipo');parts=[]
-add(loft('Pipo sculpted torso',[(0,0,.17,.09,.08),(0,0,.21,.18,.14),(0,0,.4,.22,.16),(0,0,.6,.15,.12)],'Teal light',24,pipo,'Root'));add(loft('Pipo head shell',[(0,0,.56,.12,.11),(0,0,.59,.29,.2),(0,0,.8,.32,.22),(0,0,.94,.24,.19),(0,0,.98,.07,.06)],'Pipo ceramic',28,pipo,'Head'));add(loft('Pipo eye visor',[(0,-.18,.64,.22,.045),(0,-.2,.76,.24,.055),(0,-.17,.86,.2,.04)],'Pipo screen',24,pipo,'Head'))
+add(ellipsoid('Casco esférico',(0,0,.397),(.404,.365,.358),'Chibi shell',pipo,'Head',22,14))
+add(ellipsoid('Visor',(0,-.297,.418),(.307,.112,.205),'Chibi screen',pipo,'Head',20,12))
 for side in [-1,1]:
- label='L' if side<0 else 'R';add(ellipsoid('Pipo expressive eye '+label,(side*.115,-.255,.76),(.052,.015,.072),'Pipo eye',pipo,'Head',16,10));add(ellipsoid('Pipo eye highlight '+label,(side*.115-.012,-.271,.786),(.014,.007,.018),'White',pipo,'Head',8,6));add(ellipsoid('Pipo ear joint '+label,(side*.3,0,.74),(.065,.08,.09),'Copper',pipo,'Head',14,10));wing=leaves_mesh('Pipo leaf fin '+label,[((side*.22,.01,.48),(side*.7,.1,.55),.42,.105,.025)],'Teal',pipo);bind(wing,'Wing'+label);add(wing);add(tube('Pipo articulated foot '+label,[(side*.1,0,.25),(side*.14,-.03,.11),(side*.15,-.09,.07)],[.045,.048,.037],'Pipo boot',pipo,'Leg'+label,10))
- add(ellipsoid('Pipo toe '+label,(side*.15,-.113,.068),(.074,.104,.051),'Pipo boot',pipo,'Leg'+label,14,8))
-add(ellipsoid('Pipo lantern heart',(0,-.15,.4),(.095,.035,.1),'Window light',pipo,'Root',16,10));add(curve('Pipo antenna',[(0,0,.94),(.04,0,1.1),(.11,0,1.15)],.018,'Copper',pipo,'Head'));add(ellipsoid('Pipo antenna seed',(.11,0,1.15),(.05,.045,.06),'Gold',pipo,'Head',14,10))
+ label='L' if side<0 else 'R'
+ add(ellipsoid('Olho do Pipo '+label,(side*.115,-.397,.44),(.065,.023,.082),'Chibi eye',pipo,'Head',14,10))
+ add(ellipsoid('Brilho do Pipo '+label,(side*.115-.019,-.419,.47),(.018,.009,.021),'Chibi white',pipo,'Head',8,6))
+ add(ellipsoid('Barbatana '+label,(side*.386,.014,.44),(.093,.134,.114),'Chibi fin',pipo,'Wing'+label,14,10))
+ sprout=ellipsoid('Folha do broto '+label,(side*.104,0,.855),(.126,.045,.043),'Chibi sprout',pipo,'Head',14,8)
+ for v in sprout.data.vertices:v.co.z+=side*(v.co.x-side*.104)*.44
+ add(sprout)
+add(curve('Haste do broto',[(0,0,.72),(0,0,.81),(.025,0,.87)],.020,'Chibi stem',pipo,'Head'))
 scarf=[
  loft('Buddy scarf',[(0,-.025,.52,.235,.208),(0,-.029,.55,.252,.224),(0,-.019,.595,.244,.214)],'Scarf',20,pipo,'Root'),
  ellipsoid('Buddy scarf knot',(.16,-.233,.55),(.091,.038,.057),'Scarf',pipo,'Root',12,8),
  tube('Buddy scarf tail',[(.19,-.242,.546),(.233,-.257,.465),(.30,-.20,.39)],[.046,.05,.046],'Scarf',pipo,'Root',10),
  tube('Buddy scarf fringe',[(.193,-.241,.521),(.17,-.264,.446),(.19,-.246,.39)],[.034,.043,.041],'Cream',pipo,'Root',10),
 ]
+for obj in scarf:
+ for v in obj.data.vertices:
+  v.co.x*=1.43
+  v.co.y*=1.46
+  v.co.z-=.32
 parts.extend(scarf)
-add(ellipsoid('Pipo smile',(0,-.232,.684),(.058,.021,.025),'Pipo eye',pipo,'Head',12,8));chibi_shapes(parts,'Pipo');rig_character(pipo,merge_skin(parts,pipo),chibi_bones([('Root',(0,0,.3),(0,0,.55),None),('Head',(0,0,.55),(0,0,.9),'Root'),('WingL',(-.2,0,.45),(-.45,0,.7),'Root'),('WingR',(.2,0,.45),(.45,0,.7),'Root'),('LegL',(-.1,0,.25),(-.15,-.09,.07),'Root'),('LegR',(.1,0,.25),(.15,-.09,.07),'Root')],'Pipo'),[('Hover',73),('Walk',25)]);export(pipo,'pipo.glb',True)
+chibi_shapes(parts,'Pipo');rig_character(pipo,merge_skin(parts,pipo),chibi_bones([('Root',(0,0,.3),(0,0,.55),None),('Head',(0,0,.39),(0,0,.8),'Root'),('WingL',(-.2,0,.45),(-.45,0,.7),'Root'),('WingR',(.2,0,.45),(.45,0,.7),'Root'),('LegL',(-.1,0,.25),(-.15,-.09,.07),'Root'),('LegR',(.1,0,.25),(.15,-.09,.07),'Root')],'Pipo'),[('Hover',73),('Walk',25)]);export(pipo,'pipo.glb',True)
 # Editable authoring scene as well as the reproducible source and exported game assets.
 for root in [env,bridge,house,davi,pipo]:
  for ob in children(root):ob.hide_set(False);ob.hide_render=False

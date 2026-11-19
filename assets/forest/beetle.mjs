@@ -1,10 +1,11 @@
 import * as T from '/vendor/three/three.module.min.js';
+import { gem } from './chibi.mjs';
 
 const FLIP_SECONDS = .58;
 const CARRY_START = 1.02;
 const CARRY_END = 2.42;
 
-export function buildShelter(floor, leafUp) {
+export function buildShelter(floor, leafUp, paint) {
   const group = new T.Group();
   group.position.set(-9.71, floor(-9.71, -.52), -.52);
   const sphere = new T.SphereGeometry(1, 14, 9);
@@ -13,7 +14,7 @@ export function buildShelter(floor, leafUp) {
   const thread = new T.CylinderGeometry(.85, 1, 1, 6, 1, true);
   const materials = new Map();
   function part(parent, geometry, color, position, size) {
-    if (!materials.has(color)) materials.set(color, new T.MeshStandardMaterial({ color }));
+    if (!materials.has(color)) materials.set(color, paint.toon(color));
     const mesh = new T.Mesh(geometry, materials.get(color));
     mesh.position.set(...position);
     mesh.scale.set(...size);
@@ -28,14 +29,17 @@ export function buildShelter(floor, leafUp) {
   ], 3));
   leaf.setIndex([8, 0, 1, 8, 1, 2, 8, 2, 3, 8, 3, 4, 8, 4, 5, 8, 5, 6, 8, 6, 7, 8, 7, 0]);
   leaf.computeVertexNormals();
-  const wood = '#826044', shell = '#ba6336', dark = '#352525';
+  const wood = '#a67749', shell = '#dd7946', dark = '#34264a';
   const hinge = new T.Group();
   hinge.position.set(-.59, .73, .02);
   group.add(hinge);
-  const roof = part(hinge, leaf, '#91a64c', [0, 0, 0], [1.55, 1, 1.15]);
+  const roof = part(hinge, leaf, '#6ed36e', [0, 0, 0], [1.55, 1, 1.15]);
   roof.material.side = T.DoubleSide;
-  roof.material.roughness = .72;
-  part(hinge, sphere, '#d3b967', [0, .13, -.04], [.031, .052, .69]);
+  const leafEdge=part(hinge,leaf,'#34264a',[0,-.026,0],[1.65,1,1.22]);
+  const leafMark=part(hinge,leaf,gem,[0,-.040,0],[1.77,1,1.30]);
+  leafEdge.material= new T.MeshBasicMaterial({color:0x34264a,side:T.DoubleSide});
+  leafMark.material= new T.MeshBasicMaterial({color:gem,side:T.DoubleSide});
+  part(hinge, sphere, '#3e9b55', [0, .13, -.04], [.031, .052, .69]);
   for (const side of [-1, 1]) {
     const leg = part(group, stick, wood, [-.59 + side * .25, .36, -.28], [.087, .77, .10]);
     leg.rotation.z = side * .29;
@@ -86,7 +90,6 @@ export function buildShelter(floor, leafUp) {
     stones.rotation.y = side * .3;
     part(stones, sphere, '#534d36', [0, .029, 0], [.45, .021, .28]);
     const pool = part(stones, sphere, '#258c99', [0, .051, 0], [.45, .024, .28]);
-    pool.material.roughness = .33;
     const groove = new T.CatmullRomCurve3([
       new T.Vector3(0, .17, -.27), new T.Vector3(side * .30, .19, .05),
       new T.Vector3(side * .74, .116, .29), new T.Vector3(side, .057, .48),
@@ -102,7 +105,6 @@ export function buildShelter(floor, leafUp) {
   part(beetle, sphere, dark, [0, .21, .04], [.26, .17, .35]);
   for (const side of [-1, 1]) {
     const wing = part(beetle, sphere, shell, [side * .141, .31, -.075], [.154, .16, .32]);
-    wing.material.roughness = .39;
     part(beetle, sphere, '#e8a253', [side * .17, .433, .035], [.073, .045, .101]);
   }
   part(beetle, sphere, dark, [0, .24, .29], [.206, .17, .162]);
@@ -110,6 +112,8 @@ export function buildShelter(floor, leafUp) {
   for (const side of [-1, 1]) {
     part(beetle, sphere, '#fff3d3', [side * .102, .28, .414], [.077, .080, .047]);
     part(beetle, sphere, dark, [side * .099, .285, .448], [.027, .033, .014]);
+    part(beetle, sphere, '#ffffff', [side*.099+.009,.298,.461], [.011,.011,.007]);
+    part(beetle, sphere, '#ff9ca3', [side*.159,.234,.401], [.037,.019,.025]);
     const feeler = new T.Group();
     feeler.position.set(side*.067,.34,.323);
     beetle.add(feeler);
@@ -258,6 +262,7 @@ export function buildShelter(floor, leafUp) {
   update(0, true);
   return {
     group,
+    highlight(active) { leafMark.visible=active; },
     // The same crease can be used directly or through the contextual action.
     pickLeaf(ray, groundHit) {
       const picked = ray.intersectObject(roof, false)[0];

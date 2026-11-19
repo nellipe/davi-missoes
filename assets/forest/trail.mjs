@@ -5,6 +5,7 @@ import { inBosque, installBosque } from './bosque.mjs';
 import { installRegions } from './regions.mjs';
 import { boatProgress } from './boat.mjs';
 import { createSight } from './sight.mjs';
+import { gem } from './chibi.mjs';
 
 let layout, grid;
 export function configure(map, seamHeight) {
@@ -69,7 +70,7 @@ function edge(x, z) {
 }
 export function description(id) {
   return {
-    wheel:'Um barquinho de folha passa sob a roda.',
+    wheel:'Um barquinho de papel passa sob a roda.',
     echo:'Toc! A pedra responde do outro lado.',
     falls:'A água cai pela janela de pedra e segue em direção à roda.',
     source:'As pás da roda apanham folhas na nascente e as soltam na calha.',
@@ -134,11 +135,10 @@ function waterInSlabs(material,geometry,instances,clock){
         varying vec3 vWaterSlab;`)
       .replace('#include <color_fragment>',`#include <color_fragment>
         if(vWaterSlab.z>.5){
-          float lane=2.0-smoothstep(.01,.08,abs(vWaterSlab.x+.20))-
-            smoothstep(.01,.07,abs(vWaterSlab.x-.17));
-          float phase=29.0*vWaterSlab.y-4.0*forestWaterClock+2.0*vWaterSlab.x;
-          float streak=lane*smoothstep(.28,.93,sin(phase));
-          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.62,.84,.77),.52*streak);
+          float lane=.48+.52*pow(abs(sin(vWaterSlab.x*9.0)),2.0);
+          float phase=39.0*vWaterSlab.y-5.4*forestWaterClock+7.0*vWaterSlab.x;
+          float streak=lane*smoothstep(.05,.92,sin(phase));
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.88,.98,1.0),.68*streak);
         }`);
   };
   return paint;
@@ -156,12 +156,12 @@ function height(x, z) {
 }
 export const floor = (x, z) => terrainHeight(grid, x, z) + 0.012;
 
-export function build(scene, leafUp, library, grain) {
+export function build(scene, leafUp, library, paint) {
   let seed = 7239;
   const random = () => (seed = (Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296;
   const group = new T.Group();
   scene.add(group);
-  const material = new T.MeshStandardMaterial({ roughness: .83 });
+  const material = paint.toon('#ffffff');
   const waterClock={value:0};
   const slatePaint=material.clone();
   slatePaint.name='Ardósia com pigmento mineral';
@@ -191,10 +191,12 @@ export function build(scene, leafUp, library, grain) {
     colors = [],
     uv = [],
     indices = [];
-  const grass = new T.Color('#709258'),
-    earth = new T.Color('#d4b681'),
-    stonePath = new T.Color('#d8cfaa'),
-    moss = new T.Color('#426e55');
+  const grass = new T.Color('#a9e476'),
+    earth = new T.Color('#f7d9a2'),
+    stonePath = new T.Color('#efd0a1'),
+    moss = new T.Color('#62b860');
+  const groveLight=new T.Color('#92d771'),groveShade=new T.Color('#5fb56a');
+  const groveColor=new T.Color(),rimColor=new T.Color('#e6b97b');
   for (let j = 0; j <= grid.n; j++)
     for (let i = 0; i <= grid.n; i++) {
       const [xmin,xmax,zmin,zmax] = grid.bounds;
@@ -210,11 +212,11 @@ export function build(scene, leafUp, library, grain) {
         const roughEdge = border + .24*Math.sin(x*2.4-z*3.5) + .14*Math.cos(x*6.2+z*3.6);
         const pathLight = 1-T.MathUtils.smoothstep(roughEdge,-.77,.65);
         const variation = .5+.29*Math.sin(x*.98+z*.84)+.21*Math.sin(z*3.27-x*2.8);
-        const soil = new T.Color('#496b49').lerp(new T.Color('#7a8951'),variation);
-        const clay = new T.Color(x>3.7&&z<5 ? '#b2a999' : '#b9905c');
-        soil.lerp(clay,pathLight);
+        const soil = groveColor.copy(groveShade).lerp(groveLight,variation);
+        soil.lerp(rimColor,1-T.MathUtils.smoothstep(roughEdge,-.28,.65));
+        soil.lerp(x>3.7&&z<5 ? stonePath : earth,pathLight);
         const dapple = Math.sin(x*1.88 + Math.cos(z*1.63)) * Math.sin(z*1.37-x*.89);
-        soil.multiplyScalar(.91 + .14*variation + .20*dapple + .15*pigment);
+        soil.multiplyScalar(.94 + .08*variation + .06*dapple + .04*pigment);
         const taper = T.MathUtils.smoothstep(Math.min(x+13.2,10.7-x,z+4.2,9.8-z),0,2);
         c.lerp(soil,taper);
       }
@@ -236,9 +238,7 @@ export function build(scene, leafUp, library, grain) {
   geometry.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  const terrain = new T.Mesh(geometry, new T.MeshStandardMaterial({
-    vertexColors: true, roughness: 1, map: grain,
-  }));
+  const terrain = new T.Mesh(geometry, paint.toon('#ffffff',{ vertexColors:true }));
   terrain.receiveShadow = true;
   group.add(terrain);
 
@@ -247,12 +247,12 @@ export function build(scene, leafUp, library, grain) {
   }
   function tree(x, z, h) {
     const y = floor(x, z),
-      tint = random() > 0.55 ? '#4d8467' : '#397460';
-    piece('trunk', '#977e60', x, y + h * 0.38, z, 0.24, h * 0.76, 0.25, 0, 0, 0.03, true);
+      tint = random() > 0.55 ? '#5bc46f' : '#46b377';
+    piece('trunk', '#a06d47', x, y + h * 0.38, z, 0.24, h * 0.76, 0.25, 0, 0, 0.03, true);
     piece('crown', tint, x, y + h * 0.83, z, h * 0.32, h * 0.39, h * 0.3, 0, random() * 3, 0, true);
     piece(
       'crown',
-      '#83a06a',
+      '#7dd66c',
       x - 0.25,
       y + h * 1.03,
       z + 0.12,
@@ -316,21 +316,42 @@ export function build(scene, leafUp, library, grain) {
       );
     if (i % 3 === 0) piece('crown', '#ebbb71', x, y + 0.38, z, 0.1, 0.09, 0.1);
   }
-  // The mill, trough and recurring leaf boats identify home even in silhouette.
+  // The same trough now opens into a pool beneath the wheel.
+  const poolPaint=new T.MeshBasicMaterial({color:'#56c8f2'});
+  poolPaint.onBeforeCompile=shader=>{
+    shader.uniforms.waterClock=waterClock;
+    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\npoolUv=uv;');
+    shader.vertexShader='varying vec2 poolUv;\n'+shader.vertexShader;
+    shader.fragmentShader=`varying vec2 poolUv;
+      uniform float waterClock;
+    `+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+      vec2 point=poolUv*2.0-1.0;
+      float shore=smoothstep(.62,.99,length(point));
+      float ripple=smoothstep(.91,.98,sin(14.0*point.y+2.4*sin(point.x*3.0)-waterClock*2.6));
+      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.73,.93,1.0),shore*.75+ripple*.40*(1.0-shore));`);
+  };
+  const pond=new T.Mesh(new T.CircleGeometry(1,36).rotateX(-Math.PI/2),poolPaint);
+  pond.position.set(-1.85,.13,13.52);
+  pond.scale.set(1.35,1,1.48);
+  group.add(pond);
   const wheel = new T.Group();
   wheel.name='Soleira:Roda';
   wheel.position.set(-1.28, floor(-1.28, 13) + 0.83, 13);
   group.add(wheel);
   const moving = (parent, shape, tint, x, y, z, sx, sy, sz) => {
-    const mesh = new T.Mesh(shapes[shape], new T.MeshStandardMaterial({ color: tint, roughness:.72 }));
+    const mesh = new T.Mesh(shapes[shape], paint.toon(tint));
     mesh.position.set(x, y, z);
     mesh.scale.set(sx, sy, sz);
     parent.add(mesh);
     return mesh;
   };
-  moving(wheel, 'ring', '#895534', 0, 0, 0, 0.81, 0.81, 0.54);
-  for (const [count,tint,scale,radius] of [[6,'#bc8a59',[.088,1.65,.11],0],[10,'#e2b97d',[.19,.26,.43],.82]]) {
-    const ringParts=new T.InstancedMesh(shapes.slab,new T.MeshStandardMaterial({color:tint,roughness:.70}),count);
+  for(const z of [-.25,.25]){
+    paint.outline(moving(wheel,'ring','#a06d47',0,0,z,.83,.83,.42),1.45);
+  }
+  moving(wheel,'crown','#ff7a59',0,0,.29,.18,.18,.14);
+  for (const [count,tint,scale,radius] of [[6,'#bb8252',[.088,1.65,.48],0],[10,'#72c5b5',[.19,.27,.53],.82]]) {
+    const ringParts=new T.InstancedMesh(shapes.slab,paint.toon(tint),count);
     for(let i=0;i<count;i++){
       const a=i*(radius?Math.PI*2:Math.PI)/count;
       dummy.position.set(Math.cos(a)*radius,Math.sin(a)*radius,0);
@@ -342,21 +363,27 @@ export function build(scene, leafUp, library, grain) {
     wheel.add(ringParts);
   }
   piece('trunk', '#5b5142', -1.28, wheel.position.y, 13, 0.16, 1.35, 0.16, Math.PI / 2);
-  for (const x of [-1.84, -0.92]) piece('slab', '#97744e', x, 0.08, 11.15, 0.13, 0.46, 5.7);
-  piece('slab', '#5ab1bc', -1.38, 0.21, 11.15, 0.82, 0.12, 5.7,0,0,0,false,true);
+  for (const x of [-1.84, -0.92]) piece('slab', '#b67b4e', x, 0.08, 11.15, 0.13, 0.46, 5.7);
+  piece('slab', '#56c8f2', -1.38, 0.21, 11.15, 0.82, 0.12, 5.7,0,0,0,false,true);
   const boat = new T.Group();
   boat.name='Soleira:Barquinho';
   boat.position.set(-1.38, 0.35, 9);
   boat.scale.set(1.18, 1, 1.14);
   group.add(boat);
-  moving(boat, 'leaf', '#b77432', 0, -0.025, 0, 0.22, 0.085, 0.48);
-  for (const sign of [-1, 1]) {
-    const side = moving(boat, 'leaf', '#ecc15f', sign * 0.105, 0.04, 0, 0.135, 0.055, 0.46);
-    side.rotation.z = sign * 0.45;
+  const hull=new T.Shape().moveTo(-.39,.10).lineTo(-.22,-.025).lineTo(.22,-.025).lineTo(.39,.10).closePath();
+  const sail=new T.Shape().moveTo(-.21,.10).lineTo(.23,.10).lineTo(0,.42).closePath();
+  const boatParts=[];
+  for(const [shape,color,depth] of [[hull,'#fff8e8',.23],[sail,'#eaf9ff',.055]]){
+    const geometry=new T.ExtrudeGeometry(shape,{depth,bevelThickness:.025,bevelSize:.025,bevelSegments:2});
+    geometry.translate(0,0,-depth/2).rotateY(Math.PI/2);
+    const mesh=new T.Mesh(geometry,paint.toon(color));
+    boat.add(mesh);
+    paint.outline(mesh,1.35);
+    const highlight=paint.outline(mesh,2.75,gem);
+    boatParts.push(highlight);
   }
-  moving(boat, 'slab', '#715c3c', 0, 0.07, 0, 0.027, 0.045, 0.69);
   const wake=Array.from({length:3},(_,i)=>
-    moving(boat,'leaf','#c4e9d7',0,.018,-.42-i*.16,.29+i*.065,.013,.026));
+    moving(boat,'leaf','#ebfcff',0,.018,-.42-i*.16,.29+i*.065,.013,.026));
   // The original treads outside the art sample continue towards the gorge.
   for (const [index, color] of [
     [1, '#8b6241'],
@@ -388,9 +415,9 @@ export function build(scene, leafUp, library, grain) {
       }
     }
   }
-  const art = installBosque(group, library, layout, floor, edge);
+  const art = installBosque(group, library, layout, floor, edge,paint);
   const regions = installRegions(group, library, layout, floor, edge);
-  const shelter = buildShelter(floor, leafUp);
+  const shelter = buildShelter(floor, leafUp,paint);
   group.add(shelter.group);
   for (let i = 0; i < 3; i++) rock(8 + 0.22 * i, 0.9 - 0.65 * i, 0.43, 0.8 + i * 0.3, 0.35, '#e2ded7');
   const pulse = moving(group, 'ring', '#f9da8e', 7.8, floor(7.8, 0.35) + 1, 0.35, 0.1, 0.1, 0.1);
@@ -440,7 +467,7 @@ export function build(scene, leafUp, library, grain) {
     terrain,
     shelter,
     setEconomy(low) { art.setEconomy(low); regions.setEconomy(low); },
-    living() { return { lowWheel:wheel.rotation.z, lowBoat:boat.position.toArray(), lowWater:waterClock.value, ...regions.living() }; },
+    living() { return { lowWheel:wheel.rotation.z, lowBoat:boat.position.toArray(), lowWater:waterClock.value, stonePressure:art.stonePressure(), ...regions.living() }; },
     blocksTap(ray, hit) {
       if (art.blocksTap(ray,hit)) return true;
       return blockers.some(({ mesh, list }) =>
@@ -463,17 +490,20 @@ export function build(scene, leafUp, library, grain) {
       regions.interact(id,t);
       return description(id);
     },
-    tick(t, still, camera, hero, buddy) {
+    tick(t, still, camera, hero, buddy, action, moving) {
       const landmarks=Math.hypot(hero.x,hero.z-13)<3.6?lowLandmarks
         :Math.hypot(hero.x-2.68,hero.z-6.5)<3.0?forkLandmarks:noLandmarks;
       art.clearSight(camera,hero,buddy,landmarks);
+      art.step(hero,still,moving);
+      shelter.highlight(action==='leaf');
       regions.tick(t,still,hero,camera,buddy,landmarks);
       gaze.update(camera,hero,buddy,landmarks);
       waterClock.value=still?0:t;
-      if (!still) wheel.rotation.z = -t * 0.65;
       const progress=boatProgress(t,boatAt,still,3.6);
-      boat.position.z=10.36+progress*3.31;
-      boat.position.y=still?.35:.35+Math.sin(t*5)*.025;
+      if(!still && boatAt!==null)wheel.rotation.z=-(progress-.08)*5.5;
+      boat.position.z=8.65+progress*5.85;
+      boat.position.y=(progress>.82?.29:.35)+(still||boatAt===null?0:Math.sin(t*5)*.022);
+      for(const highlight of boatParts)highlight.visible=action==='wheel';
       for(const mark of wake)mark.visible=progress>.08;
       const age = t - echoAt;
       pulse.visible = age < 1.8;

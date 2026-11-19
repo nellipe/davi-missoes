@@ -68,6 +68,11 @@ session(name, async ({ page, write, api, context, browser }) => {
       assert(point.visible,'O trecho visível da calha fica no quadro');
       return page.screenshot({clip:{x:point.x-9,y:point.y-6,width:18,height:12}});
     };
+    const frameWater=async()=>{
+      // Look along the side of the trough so the wheel and Davi leave the current in view.
+      await page.locator('[data-action=forest-rotate][data-turn="1"]').click();
+      await page.waitForTimeout(1100);
+    };
     assert.deepEqual(await state(),{choice:'system',reduced:false,system:false});
     await options();
     assert.equal(await page.locator('#forestMotion').inputValue(),'system');
@@ -79,24 +84,21 @@ session(name, async ({ page, write, api, context, browser }) => {
     await page.waitForTimeout(260);
     for(let i=0;i<15;i++){
       const d=await diag(page);
-      walk.push({pipo:d.pipoPosition,clip:d.pipoAnimation,feet:d.pipoFeetY-d.pipoGroundY,steps:d.pipoSteps,walking:d.moving});
+      walk.push({pipo:d.pipoPosition,clip:d.pipoAnimation,clearance:d.pipoFeetY-d.pipoGroundY,walking:d.moving});
       await page.waitForTimeout(65);
     }
     await page.keyboard.up('ArrowRight');
     assert(walk.every(point=>point.walking&&point.clip==='Walk'));
-    assert(walk.every(point=>Math.abs(point.feet)<.065),'Pipo pisa no terreno');
-    for(const leg of [0,1]){
-      const pose=walk.map(frame=>frame.steps[leg]);
-      const stride=Math.max(...pose.map(point=>Math.hypot(...point.map((v,i)=>v-pose[0][i]))));
-      assert(stride>.10,'Cada pata percorre um ciclo visível');
-    }
+    assert(walk.every(point=>point.clearance>.65),'Pipo flutua acima do terreno');
+    const clearance=walk.map(point=>point.clearance);
+    assert(Math.max(...clearance)-Math.min(...clearance)>.045,'A flutuação tem um ciclo visível');
     await page.waitForFunction(()=>DaviForest.diagnostics().pipoAnimation==='Hover');
     await page.keyboard.down('ArrowLeft');
     await page.waitForTimeout(930);
     await page.keyboard.up('ArrowLeft');
 
     await checkpoint(28,13.35);
-    await page.waitForTimeout(400);
+    await frameWater();
     const waterFirst=await waterPatch();
     await page.waitForTimeout(220);
     const waterChanges=!waterFirst.equals(await waterPatch());
@@ -137,7 +139,7 @@ session(name, async ({ page, write, api, context, browser }) => {
     assert((await state()).reduced);
     await checkpoint(28,13.35);
     assert((await state()).reduced);
-    await page.waitForTimeout(400);
+    await frameWater();
     const quietWater=await waterPatch();
     await page.waitForTimeout(220);
     const waterStill=quietWater.equals(await waterPatch());

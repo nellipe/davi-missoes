@@ -43,7 +43,7 @@ export function inBosque(x, z) {
   return x > -13.2 && x < 10.7 && z > -4.2 && z < 9.8;
 }
 
-export function installBosque(group, library, layout, floor, edge) {
+export function installBosque(group, library, layout, floor, edge, paint) {
   const art = new T.Group();
   const details = new T.Group();
   const economy = new T.Group(), full = new T.Group();
@@ -53,8 +53,8 @@ export function installBosque(group, library, layout, floor, edge) {
   const trunks = [];
   group.add(art);
   art.add(details,economy,full);
-  const material = library.getObjectByName('Carvalho_Copa').material.clone();
-  material.vertexColors = true;
+  const material = paint.toon('#ffffff',{vertexColors:true});
+  material.name = 'Pigmentos toon do Bosque';
   let seed = 24049;
   const random = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
   const get = (name) => library.getObjectByName(name).geometry;
@@ -79,11 +79,11 @@ export function installBosque(group, library, layout, floor, edge) {
     batches.get(key).poses.push([x, z, sx, sy, sz, turn, lift, solid]);
   }
   for (const [kind, x, z, size, turn] of trees) {
-    const trunk=place(kind + '_Tronco', x, z, size, size, size, turn, { solid: true });
-    trunks.push({ trunk, x, z, height: 5.4*size, radius: 1.12*size });
-    place(kind + '_Copa', x, z, size, size, size, turn);
-    place(kind + '_Copa_economica', x, z, size, size, size, turn);
-    place(kind + '_Pontas', x, z, size, size, size, turn, { detail: true });
+    const trunk=place(kind + '_Tronco', x, z, size, size*.83, size, turn, { solid: true });
+    trunks.push({ trunk, x, z, height: 4.5*size, radius: 1.12*size });
+    place(kind + '_Copa', x, z, size, size*.83, size, turn);
+    place(kind + '_Copa_economica', x, z, size, size*.83, size, turn);
+    place(kind + '_Pontas', x, z, size, size*.83, size, turn, { detail: true });
   }
   for (const [i,[x,z,sx,sy,sz,turn]] of shelves.entries()) {
     const kind=stoneNames[i%3];
@@ -91,6 +91,11 @@ export function installBosque(group, library, layout, floor, edge) {
   }
   place('Tronco_Oco', -7.78, .24, 1, 1, 1, Math.PI+.21, { solid: true, lift: .87 });
   place('Varal', 2.95, 2.95, 1, 1, 1, -.06, { solid: true });
+  for(const [x,z,size,turn] of [
+    [-1.8,8.3,.9,.4], [4.75,7.48,.85,.5], [1.88,4.0,.91,2],
+    [-8.32,-.21,.82,.8], [-7.36,.57,.68,1.2], [-10.78,1.02,.95,1],
+    [-10.2,3.33,.88,2.7], [-1.37,-1.35,.8,1.7],
+  ])place('Cogumelos',x,z,size,size,size,turn);
 
   // Irregular widths, chords and gaps follow the same center lines as the previous treads.
   for (const index of [1, 2]) {
@@ -106,7 +111,7 @@ export function installBosque(group, library, layout, floor, edge) {
         const width = .89 + random()*.31;
         const turn = Math.atan2(c-a,d-b);
         place(index === 1 ? 'Passo_Casca' : 'Passo_Pedra',
-          x + skew*Math.cos(turn), z - skew*Math.sin(turn), width, .86, .67+random()*.24,
+          x + skew*Math.cos(turn), z - skew*Math.sin(turn), width, index===2?1.7:.86, .67+random()*.24,
           turn+(random()-.5)*.28, { lift: -.015 });
       }
     }
@@ -153,6 +158,9 @@ export function installBosque(group, library, layout, floor, edge) {
   const vertical = new T.Vector3(0,1,0);
   const turnAroundY = new T.Quaternion();
   const invisible = new T.Matrix4().makeScale(0,0,0);
+  const steppingStones=[];
+  const pressedMatrix=new T.Matrix4();
+  let pressed=null;
   for (const [name, { parent, geometry, poses }] of batches) {
     const mesh = new T.InstancedMesh(geometry,material,poses.length);
     mesh.name='Bosque:'+name.replace(/\.detail$/,'');
@@ -170,6 +178,7 @@ export function installBosque(group, library, layout, floor, edge) {
       }
       pose.updateMatrix();
       mesh.setMatrixAt(i,pose.matrix);
+      if(name==='Passo_Pedra')steppingStones.push({mesh,i,x,z,matrix:pose.matrix.clone()});
       if(solid)visibleSolids.add(i);
       if(canopy||foreground){
         if(!geometry.boundingSphere)geometry.computeBoundingSphere();
@@ -177,14 +186,33 @@ export function installBosque(group, library, layout, floor, edge) {
         screening.push({mesh,parent,i,matrix:pose.matrix.clone(),sphere,foreground,solid,visibleSolids,hidden:false});
       }
     });
-    mesh.castShadow = parent === art || parent === full;
+    mesh.castShadow = (parent === art || parent === full) && name!=='Cogumelos' && !tread;
     mesh.receiveShadow = true;
     parent.add(mesh);
+    if(name==='Passo_Pedra'||name==='Cogumelos')paint.outline(mesh,1.15);
     if(visibleSolids.size)solidBatches.push({mesh,visibleSolids});
   }
   let economical=false;
   const sight=createSight();
   return {
+    stonePressure() { return pressed ? pressed.matrix.elements[13]-pressedMatrix.elements[13] : 0; },
+    step(hero,still,moving) {
+      let next=null,gap=.36;
+      if(!still && moving)for(const stone of steppingStones){
+        const distance=Math.hypot(hero.x-stone.x,hero.z-stone.z);
+        if(distance<gap){next=stone;gap=distance;}
+      }
+      if(pressed && pressed!==next){
+        pressed.mesh.setMatrixAt(pressed.i,pressed.matrix);
+        pressed.mesh.instanceMatrix.needsUpdate=true;
+      }
+      pressed=next;
+      if(next){
+        pressedMatrix.copy(next.matrix).elements[13]-=.065*(1-gap/.36);
+        next.mesh.setMatrixAt(next.i,pressedMatrix);
+        next.mesh.instanceMatrix.needsUpdate=true;
+      }
+    },
     setEconomy(low) { economical=low; details.visible = full.visible = !low; economy.visible=low; },
     clearSight(camera, hero, buddy, landmarks) {
       art.visible=Math.hypot(hero.x-1,hero.z-3.4)<(economical?12.4:16.5);

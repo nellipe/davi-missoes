@@ -4,6 +4,7 @@ let stopForestDiagnostics;
 const state = {
   me: null,
   forestMode: null,
+  forestReward: null,
   view: "child",
   date: "",
   month: "",
@@ -439,11 +440,14 @@ async function child() {
     if(state.forestMode!=='island'){
       await DaviWorld.close();
       try{const forest=await import('/forest.js');
-        const options={layout,api,run:safe,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,
+        const options={layout,api,run:safe,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,reward:state.forestReward,
           onCalendar:async()=>{state.childSurface='calendar';await child();},
           onFallback:async()=>{state.forestMode='2d';try{localStorage.setItem('davi-forest-mode','2d');}catch{}await child();}};
         const ready=await forest.open({...options,mode:state.forestMode});
-        if(ready || (state.forestMode!=='2d' && await forest.open({...options,mode:'2d'})))return;
+        if(ready || (state.forestMode!=='2d' && await forest.open({...options,mode:'2d'}))){
+          state.forestReward=null;
+          return;
+        }
       }catch(e){if(typeof DaviForest!=='undefined')await DaviForest.close();console.warn('Ilha 2D disponível:',e.message);}
     }
     if(typeof DaviForest!=='undefined') await DaviForest.close();
@@ -789,6 +793,7 @@ async function openMission(id,date) {
   if (!parent) {
     state.view='child-game';
     DaviGame.open({mission:data.mission,title:data.title,dateLabel:fmt(date),layout,api,
+      onReward:reward=>{state.forestReward=reward;},
       onPractice:session=>{state.practiceSessions=[...(state.practiceSessions || []),session].slice(-10);},
       onExit:async()=>{state.childSurface='world';await child();}});
     return;

@@ -23,14 +23,14 @@
       "objects": 150
     },
     "davi.glb": {
-      "bytes": 558532,
-      "triangles_before_instancing": 11600,
+      "bytes": 568624,
+      "triangles_before_instancing": 13704,
       "objects": 24
     },
     "pipo.glb": {
-      "bytes": 189596,
-      "triangles_before_instancing": 4056,
-      "objects": 16
+      "bytes": 151176,
+      "triangles_before_instancing": 3580,
+      "objects": 13
     }
   }
 }
