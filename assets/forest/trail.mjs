@@ -2,7 +2,7 @@ import * as T from '/vendor/three/three.module.min.js';
 import { terrainHeight, seamCreek, terrainRim } from './navigation.mjs';
 import { buildShelter } from './beetle.mjs';
 import { buildHedgehog } from './hedgehog.mjs';
-import { recanto } from './recanto.mjs';
+import { recanto, recantoMeadow } from './recanto.mjs';
 import { inBosque, inSceneMaster, installBosque } from './bosque.mjs';
 import { installRegions } from './regions.mjs';
 import { boatProgress } from './boat.mjs';
@@ -25,7 +25,8 @@ export function configure(map, seamHeight, world) {
       const blend=T.MathUtils.smoothstep(x,xmin,xmin+seamWidth);
       const wx=x+world.trailOffset;
       const land=height(x,z)-2.5*seamCreek(wx,z,world.seam)-2.6*terrainRim(wx,z,world.bounds);
-      grid.heights.push(T.MathUtils.lerp(bank,land,blend));
+      const surface=T.MathUtils.lerp(bank,land,blend);
+      grid.heights.push(T.MathUtils.lerp(surface,.075,recantoMeadow(x,z)));
     }
   }
 }
@@ -197,6 +198,7 @@ export function build(scene, leafUp, library, paint, solid) {
     stonePath = new T.Color('#efd0a1'),
     moss = new T.Color('#62b860');
   const groveLight=new T.Color('#9bd96d'),groveShade=new T.Color('#59b668');
+  const meadowColor=new T.Color();
   const groveColor=new T.Color(),rimColor=new T.Color('#e4b477');
   const cliffColor=new T.Color('#406459'),creekColor=new T.Color('#397880');
   for (let j = 0; j <= grid.n; j++)
@@ -226,6 +228,11 @@ export function build(scene, leafUp, library, paint, solid) {
       if(x>6&&z<-7.6)c.lerp(new T.Color('#c99873'),(1-T.MathUtils.smoothstep(border,-.8,.55))*.69);
       if(x>13&&z>-10)c.lerp(new T.Color('#9da882'),(1-T.MathUtils.smoothstep(border,-.6,.45))*.55);
       if(x<-6&&z>5)c.lerp(new T.Color('#c1a674'),(1-T.MathUtils.smoothstep(border,-.6,.44))*.66);
+      const meadow=recantoMeadow(x,z);
+      if(meadow>0){
+        const light=.58+.19*Math.sin(x*2.7+z)+.16*Math.cos(z*2.2-x);
+        c.lerp(meadowColor.copy(groveShade).lerp(groveLight,light),.95*meadow);
+      }
       const worldX=x+layout.world.trailOffset;
       c.lerp(cliffColor,terrainRim(worldX,z,layout.world.bounds));
       c.lerp(creekColor,seamCreek(worldX,z,layout.world.seam));
@@ -388,7 +395,7 @@ export function build(scene, leafUp, library, paint, solid) {
   }
   const art = installBosque(group, library, layout, floor, edge,paint,solid);
   const regions = installRegions(group, library, layout, floor, edge,solid);
-  const shelter = buildShelter(floor, leafUp,paint,solid);
+  const shelter = buildShelter(floor, leafUp,paint);
   group.add(shelter.group);
   const hedgehog = buildHedgehog(floor,paint);
   group.add(hedgehog.group);

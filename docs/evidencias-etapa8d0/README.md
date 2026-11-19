@@ -1,5 +1,7 @@
 # Etapa 8D.0 · Ouriço do tronco e besouro da folha
 
+[Ajuste final do recanto com comparativos em 360 e 1366 px e vídeo](ajuste-final/README.md).
+
 O quadro de 19,5 s do HTML cinematográfico mostra o ouriço já à frente da boca do tronco, com focinho, olhos e espinhos legíveis. A folha ocupa um plano separado, ao nível do chão. A correção traz as duas descobertas para a Floresta jogável. [Sequência do HTML entre 18 e 20 s](sequencia-html-18-a-20.webp) · [Referência à esquerda e jogo real à direita](referencia-19-5-e-jogo.webp) · [Solicitação na PR #19](https://github.com/nellipe/davi-missoes/pull/19#issuecomment-7017576971).
 
 O ouriço sai ao notar Davi, olha para o jogador e permanece à frente da abertura durante a descoberta. O modelo toon tem olhos com brilho, focinho, bochechas, patas, orelhas e espinhos. As peças são agrupadas em três malhas, com contorno seletivo. O tronco foi recolocado e girado para mostrar a saída, e seu colisor foi regenerado a partir da malha e da nova posição.

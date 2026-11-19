@@ -59,14 +59,29 @@ test('free ground and both paths stay connected; the patio rocks require a real 
     assert.equal(unowned(x,z),false,name);
   }
 });
-test('the trunk is solid and all three discovery stops are on safe ground',()=>{
+test('the recanto has a connected meadow around the leaf and both shelters, with a solid trunk and creek edge',()=>{
+  const inWorld=([x,z])=>point(x+map.trailOffset,z);
   const [x,z]=recanto.log;
   assert(!unowned(x+map.trailOffset,z));
+  const action=inWorld(recanto.action);
   const [leafX,leafZ]=recanto.leaf;
-  for(const [u,v] of recanto.shelters)assert(unowned(leafX+u+map.trailOffset,leafZ+v));
-  const exit=point(x+2*Math.sin(recanto.openingYaw)+map.trailOffset,z+2*Math.cos(recanto.openingYaw));
+  const approach=inWorld([-3.7,3.55]);
+  assert(segmentClear(approach,action,unowned));
+  assert(segmentClear(action,inWorld(recanto.leaf),unowned));
+  const stops=[...recanto.basins,...recanto.shelters].map(([u,v])=>inWorld([leafX+u,leafZ+v]));
+  for(const stop of stops){
+    assert(segmentClear(action,stop,unowned));
+    for(const [dx,dz] of [[-.50,0],[.50,0],[0,-.50],[0,.50]]){
+      assert(segmentClear(stop,point(stop.x+dx,stop.z+dz),unowned),'walkable grass around '+JSON.stringify(stop));
+    }
+  }
+  const exit=inWorld([x+2*Math.sin(recanto.openingYaw),z+2*Math.cos(recanto.openingYaw)]);
   assert(unowned(exit.x,exit.z));
   assert(route(point(19,1.4),exit,unowned,map.bounds).length);
+  assert(!segmentClear(action,inWorld(recanto.log),unowned));
+  assert(!segmentClear(action,point(map.seam,1.5),unowned),'the meadow stops short of the creek');
+});
+test('animals can step aside to keep the recanto discovery visible only on reachable ground',()=>{
   const camera=point(0,5), davi=point(0,1), pipo=point(2,0);
   const reachable=(_x,_z,u)=>u>0;
   assert(visibleSpot(0,0,camera,davi,pipo,reachable)[0]>.55);

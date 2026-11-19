@@ -5,8 +5,45 @@ import { recanto, visibleSpot } from './recanto.mjs';
 const FLIP_SECONDS = .58;
 const CARRY_START = 1.02;
 const CARRY_END = 2.42;
+const LEAF_PITCH = .045;
+const leafRoll = up => up ? .18 : -.19;
 
-export function buildShelter(floor, leafUp, paint, registerSolid) {
+function woodlandLeaf() {
+  const positions=[], colors=[], faces=[];
+  const spine=new T.Color('#aad967'), shade=new T.Color('#589639');
+  const rows=[
+    // z, midrib offset and height, left and right blade widths
+    [-.67, .035, .015, .015, .025],
+    [-.52, .014, .059, .27, .22],
+    [-.33, -.012, .079, .46, .49],
+    [-.14, -.037, .105, .58, .54],
+    [.10, -.036, .103, .55, .58],
+    [.30, -.065, .079, .45, .46],
+    [.49, -.095, .039, .27, .32],
+    [.74, -.16, -.018, .009, .009],
+  ];
+  for(const [i,[z,x,h,left,right]] of rows.entries()){
+    for(const [j,t] of [-1,-.58,-.055,0,.055,.58,1].entries()){
+      const bend=Math.abs(t);
+      positions.push(x+t*(t<0?left:right),h-(.064+.014*Math.sin(i*1.5))*bend**1.4,
+        z+.084*bend*Math.sin(Math.PI*i/(rows.length-1)));
+      const color=spine.clone().lerp(shade,.17+.70*bend+(t<0?.055:0));
+      colors.push(color.r,color.g,color.b);
+      if(i<rows.length-1&&j<6){
+        const a=i*7+j;
+        faces.push(a,a+7,a+1,a+1,a+7,a+8);
+      }
+    }
+  }
+  const geometry=new T.BufferGeometry();
+  geometry.setIndex(faces);
+  geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+  geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+export function buildShelter(floor, leafUp, paint) {
   const group = new T.Group();
   const [leafX,leafZ] = recanto.leaf;
   group.position.set(leafX, floor(leafX,leafZ), leafZ);
@@ -24,42 +61,33 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
     return mesh;
   }
 
-  const leaf = new T.BufferGeometry();
-  leaf.setAttribute('position', new T.Float32BufferAttribute([
+  const carriedShape = new T.BufferGeometry();
+  carriedShape.setAttribute('position', new T.Float32BufferAttribute([
     0, 0, -.83, -.44, .07, -.37, -.54, .02, .16, -.31, .05, .51, 0, 0, .72,
     .31, .05, .51, .54, .02, .16, .44, .07, -.37, 0, .17, -.05,
   ], 3));
-  leaf.setIndex([8, 0, 1, 8, 1, 2, 8, 2, 3, 8, 3, 4, 8, 4, 5, 8, 5, 6, 8, 6, 7, 8, 7, 0]);
-  leaf.computeVertexNormals();
+  carriedShape.setIndex([8, 0, 1, 8, 1, 2, 8, 2, 3, 8, 3, 4, 8, 4, 5, 8, 5, 6, 8, 6, 7, 8, 7, 0]);
+  carriedShape.computeVertexNormals();
+  const leaf=woodlandLeaf();
   const wood = '#a67749', shell = '#dd7946', dark = '#34264a';
   const hinge = new T.Group();
-  hinge.position.set(0, .27, 0);
+  hinge.position.y=.195;
   group.add(hinge);
-  const roof = part(hinge, leaf, '#6ed36e', [0, 0, 0], [1.25, 1, 1.08]);
-  roof.material.side = T.DoubleSide;
-  const leafEdge=part(hinge,leaf,'#34264a',[0,-.026,0],[1.34,1,1.15]);
-  const leafMark=part(hinge,leaf,gem,[0,-.040,0],[1.46,1,1.22]);
-  leafEdge.material= new T.MeshBasicMaterial({color:0x34264a,side:T.DoubleSide});
-  leafMark.material= new T.MeshBasicMaterial({color:gem,side:T.DoubleSide});
-  part(hinge, sphere, '#3e9b55', [0, .13, -.04], [.031, .052, .69]);
-  function registerPost(post){
-    if(!registerSolid)return;
-    post.updateWorldMatrix(true,false);
-    registerSolid('Abrigo:Suporte',stick,post.matrixWorld);
-  }
-  for (const side of [-1, 1]) {
-    const leg = part(group, stick, wood, [side * .22, .125, -.35], [.087, .27, .10]);
-    leg.rotation.z = side * .29;
-    registerPost(leg);
-  }
-  const twig = part(group, stick, wood, [0, .81, -.63], [.12, .11, .72]);
-  twig.rotation.x = .18;
-  const stem = part(group, stick, wood, [-.036, .40, -.95], [.12, .84, .13]);
-  stem.rotation.z = -.05;
-  registerPost(stem);
+  const roof=new T.Mesh(leaf,paint.toon('#ffffff',{vertexColors:true,side:T.DoubleSide}));
+  hinge.add(roof);
+  const leafEdge=part(hinge,leaf,'#365c37',[0,-.018,0],[1.031,1,1.026]);
+  const leafMark=part(hinge,leaf,gem,[0,-.027,0],[1.086,1,1.075]);
+  leafEdge.material=new T.MeshBasicMaterial({color:0x365c37,side:T.DoubleSide});
+  leafMark.material=new T.MeshBasicMaterial({color:gem,side:T.DoubleSide});
+  const petiole=part(hinge,sphere,'#797846',[.056,-.038,-.75],[.035,.028,.20]);
+  petiole.rotation.x=-.29;
+  // A fallen twig drips onto the midrib and lies low enough to step over.
+  const twig=part(group,sphere,wood,[.17,.218,-.58],[.052,.048,.40]);
+  twig.rotation.x=-.48;
+  twig.rotation.y=-.075;
   const water = '#39aebc';
   const glint = '#b5ecdf';
-  const inlet = new T.Vector3(0, .76, -.28);
+  const inlet = new T.Vector3(.14, .405, -.225);
   const fall = part(group, thread, water, [0, 0, 0], [1, 1, 1]);
   const spill = part(group, thread, water, [0, 0, 0], [1, 1, 1]);
   const falling = part(group, drop, glint, [0, 0, 0], [.034, .073, .034]);
@@ -68,7 +96,7 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
   ring.rotateX(-Math.PI / 2);
   const ripple = part(group, ring, glint, [0, 0, 0], [.18, 1, .14]);
   const splash = [-1, 0, 1].map(() => part(group, drop, glint, [0, 0, 0], [.033, .05, .028]));
-  const basins = recanto.basins.map(([x,z],i)=>createBasin(x,z,i===0?-.55:.58));
+  const basins = recanto.basins.map(([x,z],i)=>createBasin(x,z,i===0?-1:1));
 
   function createBasin(x, z, side) {
     const ground = floor(group.position.x + x, group.position.z + z) - group.position.y;
@@ -94,14 +122,14 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
     const stones = new T.Mesh(rim, new T.MeshStandardMaterial({ vertexColors: true, side: T.DoubleSide }));
     group.add(stones);
     stones.position.set(x, ground, z);
-    stones.rotation.y = side * .3;
+    stones.rotation.y = side * .18;
     part(stones, sphere, '#534d36', [0, .029, 0], [.45, .021, .28]);
     const pool = part(stones, sphere, '#258c99', [0, .051, 0], [.45, .024, .28]);
     const groove = new T.CatmullRomCurve3([
-      new T.Vector3(0, .17, -.27), new T.Vector3(side * .30, .19, .05),
-      new T.Vector3(side * .74, .116, .29), new T.Vector3(side, .057, .48),
+      new T.Vector3(.12, .115, -.225), new T.Vector3(side * .16, .116, -.075),
+      new T.Vector3(side * .34, .093, .16), new T.Vector3(side * .51, .057, .34),
     ]);
-    const strip = part(hinge, new T.TubeGeometry(groove, 12, .046, 5, false),
+    const strip = part(hinge, new T.TubeGeometry(groove, 12, .024, 5, false),
       water, [0, 0, 0], [1, 1, 1]);
     return { pool, fill: 0, startFill: 0, strip, groove, impact: new T.Vector3(x, ground + .083, z) };
   }
@@ -163,7 +191,7 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
   const carriedLeaf = new T.Group();
   carriedLeaf.position.set(0, .51, -.33);
   beetle.add(carriedLeaf);
-  const tile = part(carriedLeaf, leaf, '#bbce88', [0, 0, 0], [.53, .65, .51]);
+  const tile = part(carriedLeaf, carriedShape, '#bbce88', [0, 0, 0], [.53, .65, .51]);
   tile.material.side = T.DoubleSide;
   part(carriedLeaf, sphere, '#8d9753', [0, .095, -.01], [.022, .025, .33]);
   carriedLeaf.rotation.x = -.13;
@@ -173,7 +201,7 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
   let seen = false;
   let arrivedAt = -10;
   let streamSide = up ? 0 : 1;
-  let startingRoll = up ? .40 : -.43;
+  let startingRoll = leafRoll(up);
   let age = 10;
   const oldPosition = new T.Vector3();
   const destination = new T.Vector3();
@@ -200,7 +228,7 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
     age = still ? 10 : time - movedAt;
     const target = up ? 0 : 1;
     const flip = T.MathUtils.smoothstep(age, 0, FLIP_SECONDS);
-    hinge.rotation.set(.17, .04, T.MathUtils.lerp(startingRoll, up ? .40 : -.43, flip));
+    hinge.rotation.set(LEAF_PITCH, .04, T.MathUtils.lerp(startingRoll, leafRoll(up), flip));
     hinge.updateMatrix();
     if (flip > .58) streamSide = target;
     const wet = basins[streamSide];
@@ -216,8 +244,8 @@ export function buildShelter(floor, leafUp, paint, registerSolid) {
     leafInlet.copy(wet.groove.points[0]).applyMatrix4(hinge.matrix);
     leafLip.copy(wet.groove.points.at(-1)).applyMatrix4(hinge.matrix);
     const phase = still ? .66 : (time * 1.38) % 1;
-    connect(fall, inlet, leafInlet, .028);
-    connect(spill, leafLip, wet.impact, .047 + (!still && age > .39 && age < .97 ? .014 : 0));
+    connect(fall, inlet, leafInlet, .018);
+    connect(spill, leafLip, wet.impact, .028 + (!still && age > .39 && age < .97 ? .009 : 0));
     falling.position.copy(inlet).lerp(leafInlet, phase);
     dropAtLip.position.copy(leafLip).lerp(wet.impact, phase ** 1.6);
     splashPoint.copy(wet.impact).y += .009;

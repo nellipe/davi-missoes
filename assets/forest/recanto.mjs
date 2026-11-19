@@ -1,13 +1,22 @@
+import { smoothstep } from './navigation.mjs';
+
 // Trail-local positions shared by the artwork, camera, 2D view and collision exporter.
 export const recanto = {
   log: [-6.04, .08],
   openingYaw: -.64,
-  leaf: [-8.44, 2.54],
-  action: [-8.95, 2.02],
-  focus: [-7.86, 2.16],
-  basins: [[-.69, 1.01], [.68, 1.02]],
-  shelters: [[.74, 1.34], [-.58, 1.43]],
+  leaf: [-7.45, 2.75],
+  action: [-6.59, 2.39],
+  focus: [-7.16, 2.35],
+  basins: [[-.66, .80], [.66, .80]],
+  shelters: [[.74, 1.23], [-.43, 1.35]],
 };
+
+// Ease the shoulder of the east bank into the meadow, clear of the creek.
+export function recantoMeadow(x,z) {
+  const [u,v]=recanto.leaf;
+  const distance=Math.hypot((x-u-.12)/3.21,(z-v-.08)/2.05);
+  return smoothstep(x,-9.66,-9.22)*(1-smoothstep(distance,.60,1));
+}
 
 // An animal can take a short step within its clearing when an explorer stands
 // in front of it. The two shelter assignments and the player's route stay put.

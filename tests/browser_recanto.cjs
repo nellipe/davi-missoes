@@ -4,7 +4,7 @@ const {session,ready,diag,distance,out,save} = require('./forest_session.cjs');
 
 const width=Number(process.argv[2]||390), mobile=width<700, height=mobile?850:820;
 const profile=mobile?'low':'high';
-const start={x:21.74,z:3}, visit={x:19,z:1.4};
+const start={x:24.75,z:3.55}, visit={x:22.01,z:2.74};
 const stem='recanto-'+width;
 const selector=name=>'[data-action="'+name+'"]';
 
@@ -20,6 +20,11 @@ session(stem,async({page,api})=>{
     const d=await diag(page), framing=await frame();
     assert(d.navigationValid&&d.pipoNavigationValid);
     assert.equal(d.low,profile==='low');
+    const [beetleX,beetleY,beetleZ]=d.shelter.beetle;
+    const grounded=await page.evaluate(([x,y,z])=>{
+      return DaviForest.walkable(x,z)&&Math.abs(DaviForest.project(x,z).y-DaviForest.project(x,z,y).y)<3;
+    },[beetleX,beetleY,beetleZ]);
+    assert(grounded,name+' besouro no gramado');
     const samples=d.frameMs.slice(-30).sort((a,b)=>a-b);
     evidence.push({name,leaf:d.shelter.leafUp,wetBasin:d.shelter.wetBasin,
       hedgehog:d.hedgehog,shelter:d.shelter,framing,player:d.position,pipo:d.pipoPosition,

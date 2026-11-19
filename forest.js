@@ -1042,7 +1042,7 @@ function pipoGoal({x,z}) {
   const hero={x,z};
   const closeToHero=point=>walkable(point.x,point.z)&&segmentClear(hero,point,walkable);
   if(beyondSeam(x)&&nearRecanto(x,z)<3.45){
-    for(const [dx,dz] of [[.55,-1.10],[-.48,-.85],[.80,-.5],[-.57,.82],[.10,1.0],[.69,.17]]){
+    for(const [dx,dz] of [[.80,-.5],[.55,-1.10],[.69,.17],[-.48,-.85],[-.57,.82],[.10,1.0]]){
       const side={x:x+dx,z:z+dz};
       if(closeToHero(side))return side;
     }
