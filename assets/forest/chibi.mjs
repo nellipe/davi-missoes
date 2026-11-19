@@ -14,6 +14,20 @@ export function createChibiPaint() {
     return new T.MeshToonMaterial({ color, gradientMap: ramp, ...options });
   }
 
+  function leafyToon() {
+    const material=toon('#ffffff',{vertexColors:true});
+    material.name='Foliagem toon com tinta';
+    // A thin tint at grazing angles keeps rounded foliage legible in the
+    // same forward pass, including the economical crowns.
+    material.onBeforeCompile=shader=>{
+      shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
+        float rim=1.0-smoothstep(.035,.24,abs(normal.z));
+        outgoingLight=mix(outgoingLight,vec3(.049,.029,.074),rim*.77);
+        #include <opaque_fragment>`);
+    };
+    return material;
+  }
+
   function outline(mesh, width = 1.6, color = ink) {
     const key = width + ':' + color;
     if (!outlines.has(key)) {
@@ -98,7 +112,7 @@ export function createChibiPaint() {
   }
 
   return {
-    toon, outline, person,
+    toon, leafyToon, outline, person,
     resize(w, h) { viewport.set(w, h); },
     dispose() {
       ramp.dispose();

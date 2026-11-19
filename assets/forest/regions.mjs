@@ -1,6 +1,7 @@
 import * as T from '/vendor/three/three.module.min.js';
 import { boatProgress } from './boat.mjs';
 import { createSight } from './sight.mjs';
+import { inSceneMaster } from './bosque.mjs';
 
 // Shared silhouettes from the Bosque library, composed as separate groups within the same terrain.
 export function installRegions(root, library, layout, floor, edge) {
@@ -86,6 +87,7 @@ export function installRegions(root, library, layout, floor, edge) {
       const x=theme.x+(rnd()-.5)*13,z=theme.z+(rnd()-.5)*10;
       if(x<layout.bounds[0]+.35||z< -14.5|| (x>-11&&x<9&&z> -4.2&&z<9.8))continue;
       const rim=edge(x,z), a=rnd()*6.28, s=.48+rnd()*.58;
+      if(inSceneMaster(x,z))continue;
       if(rim>1.68&&i<24)trees.push([x,z,s,s,s,a]);
       else if(rim>.7&&i<40) (i%3===0?pebbles:rocks).push([x,z,s,s*(i%3===0?.83:.65),s,a]);
       else if(rim>.32&&rim<1.8){

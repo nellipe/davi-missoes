@@ -1,0 +1,1034 @@
+[
+  {
+    "width": 360,
+    "quality": "low",
+    "spot": "soleira",
+    "position": [
+      28,
+      0.05137241296525243,
+      13.35
+    ],
+    "camera": [
+      32.3153291119497,
+      4.286372408127415,
+      19.272614564834782
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 63,
+    "triangles": 135850,
+    "readyMs": 731.5,
+    "dpr": 0.83,
+    "fps": 60.00800106680891,
+    "p95ms": 16.799999999999955,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 76600000,
+    "art": {
+      "agua": {
+        "calls": 7,
+        "triangles": 3556
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "solo": {
+        "calls": 5,
+        "triangles": 9102
+      }
+    }
+  },
+  {
+    "width": 360,
+    "quality": "low",
+    "spot": "bosque",
+    "position": [
+      30.68,
+      0.19527101867696434,
+      6.5
+    ],
+    "camera": [
+      31.796430672721428,
+      4.430271013839127,
+      13.793980803747347
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 62,
+    "triangles": 150182,
+    "readyMs": 490.69999998807907,
+    "dpr": 0.83,
+    "fps": 60,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 76600000,
+    "art": {
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "solo": {
+        "calls": 6,
+        "triangles": 15412
+      },
+      "agua": {
+        "calls": 2,
+        "triangles": 1292
+      }
+    }
+  },
+  {
+    "width": 360,
+    "quality": "low",
+    "spot": "tronco",
+    "position": [
+      19,
+      0.05142579003680147,
+      1.4
+    ],
+    "camera": [
+      22.112731166067594,
+      4.286425785198964,
+      8.04348739835088
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 87,
+    "triangles": 147128,
+    "readyMs": 582.3000000119209,
+    "dpr": 0.83,
+    "fps": 60.0080010668089,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 76600000,
+    "art": {
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "solo": {
+        "calls": 5,
+        "triangles": 9102
+      },
+      "agua": {
+        "calls": 1,
+        "triangles": 276
+      }
+    }
+  },
+  {
+    "width": 360,
+    "quality": "low",
+    "spot": "lajes",
+    "position": [
+      31.72,
+      0.792385207197802,
+      4.21
+    ],
+    "camera": [
+      32.83643067272143,
+      5.027385202359964,
+      11.503980803747346
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 68,
+    "triangles": 176560,
+    "readyMs": 474.40000000596046,
+    "dpr": 0.83,
+    "fps": 60.00800106680891,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 76600000,
+    "art": {
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "solo": {
+        "calls": 6,
+        "triangles": 15412
+      },
+      "agua": {
+        "calls": 2,
+        "triangles": 1292
+      }
+    }
+  },
+  {
+    "width": 360,
+    "quality": "high",
+    "spot": "soleira",
+    "position": [
+      28,
+      0.05137241296525243,
+      13.35
+    ],
+    "camera": [
+      32.3153291119497,
+      4.286372408127415,
+      19.272614564834782
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 104,
+    "triangles": 258776,
+    "readyMs": 1704.0999999940395,
+    "dpr": 1,
+    "fps": 60,
+    "p95ms": 16.799999999999955,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 72200000,
+    "art": {
+      "agua": {
+        "calls": 7,
+        "triangles": 3556
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "solo": {
+        "calls": 6,
+        "triangles": 9902
+      }
+    }
+  },
+  {
+    "width": 360,
+    "quality": "high",
+    "spot": "bosque",
+    "position": [
+      30.68,
+      0.19527101867696434,
+      6.5
+    ],
+    "camera": [
+      31.796430672721428,
+      4.430271013839127,
+      13.793980803747347
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 104,
+    "triangles": 277196,
+    "readyMs": 526,
+    "dpr": 1,
+    "fps": 59.99999999999999,
+    "p95ms": 16.799999999999955,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 72200000,
+    "art": {
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "solo": {
+        "calls": 7,
+        "triangles": 16212
+      },
+      "agua": {
+        "calls": 2,
+        "triangles": 1292
+      }
+    }
+  },
+  {
+    "width": 360,
+    "quality": "high",
+    "spot": "tronco",
+    "position": [
+      19,
+      0.05142579003680147,
+      1.4
+    ],
+    "camera": [
+      22.112731166067594,
+      4.286425785198964,
+      8.04348739835088
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 129,
+    "triangles": 274142,
+    "readyMs": 664.5999999940395,
+    "dpr": 1,
+    "fps": 60,
+    "p95ms": 16.799999999999955,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 72200000,
+    "art": {
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "solo": {
+        "calls": 6,
+        "triangles": 9902
+      },
+      "agua": {
+        "calls": 1,
+        "triangles": 276
+      }
+    }
+  },
+  {
+    "width": 360,
+    "quality": "high",
+    "spot": "lajes",
+    "position": [
+      31.72,
+      0.792385207197802,
+      4.21
+    ],
+    "camera": [
+      32.83643067272143,
+      5.027385202359964,
+      11.503980803747346
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 111,
+    "triangles": 308174,
+    "readyMs": 531.8000000119209,
+    "dpr": 1,
+    "fps": 59.99999999999999,
+    "p95ms": 16.799999999999955,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 72200000,
+    "art": {
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "solo": {
+        "calls": 7,
+        "triangles": 16212
+      },
+      "agua": {
+        "calls": 2,
+        "triangles": 1292
+      }
+    }
+  },
+  {
+    "width": 390,
+    "quality": "low",
+    "spot": "soleira",
+    "position": [
+      28,
+      0.05137241296525243,
+      13.35
+    ],
+    "camera": [
+      32.3153291119497,
+      4.286372408127415,
+      19.272614564834782
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 65,
+    "triangles": 142130,
+    "readyMs": 772,
+    "dpr": 0.83,
+    "fps": 60.0080010668089,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 64000000,
+    "art": {
+      "agua": {
+        "calls": 7,
+        "triangles": 3556
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "solo": {
+        "calls": 5,
+        "triangles": 9102
+      }
+    }
+  },
+  {
+    "width": 390,
+    "quality": "low",
+    "spot": "bosque",
+    "position": [
+      30.68,
+      0.19527101867696434,
+      6.5
+    ],
+    "camera": [
+      31.796430672721428,
+      4.430271013839127,
+      13.793980803747347
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 62,
+    "triangles": 150182,
+    "readyMs": 543.6999999880791,
+    "dpr": 0.83,
+    "fps": 60,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 64000000,
+    "art": {
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "solo": {
+        "calls": 6,
+        "triangles": 15412
+      },
+      "agua": {
+        "calls": 2,
+        "triangles": 1292
+      }
+    }
+  },
+  {
+    "width": 390,
+    "quality": "low",
+    "spot": "tronco",
+    "position": [
+      19,
+      0.05142579003680147,
+      1.4
+    ],
+    "camera": [
+      22.112731166067594,
+      4.286425785198964,
+      8.04348739835088
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 87,
+    "triangles": 147128,
+    "readyMs": 565,
+    "dpr": 0.83,
+    "fps": 59.99999999999999,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 64000000,
+    "art": {
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "solo": {
+        "calls": 5,
+        "triangles": 9102
+      },
+      "agua": {
+        "calls": 1,
+        "triangles": 276
+      }
+    }
+  },
+  {
+    "width": 390,
+    "quality": "low",
+    "spot": "lajes",
+    "position": [
+      31.72,
+      0.792385207197802,
+      4.21
+    ],
+    "camera": [
+      32.83643067272143,
+      5.027385202359964,
+      11.503980803747346
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 68,
+    "triangles": 176560,
+    "readyMs": 531.8000000119209,
+    "dpr": 0.83,
+    "fps": 59.99999999999999,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 64000000,
+    "art": {
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "solo": {
+        "calls": 6,
+        "triangles": 15412
+      },
+      "agua": {
+        "calls": 2,
+        "triangles": 1292
+      }
+    }
+  },
+  {
+    "width": 390,
+    "quality": "high",
+    "spot": "soleira",
+    "position": [
+      28,
+      0.05137241296525243,
+      13.35
+    ],
+    "camera": [
+      32.3153291119497,
+      4.286372408127415,
+      19.272614564834782
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 105,
+    "triangles": 262736,
+    "readyMs": 1693.0999999940395,
+    "dpr": 1,
+    "fps": 60.00000000000002,
+    "p95ms": 16.799999999999727,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 76600000,
+    "art": {
+      "agua": {
+        "calls": 7,
+        "triangles": 3556
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "solo": {
+        "calls": 6,
+        "triangles": 9902
+      }
+    }
+  },
+  {
+    "width": 390,
+    "quality": "high",
+    "spot": "bosque",
+    "position": [
+      30.68,
+      0.19527101867696434,
+      6.5
+    ],
+    "camera": [
+      31.796430672721428,
+      4.430271013839127,
+      13.793980803747347
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 104,
+    "triangles": 277196,
+    "readyMs": 602,
+    "dpr": 1,
+    "fps": 60,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 76600000,
+    "art": {
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "solo": {
+        "calls": 7,
+        "triangles": 16212
+      },
+      "agua": {
+        "calls": 2,
+        "triangles": 1292
+      }
+    }
+  },
+  {
+    "width": 390,
+    "quality": "high",
+    "spot": "tronco",
+    "position": [
+      19,
+      0.05142579003680147,
+      1.4
+    ],
+    "camera": [
+      22.112731166067594,
+      4.286425785198964,
+      8.04348739835088
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 129,
+    "triangles": 274142,
+    "readyMs": 675.3000000119209,
+    "dpr": 1,
+    "fps": 60.00800106680891,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 76600000,
+    "art": {
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "solo": {
+        "calls": 6,
+        "triangles": 9902
+      },
+      "agua": {
+        "calls": 1,
+        "triangles": 276
+      }
+    }
+  },
+  {
+    "width": 390,
+    "quality": "high",
+    "spot": "lajes",
+    "position": [
+      31.72,
+      0.792385207197802,
+      4.21
+    ],
+    "camera": [
+      32.83643067272143,
+      5.027385202359964,
+      11.503980803747346
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 111,
+    "triangles": 308174,
+    "readyMs": 505.7000000178814,
+    "dpr": 1,
+    "fps": 60,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 76600000,
+    "art": {
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "solo": {
+        "calls": 7,
+        "triangles": 16212
+      },
+      "agua": {
+        "calls": 2,
+        "triangles": 1292
+      }
+    }
+  },
+  {
+    "width": 1366,
+    "quality": "low",
+    "spot": "soleira",
+    "position": [
+      28,
+      0.05137241296525243,
+      13.35
+    ],
+    "camera": [
+      31.637812640316092,
+      4.286372408127415,
+      18.34338293027581
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 71,
+    "triangles": 151972,
+    "readyMs": 1190.699999988079,
+    "dpr": 0.83,
+    "fps": 59.99200106652445,
+    "p95ms": 16.799999999999955,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 97400000,
+    "art": {
+      "agua": {
+        "calls": 7,
+        "triangles": 3556
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "solo": {
+        "calls": 8,
+        "triangles": 17844
+      }
+    }
+  },
+  {
+    "width": 1366,
+    "quality": "low",
+    "spot": "bosque",
+    "position": [
+      30.68,
+      0.19527101867696434,
+      6.5
+    ],
+    "camera": [
+      31.590546663281728,
+      4.430271013839127,
+      12.662560557041008
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 73,
+    "triangles": 167734,
+    "readyMs": 577,
+    "dpr": 0.83,
+    "fps": 60,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 97400000,
+    "art": {
+      "agua": {
+        "calls": 5,
+        "triangles": 1540
+      },
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "solo": {
+        "calls": 8,
+        "triangles": 17844
+      }
+    }
+  },
+  {
+    "width": 1366,
+    "quality": "low",
+    "spot": "tronco",
+    "position": [
+      19,
+      0.05142579003680147,
+      1.4
+    ],
+    "camera": [
+      21.61252080183968,
+      4.286425785198964,
+      7.007973230645302
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 90,
+    "triangles": 148912,
+    "readyMs": 571.7999999821186,
+    "dpr": 0.83,
+    "fps": 60,
+    "p95ms": 16.700000000000045,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 97400000,
+    "art": {
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "solo": {
+        "calls": 5,
+        "triangles": 9102
+      },
+      "agua": {
+        "calls": 1,
+        "triangles": 276
+      }
+    }
+  },
+  {
+    "width": 1366,
+    "quality": "low",
+    "spot": "lajes",
+    "position": [
+      31.72,
+      0.792385207197802,
+      4.21
+    ],
+    "camera": [
+      32.63054666328173,
+      5.027385202359964,
+      10.372560557041009
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 94,
+    "triangles": 204500,
+    "readyMs": 531.7000000178814,
+    "dpr": 0.83,
+    "fps": 60,
+    "p95ms": 16.799999999999955,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 97400000,
+    "art": {
+      "vegetacao": {
+        "calls": 3,
+        "triangles": 37526
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 15770
+      },
+      "solo": {
+        "calls": 8,
+        "triangles": 17844
+      },
+      "agua": {
+        "calls": 2,
+        "triangles": 1292
+      }
+    }
+  },
+  {
+    "width": 1366,
+    "quality": "high",
+    "spot": "soleira",
+    "position": [
+      28,
+      0.05137241296525243,
+      13.35
+    ],
+    "camera": [
+      31.637812640316092,
+      4.286372408127415,
+      18.34338293027581
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 112,
+    "triangles": 276058,
+    "readyMs": 1153.199999988079,
+    "dpr": 1,
+    "fps": 60,
+    "p95ms": 16.700000000000273,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 44700000,
+    "art": {
+      "agua": {
+        "calls": 7,
+        "triangles": 3556
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "solo": {
+        "calls": 9,
+        "triangles": 18644
+      }
+    }
+  },
+  {
+    "width": 1366,
+    "quality": "high",
+    "spot": "bosque",
+    "position": [
+      30.68,
+      0.19527101867696434,
+      6.5
+    ],
+    "camera": [
+      31.590546663281728,
+      4.430271013839127,
+      12.662560557041008
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 115,
+    "triangles": 296836,
+    "readyMs": 685.3000000119209,
+    "dpr": 1,
+    "fps": 60,
+    "p95ms": 16.799999999999955,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 44700000,
+    "art": {
+      "agua": {
+        "calls": 5,
+        "triangles": 1540
+      },
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "solo": {
+        "calls": 9,
+        "triangles": 18644
+      }
+    }
+  },
+  {
+    "width": 1366,
+    "quality": "high",
+    "spot": "tronco",
+    "position": [
+      19,
+      0.05142579003680147,
+      1.4
+    ],
+    "camera": [
+      21.61252080183968,
+      4.286425785198964,
+      7.007973230645302
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 132,
+    "triangles": 275926,
+    "readyMs": 650.7999999821186,
+    "dpr": 1,
+    "fps": 60,
+    "p95ms": 16.799999999999955,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 44700000,
+    "art": {
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "solo": {
+        "calls": 6,
+        "triangles": 9902
+      },
+      "agua": {
+        "calls": 1,
+        "triangles": 276
+      }
+    }
+  },
+  {
+    "width": 1366,
+    "quality": "high",
+    "spot": "lajes",
+    "position": [
+      31.72,
+      0.792385207197802,
+      4.21
+    ],
+    "camera": [
+      32.63054666328173,
+      5.027385202359964,
+      10.372560557041009
+    ],
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "calls": 138,
+    "triangles": 341862,
+    "readyMs": 675.3000000119209,
+    "dpr": 1,
+    "fps": 60,
+    "p95ms": 16.799999999999955,
+    "geometryBytes": 6150728,
+    "textureBytes": 2276023,
+    "heapBytes": 44700000,
+    "art": {
+      "vegetacao": {
+        "calls": 5,
+        "triangles": 49782
+      },
+      "arvores": {
+        "calls": 6,
+        "triangles": 36214
+      },
+      "solo": {
+        "calls": 9,
+        "triangles": 18644
+      },
+      "agua": {
+        "calls": 2,
+        "triangles": 1292
+      }
+    }
+  }
+]

@@ -16,7 +16,12 @@ const shot = (page, name) => page.screenshot({ path: path.join(out, name + '.png
 
 // Inject the same lens and offset in both checkouts for the comparison images.
 // Ordinary gameplay and the native HUD captures use the production camera.
-async function matchCamera(page) {
+async function matchCamera(page, master = false) {
+  if(master)await page.route('**/forest.css',async route=>{
+    const response=await route.fetch();
+    const size='\n@media (max-width: 700px) { #forestStage { height: 62svh;min-height:0;max-height:none } }';
+    await route.fulfill({response,body:await response.text()+size});
+  });
   await page.route('**/forest.js', async route => {
     const response = await route.fetch();
     let code = await response.text();
@@ -25,7 +30,7 @@ async function matchCamera(page) {
     assert(start > 0 && end > start);
     code = code.slice(0, start) + `
       const pos = player.position;
-      const shot = {13.35:.63, 6.5:.18, 1.4:.45};
+      const shot = {13.35:.63, 6.5:.18, 1.4:.45, 4.21:.18};
       const yaw = shot[pos.z] ?? .18;
       const length = camera.aspect < .85 ? 7.8 : 6.65;
       const follow = new T.Vector3(pos.x-.28,floor(pos.x,pos.z)+1.02,pos.z-.38);
@@ -35,16 +40,42 @@ async function matchCamera(page) {
       camera.lookAt(follow);
       camera.updateMatrixWorld();
     ` + code.slice(end);
+    if(master) code += `
+      window.forestArtBudget=()=>{
+        const buckets={};
+        const list=renderer.renderLists.get(scene,0);
+        for(const item of [...list.opaque,...list.transparent]){
+          const {object,geometry,group}=item;
+          if(!object.isMesh)continue;
+          const name=object.name || object.parent?.name || '';
+          if(!name.startsWith('Bosque:') && !name.startsWith('Soleira')
+            && !(object.geometry.type==='CircleGeometry' && object.parent===trailScene?.group)
+            && name!=='Trilha:slab')continue;
+          let role='solo';
+          if(/(_Copa|_Tronco|_Pontas)/.test(name))role='arvores';
+          if(/Bagas|Mirtilo|Samambaia|Azaleia|Cogumelos|Flores|Trevo/.test(name))role='vegetacao';
+          if(name.startsWith('Soleira') || object.geometry.type==='CircleGeometry' || name==='Trilha:slab')
+            role='agua';
+          if(!buckets[role])buckets[role]={calls:0,triangles:0};
+          const range=Math.min(group?.count ?? Infinity,geometry.drawRange.count,geometry.index?.count??geometry.attributes.position.count);
+          const passes=item.material.transparent && item.material.side===T.DoubleSide && !item.material.forceSinglePass?2:1;
+          buckets[role].calls+=passes;
+          buckets[role].triangles+=range/3*(object.isInstancedMesh?object.count:1)*passes;
+        }
+        return buckets;
+      };
+    `;
     await route.fulfill({ response, body: code });
   });
 }
 
-async function comparison(checkout, name) {
+async function comparison(checkout, name, master=false) {
   const samples = [];
   for (const width of viewports) for (const quality of ['low','high']) {
     await session(name, async ({ page, write }) => {
       await page.addInitScript(value => localStorage.setItem('davi-forest-quality', value), quality);
-      for (const [spot, x, z] of spots) {
+      const positions=master?[...spots,['lajes',31.72,4.21]]:spots;
+      for (const [spot, x, z] of positions) {
         await write('/api/forest/map/move', { x, z }, 'put');
         await page.reload();
         await ready(page);
@@ -57,13 +88,118 @@ async function comparison(checkout, name) {
           calls:d.calls, triangles:d.triangles, readyMs:d.readyMs, dpr:d.pixelRatio,
           fps:1000*frames.length/frames.reduce((s,v)=>s+v,0), p95ms:frames[42],
           geometryBytes:d.geometryBufferBytes, textureBytes:d.estimatedTextureBytes, heapBytes:d.jsHeapBytes,
+          ...(master?{art:await page.evaluate(()=>window.forestArtBudget())}:{}),
         });
         await shot(page, `${name}-${width}-${quality}-${spot}`);
       }
-    }, false, { checkout, beforeOpen:matchCamera, stars:0, viewport:{ width, height:width<700?850:840 } });
+    }, false, { checkout, beforeOpen:page=>matchCamera(page,master), stars:0, viewport:{ width, height:width<700?850:840 } });
     console.log(name, width, quality);
   }
   save(name,samples);
+}
+
+async function mobileGameplay(width) {
+  assert([360,390].includes(width));
+  await session('jogabilidade-'+width,async({page,context,api})=>{
+    const cdp=await context.newCDPSession(page);
+    const canvas=page.locator('#forestCanvas');
+    const nearby=page.locator('#forestInteract');
+    const route=[];
+    const pause=ms=>page.waitForTimeout(ms);
+    const touch=async(x,z)=>{
+      for(let attempt=0;attempt<15;attempt++){
+        const before=(await diag(page)).position;
+        const gap=distance(before,[x,0,z]);
+        if(gap<.20)return;
+        let point;
+        for(const stride of [3.15,2.0,1.15,.50]){
+          const t=Math.min(1,stride/gap);
+          const p=await page.evaluate(([x,z])=>{
+            const target=DaviForest.project(x,z);
+            return {...target,clear:document.elementFromPoint(target.x,target.y)?.id==='forestCanvas'};
+          },[before[0]+t*(x-before[0]),before[2]+t*(z-before[2])]);
+          if(p.groundVisible && p.clear){point=p;break;}
+        }
+        if(point){
+          await page.touchscreen.tap(point.x,point.y);
+          await page.waitForFunction(()=>!DaviForest.diagnostics().target);
+          if(distance(before,(await diag(page)).position)>.08)continue;
+        }
+        await click(page,'forest-rotate','[data-turn="1"]');
+        await pause(740);
+      }
+      assert.fail('Toque no caminho para '+[x,z]);
+    };
+    const observe=async name=>{
+      const state=await diag(page);
+      assert(state.webgl && state.navigationValid && state.pipoNavigationValid);
+      const framing=await page.evaluate(()=>DaviForest.characterFraming());
+      for(const points of Object.values(framing))
+        assert(points.filter(p=>p.clear && Math.abs(p.x)<.95 && Math.abs(p.y)<.95).length>=2,
+          name+': '+JSON.stringify(framing));
+      route.push({name, position:state.position, angle:state.angle, framing, living:state.living});
+    };
+
+    await page.waitForFunction(()=>DaviForest.diagnostics().living);
+    await page.waitForFunction(()=>document.querySelector('#forestInteract').textContent.includes('Soltar um barquinho'));
+    await observe('Soleira');
+    await nearby.tap();
+    await pause(1560);
+    const speech=await page.locator('.pipo-speech').boundingBox();
+    assert(speech.width>145 && speech.width>speech.height*1.55,'O balão usa poucas linhas');
+    const start=(await diag(page)).angle;
+    const box=await canvas.boundingBox();
+    const x=box.x+box.width*.65,y=box.y+box.height*.45;
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+    for(let i=1;i<=6;i++)await cdp.send('Input.dispatchTouchEvent',{
+      type:'touchMove',touchPoints:[{x:x-i*9,y}],
+    });
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await pause(900);
+    assert(Math.abs((await diag(page)).angle-start)>.30);
+    await observe('Giro livre da roda');
+    await click(page,'forest-camera');
+    await page.waitForFunction(()=>DaviForest.diagnostics().living.lowBoat[2]>14);
+    await shot(page,'roda-'+width);
+    for(const [x,z] of [[30.7,11.5],[31.6,8.6],[30.68,6.5],[31.72,4.21]])await touch(x,z);
+    await page.evaluate(()=>{
+      window.crossingPressure=0;
+      window.crossingProbe=setInterval(()=>{
+        window.crossingPressure=Math.max(window.crossingPressure,DaviForest.diagnostics().living.stonePressure);
+      },35);
+    });
+    await touch(33.2,3.55);
+    const pressure=await page.evaluate(()=>{clearInterval(window.crossingProbe);return window.crossingPressure;});
+    assert(pressure>.025,'A laje cedeu sob o passo');
+    await click(page,'forest-camera');
+    await pause(840);
+    await observe('Travessia das lajes');
+    await shot(page,'lajes-'+width);
+    await click(page,'forest-paths');
+    await click(page,'forest-travel','[data-id=leaf]');
+    await page.waitForFunction(()=>!DaviForest.diagnostics().target,null,{timeout:45000});
+    await page.waitForFunction(()=>document.querySelector('#forestInteract').textContent.includes('Virar a folha'));
+    await click(page,'forest-camera');
+    await pause(900);
+    await nearby.tap();
+    await page.waitForFunction(()=>DaviForest.diagnostics().shelter.phase==='rest'
+      && DaviForest.diagnostics().shelter.leafUp);
+    await observe('Tronco e besouro');
+    await shot(page,'tronco-'+width);
+    assert.equal((await (await api.get('/api/world')).json()).stars,0);
+    await click(page,'child-now');
+    await action(page,'game-learn').waitFor();
+    await pause(850);
+    await click(page,'game-exit');
+    await ready(page);
+    await page.waitForFunction(()=>DaviForest.diagnostics().shelter?.leafUp);
+    await pause(700);
+    save('jogabilidade-'+width,{ width, pressure,route,stars:0 });
+  },true,{
+    stars:0, position:{x:28,z:13.35}, viewport:{width,height:850},
+    videoSize:{width,height:850}, videoFps:24,
+    beforeOpen:page=>page.addInitScript(()=>localStorage.setItem('davi-forest-quality','low')),
+  });
 }
 
 async function gameplay() {
@@ -145,9 +281,15 @@ async function native() {
       const { violations }=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
       assert.deepEqual(violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[]);
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      if(width<700){
+        const camera=await page.locator('.forest-camera').boundingBox();
+        const view=await canvas.boundingBox();
+        assert(camera.y>=view.y+view.height-.5 && camera.y+camera.height<=850,
+          'A câmera fica acessível fora da cena');
+      }
       assert.deepEqual(await page.evaluate(()=>performance.getEntriesByType('resource')
         .map(entry=>entry.name).filter(url=>new URL(url).origin!==location.origin)),[]);
-      for (const box of await page.locator('.forest-stage button:visible').evaluateAll(buttons => buttons.map(b => {
+      for (const box of await page.locator('.forest-stage button:visible,.forest-camera button:visible').evaluateAll(buttons => buttons.map(b => {
         const {width,height}=b.getBoundingClientRect();
         return [width,height,b.getAttribute('aria-label') || b.textContent];
       }))) assert(box[0]>=48 && box[1]>=48,JSON.stringify(box));
@@ -183,5 +325,6 @@ async function native() {
 }
 
 const [mode, checkout, name] = process.argv.slice(2);
-const run = mode==='compare' ? comparison(checkout,name) : mode==='native' ? native() : gameplay();
+const run = mode==='compare' || mode==='compare-master' ? comparison(checkout,name,mode==='compare-master')
+  : mode==='mobile' ? mobileGameplay(Number(checkout)) : mode==='native' ? native() : gameplay();
 run.catch(error=>{ console.error(error); process.exitCode=1; });

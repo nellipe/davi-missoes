@@ -1,0 +1,10 @@
+{
+  "simultaneous": [
+    1,
+    3
+  ],
+  "openUnguided": true,
+  "futureDisabled": true,
+  "agendaReached": true,
+  "freeDay": true
+}

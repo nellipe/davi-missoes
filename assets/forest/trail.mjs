@@ -1,11 +1,12 @@
 import * as T from '/vendor/three/three.module.min.js';
 import { terrainHeight } from './navigation.mjs';
 import { buildShelter } from './beetle.mjs';
-import { inBosque, installBosque } from './bosque.mjs';
+import { inBosque, inSceneMaster, installBosque } from './bosque.mjs';
 import { installRegions } from './regions.mjs';
 import { boatProgress } from './boat.mjs';
 import { createSight } from './sight.mjs';
 import { gem } from './chibi.mjs';
+import { buildWaterSurfaces, dressWaterWheel } from './cenario-agua.mjs';
 
 let layout, grid;
 export function configure(map, seamHeight) {
@@ -195,8 +196,8 @@ export function build(scene, leafUp, library, paint) {
     earth = new T.Color('#f7d9a2'),
     stonePath = new T.Color('#efd0a1'),
     moss = new T.Color('#62b860');
-  const groveLight=new T.Color('#92d771'),groveShade=new T.Color('#5fb56a');
-  const groveColor=new T.Color(),rimColor=new T.Color('#e6b97b');
+  const groveLight=new T.Color('#9bd96d'),groveShade=new T.Color('#59b668');
+  const groveColor=new T.Color(),rimColor=new T.Color('#e4b477');
   for (let j = 0; j <= grid.n; j++)
     for (let i = 0; i <= grid.n; i++) {
       const [xmin,xmax,zmin,zmax] = grid.bounds;
@@ -208,16 +209,17 @@ export function build(scene, leafUp, library, paint) {
       c.lerp(x > 3.7 && z < 5 ? stonePath : earth, 1 - T.MathUtils.smoothstep(border, -0.4, 0.33));
       const pigment = random();
       c.multiplyScalar(0.95 + pigment * 0.08);
-      if (inBosque(x,z)) {
-        const roughEdge = border + .24*Math.sin(x*2.4-z*3.5) + .14*Math.cos(x*6.2+z*3.6);
-        const pathLight = 1-T.MathUtils.smoothstep(roughEdge,-.77,.65);
+      if (inSceneMaster(x,z)) {
+        const roughEdge = border + .15*Math.sin(x*1.8-z*2.7) + .07*Math.cos(x*4.6+z*3.2);
+        const pathLight = 1-T.MathUtils.smoothstep(roughEdge,-.32,.05);
         const variation = .5+.29*Math.sin(x*.98+z*.84)+.21*Math.sin(z*3.27-x*2.8);
         const soil = groveColor.copy(groveShade).lerp(groveLight,variation);
-        soil.lerp(rimColor,1-T.MathUtils.smoothstep(roughEdge,-.28,.65));
+        soil.lerp(rimColor,1-T.MathUtils.smoothstep(roughEdge,.00,.26));
         soil.lerp(x>3.7&&z<5 ? stonePath : earth,pathLight);
         const dapple = Math.sin(x*1.88 + Math.cos(z*1.63)) * Math.sin(z*1.37-x*.89);
         soil.multiplyScalar(.94 + .08*variation + .06*dapple + .04*pigment);
-        const taper = T.MathUtils.smoothstep(Math.min(x+13.2,10.7-x,z+4.2,9.8-z),0,2);
+        const edgeOfScene=z>8?Math.min(x+7,8-x,17.8-z):Math.min(x+13.2,10.7-x,z+4.2);
+        const taper = T.MathUtils.smoothstep(edgeOfScene,0,1.7);
         c.lerp(soil,taper);
       }
       if(x>6&&z<-7.6)c.lerp(new T.Color('#c99873'),(1-T.MathUtils.smoothstep(border,-.8,.55))*.69);
@@ -243,13 +245,16 @@ export function build(scene, leafUp, library, paint) {
   group.add(terrain);
 
   function rock(x, z, w, h, d, color = '#e3dfdc', rotation = 0) {
+    if(inSceneMaster(x,z))return;
     piece('stone', color, x, floor(x, z) + h * 0.45, z, w, h * 0.74, d, 0, rotation, 0.08, true);
   }
   function tree(x, z, h) {
     const y = floor(x, z),
       tint = random() > 0.55 ? '#5bc46f' : '#46b377';
+    const turnA=random()*3,turnB=random()*3;
+    if(inSceneMaster(x,z))return;
     piece('trunk', '#a06d47', x, y + h * 0.38, z, 0.24, h * 0.76, 0.25, 0, 0, 0.03, true);
-    piece('crown', tint, x, y + h * 0.83, z, h * 0.32, h * 0.39, h * 0.3, 0, random() * 3, 0, true);
+    piece('crown', tint, x, y + h * 0.83, z, h * 0.32, h * 0.39, h * 0.3, 0, turnA, 0, true);
     piece(
       'crown',
       '#7dd66c',
@@ -260,7 +265,7 @@ export function build(scene, leafUp, library, paint) {
       h * 0.22,
       h * 0.21,
       0,
-      random() * 3,
+      turnB,
       0,
       true
     );
@@ -298,7 +303,7 @@ export function build(scene, leafUp, library, paint) {
   for (let i = 0; i < 380; i++) {
     const x = random() * 26 - 13,
       z = random() * 32 - 15;
-    if (inBosque(x,z) || z < -13 || Math.abs(edge(x, z) - 0.44) > 0.72) continue;
+    if (inSceneMaster(x,z) || z < -13 || Math.abs(edge(x, z) - 0.44) > 0.72) continue;
     const y = floor(x, z);
     for (let k = 0; k < 3; k++)
       piece(
@@ -316,29 +321,9 @@ export function build(scene, leafUp, library, paint) {
       );
     if (i % 3 === 0) piece('crown', '#ebbb71', x, y + 0.38, z, 0.1, 0.09, 0.1);
   }
-  // The same trough now opens into a pool beneath the wheel.
-  const poolPaint=new T.MeshBasicMaterial({color:'#56c8f2'});
-  poolPaint.onBeforeCompile=shader=>{
-    shader.uniforms.waterClock=waterClock;
-    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
-      '#include <begin_vertex>\npoolUv=uv;');
-    shader.vertexShader='varying vec2 poolUv;\n'+shader.vertexShader;
-    shader.fragmentShader=`varying vec2 poolUv;
-      uniform float waterClock;
-    `+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
-      vec2 point=poolUv*2.0-1.0;
-      float shore=smoothstep(.62,.99,length(point));
-      float ripple=smoothstep(.91,.98,sin(14.0*point.y+2.4*sin(point.x*3.0)-waterClock*2.6));
-      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.73,.93,1.0),shore*.75+ripple*.40*(1.0-shore));`);
-  };
-  const pond=new T.Mesh(new T.CircleGeometry(1,36).rotateX(-Math.PI/2),poolPaint);
-  pond.position.set(-1.85,.13,13.52);
-  pond.scale.set(1.35,1,1.48);
-  group.add(pond);
-  const wheel = new T.Group();
-  wheel.name='Soleira:Roda';
-  wheel.position.set(-1.28, floor(-1.28, 13) + 0.83, 13);
-  group.add(wheel);
+  const water=buildWaterSurfaces(floor,waterClock);
+  group.add(water);
+  const wheel=dressWaterWheel(group,paint,floor);
   const moving = (parent, shape, tint, x, y, z, sx, sy, sz) => {
     const mesh = new T.Mesh(shapes[shape], paint.toon(tint));
     mesh.position.set(x, y, z);
@@ -346,24 +331,6 @@ export function build(scene, leafUp, library, paint) {
     parent.add(mesh);
     return mesh;
   };
-  for(const z of [-.25,.25]){
-    paint.outline(moving(wheel,'ring','#a06d47',0,0,z,.83,.83,.42),1.45);
-  }
-  moving(wheel,'crown','#ff7a59',0,0,.29,.18,.18,.14);
-  for (const [count,tint,scale,radius] of [[6,'#bb8252',[.088,1.65,.48],0],[10,'#72c5b5',[.19,.27,.53],.82]]) {
-    const ringParts=new T.InstancedMesh(shapes.slab,paint.toon(tint),count);
-    for(let i=0;i<count;i++){
-      const a=i*(radius?Math.PI*2:Math.PI)/count;
-      dummy.position.set(Math.cos(a)*radius,Math.sin(a)*radius,0);
-      dummy.scale.set(...scale);
-      dummy.rotation.set(0,0,a);
-      dummy.updateMatrix();
-      ringParts.setMatrixAt(i,dummy.matrix);
-    }
-    wheel.add(ringParts);
-  }
-  piece('trunk', '#5b5142', -1.28, wheel.position.y, 13, 0.16, 1.35, 0.16, Math.PI / 2);
-  for (const x of [-1.84, -0.92]) piece('slab', '#b67b4e', x, 0.08, 11.15, 0.13, 0.46, 5.7);
   piece('slab', '#56c8f2', -1.38, 0.21, 11.15, 0.82, 0.12, 5.7,0,0,0,false,true);
   const boat = new T.Group();
   boat.name='Soleira:Barquinho';
@@ -437,7 +404,9 @@ export function build(scene, leafUp, library, paint) {
   const blockers = [];
   const gaze=createSight();
   const lowLandmarks=[wheel.position,new T.Vector3(-1.38,.30,11.8),new T.Vector3(-1.38,.30,9.25)];
-  const forkLandmarks=[[1.25,4.72],[3.72,4.21]].map(([x,z])=>new T.Vector3(x,floor(x,z)+.20,z));
+  const forkLandmarks=[[1.25,4.72],[3.72,4.21],[4.2,3.8]].map(([x,z])=>new T.Vector3(x,floor(x,z),z));
+  const logLandmarks=[shelter.group.position.clone().add(new T.Vector3(-.59,.78,.10)),
+    new T.Vector3(-8.36,floor(-8.36,1.03)+.84,1.03)];
   const noLandmarks=[];
   for (const [shape, list] of batches) {
     const geometry=shapes[shape];
@@ -492,13 +461,15 @@ export function build(scene, leafUp, library, paint) {
     },
     tick(t, still, camera, hero, buddy, action, moving) {
       const landmarks=Math.hypot(hero.x,hero.z-13)<3.6?lowLandmarks
-        :Math.hypot(hero.x-2.68,hero.z-6.5)<3.0?forkLandmarks:noLandmarks;
+        :Math.hypot(hero.x-2.68,hero.z-6.5)<3.0?forkLandmarks
+        :Math.hypot(hero.x+9,hero.z-1.4)<3.4?logLandmarks:noLandmarks;
       art.clearSight(camera,hero,buddy,landmarks);
       art.step(hero,still,moving);
       shelter.highlight(action==='leaf');
       regions.tick(t,still,hero,camera,buddy,landmarks);
       gaze.update(camera,hero,buddy,landmarks);
       waterClock.value=still?0:t;
+      water.visible=hero.z<16 && hero.z>-.5 && hero.x>-8 && hero.x<12;
       const progress=boatProgress(t,boatAt,still,3.6);
       if(!still && boatAt!==null)wheel.rotation.z=-(progress-.08)*5.5;
       boat.position.z=8.65+progress*5.85;

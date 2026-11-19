@@ -354,6 +354,133 @@ for i, (x, hue, length) in enumerate([(-.54,"f7cf80",.46),(-.22,"ff7a65",.63),
     marker.surface(panels, [(a,a+1,a+6,a+5) for a in range(20) if a%5!=4], pigments)
 marker.export_mesh()
 
+
+def round_lobe(model, center, radii, hue, ribs=12, rows=6, wobble=.05):
+    """Closed, gently uneven sculpted volume with shared smooth normals."""
+    x, y, z = center
+    sx, sy, sz = radii
+    rings, colors = [], []
+    for row in range(rows):
+        tilt = -math.pi/2+(row+.40)*math.pi/(rows-.20)
+        level = math.sin(tilt)
+        ring = []
+        for i in range(ribs):
+            a = math.tau*i/ribs
+            radius = math.cos(tilt)*(1+wobble*math.sin(a*3+.7*row))
+            ring.append((x+sx*(radius*math.cos(a)+level*.13),
+                         y+sy*radius*math.sin(a), z+sz*level))
+        rings.append(ring)
+        colors.append([paint(hue,.89+.14*(level+1)/2)]*ribs)
+    model.rings(rings,colors)
+
+
+chibi_trees = [
+    ("Carvalho", "55bd65", "7ad46a", 4.32, 1.29),
+    ("Amieiro", "43a96e", "65cd86", 4.29, 1.17),
+    ("Aveleira", "6ac358", "9cdb69", 3.92, 1.28),
+]
+for kind, green, tips, height, spread in chibi_trees:
+    stem = Sculpture(kind+"_Chibi_Tronco")
+    stem.grain([(0,0,-.18),(.03,0,.20),(.05,.015,1.50),(-.13,.04,2.75),(-.19,.07,height)],
+               [.39,.28,.21,.18,.095], ["9e6543","ae754b","906044"], 12)
+    stem.grain([(.04,.02,1.83),(.29,.07,2.39),(.65,.19,2.99),(1.07,.25,height-.56)],
+               [.138,.11,.082,.048], ["a8734d","966142"], 9)
+    stem.grain([(-.06,.01,2.3),(-.39,-.18,2.75),(-.83,-.34,height-.36)],
+               [.12,.092,.056], ["a8734d","966142"], 9)
+    for root_x,root_y in [(.65,.32),(-.40,.45),(-.29,-.55)]:
+        stem.grain([(0,0,.30),(root_x*.42,root_y*.42,.13),(root_x,root_y,-.015)],
+                   [.14,.12,.025], ["a8734d","936044"], 8)
+    stem.export_mesh()
+    for low in (True,False):
+        crown = Sculpture(kind+"_Chibi_Copa"+("_economica" if low else ""))
+        lobes = [(-.14,.07,.14,1.22,1.15,1.07,green),(-.92,-.28,-.38,.79,.74,.70,green),
+                 (.85,.24,-.42,.84,.74,.68,green),(.24,-.64,-.06,.78,.68,.61,tips),
+                 (-.35,.80,.04,.77,.71,.69,tips)]
+        if low:
+            lobes.pop()
+        else:
+            lobes += [(.68,-.33,.53,.54,.52,.55,tips),(-.69,.29,.49,.62,.69,.60,green)]
+        for x,y,z,sx,sy,sz,hue in lobes:
+            round_lobe(crown,(x*spread,y*spread,height+z),(sx*spread,sy*spread,sz),
+                       hue,10 if low else 14, 6 if low else 8)
+        crown.export_mesh()
+
+
+berry = Sculpture("Moita_de_Bagas")
+for center, radii, hue in [
+    ((-.28,0,.36),(.61,.50,.43),"56b861"),
+    ((.30,.075,.33),(.56,.48,.39),"63c265"),
+    ((.04,-.13,.50),(.46,.43,.42),"78cf6a"),
+]:
+    round_lobe(berry,center,radii,hue,10,5)
+for x,y,z,s,hue in [(-.58,-.19,.63,.10,"7e71cf"),(-.36,-.34,.69,.092,"956cd9"),
+                    (.34,-.23,.73,.107,"877cdb"),(.51,-.12,.68,.084,"6872ca"),
+                    (.12,.15,.90,.091,"a488e2")]:
+    round_lobe(berry,(x,y,z),(s,s,s*.92),hue,7,3)
+berry.export_mesh()
+
+petals = Sculpture("Flores_Chibi")
+for index,(x,y,z,s,tint) in enumerate([
+    (-.24,-.02,.26,.83,"f1a5c3"),(.07,.04,.38,1,"fff4da"),
+    (.28,.13,.30,.9,"b996ef"),(.12,-.27,.23,.66,"ffce71"),
+]):
+    petals.grain([(x*.77,y*.77,-.01),(x,y,z*.49),(x+.02,y,z)], [.024,.02,.015], ["6cb553"], 5)
+    petals.blade((x,y,z*.31),(x-.13,y+.09,z*.77),.042,"76c95f",.042)
+    petals.blade((x,y,z*.35),(x+.12,y-.07,z*.67),.043,"82d66a",.039)
+    # One scalloped corolla, painted through the throat, plus its center.
+    rings=[]
+    for radius,top in [(.049,-.032),(.112,0),(.053,.018),(.027,.037)]:
+        ring=[]
+        for i in range(15):
+            a=math.tau*i/15+index*.46
+            rr=radius*(1+.21*math.sin(a*5))
+            ring.append((x+s*rr*math.cos(a),y+s*rr*math.sin(a),z+s*(top+.04*math.sin(a))))
+        rings.append(ring)
+    petals.rings(rings,[[paint(pigment,.97)]*15 for pigment in (tint,tint,tint,"edbe62")])
+petals.export_mesh()
+
+stone = Sculpture("Seixo_da_Travessia")
+round_lobe(stone,(0,0,-.008),(.50,.36,.15),"aaa0c8",13,7,.12)
+round_lobe(stone,(.13,.04,.106),(.26,.175,.036),"91cd6b",9,4,.14)
+stone.export_mesh()
+
+stone_bank = Sculpture("Seixo_de_Margem")
+round_lobe(stone_bank,(0,0,.17),(.72,.61,.47),"bab1d6",13,7,.17)
+round_lobe(stone_bank,(.13,-.14,.48),(.46,.35,.14),"96c96d",10,5,.12)
+stone_bank.export_mesh()
+
+bark = Sculpture("Casca_da_Trilha")
+bark.rings([
+    [(x,y,z) for x,y in [(-.53,-.11),(-.19,-.27),(.20,-.29),(.52,-.10),(.42,.20),(.07,.25),(-.36,.20)]]
+    for z in [-.068,.022]
+],[[paint("a06b47",tone)]*7 for tone in (.80,1.10)])
+bark.blade((-.31,.015,.024),(.31,-.024,.023),.029,"d39b63",.012)
+bark.export_mesh()
+
+log = Sculpture("Tronco_Chibi")
+log_profile = [
+    (-1.23,.82,"6d4635"),(-1.16,.96,"a16a45"),(.25,.96,"a16b49"),
+    (1.14,.94,"b47d56"),(1.22,.88,"e8b683"),(1.231,.77,"c58a57"),
+    (1.235,.71,"f0ca94"),(1.223,.652,"bd885d"),(1.13,.61,"7c5037"),
+    (.66,.58,"4c302f"),(-1.12,.56,"3b2934"),(-1.15,.28,"322534"),
+    (-1.16,.005,"322534"),(-1.23,.82,"6d4635"),
+]
+log_rings,log_paint = [],[]
+for axis,radius,tint in log_profile:
+    ring,pigments=[],[]
+    for i in range(32):
+        a=math.tau*i/32
+        r=radius*(1+.036*math.sin(3*a+.6)+.024*math.cos(7*a))
+        ring.append((r*math.cos(a),axis+.026*math.sin(5*a),r*math.sin(a)))
+        pigments.append(paint(tint,.91+.10*math.sin(a)+.045*math.cos(9*a)))
+    log_rings.append(list(reversed(ring)))
+    log_paint.append(list(reversed(pigments)))
+log.rings(log_rings,log_paint,False)
+for x,y,z,sx,sy,sz in [(-.28,-.61,.86,.33,.47,.16),(.29,-.26,.89,.43,.42,.15),
+                        (.08,.43,.94,.40,.47,.15),(-.37,.59,.79,.30,.31,.17)]:
+    round_lobe(log,(x,y,z),(sx,sy,sz),"83c66a",10,5)
+log.export_mesh()
+
 bpy.context.preferences.filepaths.save_version = 0
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT / "bosque-authoring.blend"))
 bpy.ops.export_scene.gltf(filepath=str(OUT / "bosque.glb"), export_format="GLB",

@@ -1,5 +1,7 @@
 # Etapa 8 · Soleira, Bosque e tronco oco
 
+O acabamento visual posterior, com quadros do protótipo e vídeos em 360 e 390 px, está no [relatório da Etapa 8A.1](../evidencias-etapa8a1/README.md).
+
 A direção Cartoon Chibi foi integrada à Floresta Encantada jogável da Etapa 7C. Davi usa óculos azuis, mochila laranja e roupa personalizável. Pipo flutua sobre a rota do companheiro com corpo branco, visor turquesa e broto. A câmera livre se aproxima na Soleira e no Bosque. Contornos roxos, sombras suaves, cores toon e Fredoka local aproximam a cena do [HTML cinematográfico](../direcao-arte/chibi-video/referencia-cinematografica.html).
 
 O navegador renderizou a sequência canônica de 0 a 20 segundos. O painel mostra a abertura de frente, a calha e o barco, a travessia e o encontro no tronco. [Painel da referência](referencia-cinematografica.jpg).

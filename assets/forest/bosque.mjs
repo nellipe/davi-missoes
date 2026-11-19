@@ -2,6 +2,10 @@ import * as T from '/vendor/three/three.module.min.js';
 import { createSight } from './sight.mjs';
 
 const trees = [
+  ['Aveleira', -3.7, 10.52, .94, .32],
+  ['Carvalho', 3.7, 16.98, .86, 1.14],
+  ['Amieiro', 6.55, 10.23, .92, -.77],
+  ['Carvalho', -4.8, 15.6, .78, 1.94],
   ['Carvalho', -2.2, 7.5, 1.08, -.42],
   ['Aveleira', 6.35, 8.15, .96, .7],
   ['Carvalho', -.05, 1.65, .89, -.34],
@@ -36,11 +40,24 @@ const shelves = [
   [ 2.57, 3.30, .62, .36, .82, -.82],
   [ 3.36, 3.49, .44, .26, .58, .51],
 ];
-const stoneNames=['Ardosia','Seixo_musgo','Pedra_fendida'];
-const foregroundName=/^(Ardosia|Seixo_musgo|Pedra_fendida|Mirtilo|Azaleia|Samambaia)$/;
+const foregroundName=/^(Seixo_de_Margem|Moita_de_Bagas)$/;
+
+const meadows = [
+  // Round silhouettes close the corners without filling the route.
+  [-3.45,13.08,.91],[-2.90,15.05,.94],[-.46,16.63,.72],[2.64,15.56,.70],
+  [3.72,13.36,.82],[5.22,11.97,.74],[-2.96,10.22,.68],[-.62,9.90,.66],
+  [-1.40,7.0,.80],[-2.58,5.55,1.03],[-.13,6.20,.73],[5.30,7.47,.92],
+  [6.60,5.80,.82],[3.19,2.66,.63],[-.71,2.16,.81],[-4.48,4.47,.87],
+  [-7.05,4.64,.72],[-8.83,3.43,.69],[-11.51,2.66,.76],[-12.0,.23,.82],
+  [-8.30,-1.32,.83],[-6.67,-.23,.69],[8.52,2.61,.95],[8.72,.85,.84],
+  [5.85,-1.66,.79],[-1.86,-.83,.81],[2.40,-1.78,.67],
+];
 
 export function inBosque(x, z) {
   return x > -13.2 && x < 10.7 && z > -4.2 && z < 9.8;
+}
+export function inSceneMaster(x,z) {
+  return inBosque(x,z)||(z>=9.8 && z<17.8 && x>-7 && x<8);
 }
 
 export function installBosque(group, library, layout, floor, edge, paint) {
@@ -50,11 +67,11 @@ export function installBosque(group, library, layout, floor, edge, paint) {
   const blockers = [];
   const solidBatches = [];
   const screening = [];
-  const trunks = [];
   group.add(art);
   art.add(details,economy,full);
   const material = paint.toon('#ffffff',{vertexColors:true});
   material.name = 'Pigmentos toon do Bosque';
+  const foliage=paint.leafyToon();
   let seed = 24049;
   const random = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
   const get = (name) => library.getObjectByName(name).geometry;
@@ -62,8 +79,10 @@ export function installBosque(group, library, layout, floor, edge, paint) {
   function place(name, x, z, sx, sy, sz, turn, { detail = false, solid = false, lift = 0 } = {}) {
     const parent = detail ? details : name.endsWith('_economica') ? economy : name.endsWith('_Copa') ? full : art;
     const geometry = get(name);
-    if (solid&&!stoneNames.includes(name)) {
-      const mesh = new T.Mesh(geometry, material);
+    if (name==='Tronco_Chibi'||name==='Varal') {
+      const paint=name==='Varal'?material.clone():material;
+      if(name==='Varal')paint.side=T.DoubleSide;
+      const mesh = new T.Mesh(geometry, paint);
       mesh.name='Bosque:'+name;
       mesh.position.set(x, floor(x, z) + lift, z);
       mesh.scale.set(sx, sy, sz);
@@ -79,79 +98,60 @@ export function installBosque(group, library, layout, floor, edge, paint) {
     batches.get(key).poses.push([x, z, sx, sy, sz, turn, lift, solid]);
   }
   for (const [kind, x, z, size, turn] of trees) {
-    const trunk=place(kind + '_Tronco', x, z, size, size*.83, size, turn, { solid: true });
-    trunks.push({ trunk, x, z, height: 4.5*size, radius: 1.12*size });
-    place(kind + '_Copa', x, z, size, size*.83, size, turn);
-    place(kind + '_Copa_economica', x, z, size, size*.83, size, turn);
-    place(kind + '_Pontas', x, z, size, size*.83, size, turn, { detail: true });
+    const key=kind+'_Chibi';
+    place(key+'_Tronco',x,z,size,size,size,turn,{solid:true});
+    place(key+'_Copa',x,z,size,size,size,turn);
+    place(key+'_Copa_economica',x,z,size,size,size,turn);
   }
-  for (const [i,[x,z,sx,sy,sz,turn]] of shelves.entries()) {
-    const kind=stoneNames[i%3];
-    place(kind,x,z,sx,sy,sz,turn,{solid:true});
-  }
-  place('Tronco_Oco', -7.78, .24, 1, 1, 1, Math.PI+.21, { solid: true, lift: .87 });
+  for(const [x,z,sx,sy,sz,turn] of shelves)place('Seixo_de_Margem',x,z,sx,sy*.76,sz,turn,{solid:true});
+  const log=place('Tronco_Chibi', -7.78, .24, 1, 1, 1, Math.PI+.21, { solid: true, lift: .87 });
+  paint.outline(log,1.55);
   place('Varal', 2.95, 2.95, 1, 1, 1, -.06, { solid: true });
   for(const [x,z,size,turn] of [
     [-1.8,8.3,.9,.4], [4.75,7.48,.85,.5], [1.88,4.0,.91,2],
-    [-8.32,-.21,.82,.8], [-7.36,.57,.68,1.2], [-10.78,1.02,.95,1],
+    [-8.42,-1.66,.82,.8], [-6.62,.75,.68,1.2], [-10.78,1.02,.95,1],
     [-10.2,3.33,.88,2.7], [-1.37,-1.35,.8,1.7],
+    [2.26,15.57,.94,1.3],[-2.49,12.03,.68,2],[-3.67,13.81,.80,1.74],
+    [-6.49,-.82,.80,.7],
   ])place('Cogumelos',x,z,size,size,size,turn);
 
-  // Irregular widths, chords and gaps follow the same center lines as the previous treads.
   for (const index of [1, 2]) {
     const line = layout.paths[index].points;
     for (let i = 1; i < line.length; i++) {
       const [a, b] = line[i - 1], [c, d] = line[i];
-      const steps = Math.ceil(Math.hypot(c-a, d-b) / .70);
+      const steps = Math.ceil(Math.hypot(c-a, d-b) / (index===1?1.10:.71));
       for (let k = 0; k < steps; k++) {
-        const t = (k + .44 + random()*.12) / steps;
+        const t = (k + .31 + random()*.35) / steps;
         const x = T.MathUtils.lerp(a, c, t), z = T.MathUtils.lerp(b, d, t);
         if (!inBosque(x,z)) continue;
-        const skew = (random()-.5)*.34;
-        const width = .89 + random()*.31;
+        const crossing=index===2 && i===1;
+        const skew = crossing?(random()-.5)*.25:(random()-.5)*1.24;
+        const width = crossing?.85+random()*.30:.39+random()*.33;
         const turn = Math.atan2(c-a,d-b);
-        place(index === 1 ? 'Passo_Casca' : 'Passo_Pedra',
-          x + skew*Math.cos(turn), z - skew*Math.sin(turn), width, index===2?1.7:.86, .67+random()*.24,
-          turn+(random()-.5)*.28, { lift: -.015 });
+        place(index===1?'Casca_da_Trilha':'Seixo_da_Travessia',
+          x + skew*Math.cos(turn),z-skew*Math.sin(turn),width,index===2?.94:.75,
+          width*(.78+random()*.45),turn+(random()-.5)*1.06,{lift:index===2?-.028:-.012});
       }
     }
   }
 
-  // Colonies follow the light and rock footings. The recanto and the touchable exits stay open.
-  for (const [x,z,s,turn] of [
-    [-.83,7.43,.83,.66], [-1.98,6.89,.75,1.02], [4.69,6.96,.62,-.83],
-    [6.00,6.27,.89,.28], [-6.40,4.02,.63,2.1], [-11.93,2.20,.62,3.10],
-  ]) {
-    if(edge(x,z)>.20) place('Samambaia',x,z,s,s,s,turn);
-  }
-  const colonies = [
-    [-1.40, 7.0, .9], [-2.8, 5.6, 1.05], [.25, 6.32, .7], [4.66, 7.9, .64],
-    [5.68, 5.69, .8], [2.96, 3.1, .69], [1.33, 2.32, .88], [-.5, 2.16, .71],
-    [-4.5, 4.5, .92], [-7.2, 4.6, .76], [-8.8, 3.5, .76], [-12.05, 2.3, .61],
-    [-11.95, -.32, .74], [-8.3, -1.32, .83], [-6.95, .15, .59],
-    [4.65, 2.8, .66], [7.72, 2.23, .72], [8.51, .97, .92], [6.49, -.87, .70],
-    [-1.08, -.43, .76], [2.9, -1.45, .81],
-  ];
-  for (const [index,[x,z,s]] of colonies.entries()) {
-    for (let i=0;i<7;i++) {
+  for (const [x,z,s] of meadows) {
+    if(edge(x,z)>.22)place('Moita_de_Bagas',x,z,s,s,s,random()*6.28);
+    for (let i=0;i<4;i++) {
       const angle = random()*Math.PI*2;
-      const range = .12+random()*.92;
+      const range = .55+random()*1.10;
       const u = x+range*Math.cos(angle), v = z+range*Math.sin(angle);
-      if (edge(u,v)<.30 || (u < -8.6 && u > -11.99 && v > -.76 && v < 1.93)) continue;
-      const shrub=i===1 && index%3!==2;
-      const name=shrub?'Mirtilo':i<2?'Samambaia':i===2?(index%3===1?'Azaleia':'Flores'):'Trevo';
-      const size = s*(i < 2 ? .65+random()*.66 : .65+random()*.40);
-      place(name, u, v, size, size, size, angle, { detail: i === 2 || i > 4 });
+      if(edge(u,v)<.10 || (u< -8.6 && u> -11.99 && v> -.76 && v<1.93))continue;
+      const size=s*(.65+random()*.57);
+      place(i===3?'Trevo':'Flores_Chibi',u,v,size,size,size,angle,{detail:i>1});
     }
   }
   for (let i=0;i<560;i++) {
-    const x=1+random()*24-13, z=random()*12-3;
+    const x=random()*23-13, z=random()*19-3;
     const rim=edge(x,z);
-    if (rim < -.40 || rim > 1.04 || (x < -8.6 && x > -12.05 && z > -.7 && z < 1.9)) continue;
-    const s=.13+random()*.31, turn=random()*6.28;
-    place('Cascalho',x,z,s,.20+s*.23,s*(.74+random()*.36),turn,{detail:i%3===0});
-    if (rim > -.10 && i % 3 === 1)
-      place('Trevo',x,z,s,s,s,turn,{detail:true});
+    if (!inSceneMaster(x,z)||rim < -.23 || rim > .52 || (x < -8.6 && x > -12.05 && z > -.7 && z < 1.9)) continue;
+    const s=.13+random()*.29, turn=random()*6.28;
+    place('Cascalho',x,z,s,.22+s*.26,s*(.74+random()*.36),turn,{detail:i%4===0});
   }
   const pose = new T.Object3D();
   const surfaceUp = new T.Vector3();
@@ -162,11 +162,12 @@ export function installBosque(group, library, layout, floor, edge, paint) {
   const pressedMatrix=new T.Matrix4();
   let pressed=null;
   for (const [name, { parent, geometry, poses }] of batches) {
-    const mesh = new T.InstancedMesh(geometry,material,poses.length);
+    const canopy = /_Copa/.test(name);
+    const mesh = new T.InstancedMesh(geometry,canopy||name==='Moita_de_Bagas'?foliage:material,poses.length);
     mesh.name='Bosque:'+name.replace(/\.detail$/,'');
-    const canopy = /_Copa|_Pontas/.test(name);
+    const trunk= name.endsWith('_Tronco');
     const foreground=foregroundName.test(name.replace(/\.detail$/,''));
-    const tread = name.startsWith('Passo');
+    const tread = name==='Seixo_da_Travessia'||name==='Casca_da_Trilha';
     const visibleSolids=new Set();
     poses.forEach(([x,z,sx,sy,sz,turn,lift,solid],i) => {
       pose.position.set(x,floor(x,z)+lift,z);
@@ -178,18 +179,19 @@ export function installBosque(group, library, layout, floor, edge, paint) {
       }
       pose.updateMatrix();
       mesh.setMatrixAt(i,pose.matrix);
-      if(name==='Passo_Pedra')steppingStones.push({mesh,i,x,z,matrix:pose.matrix.clone()});
+      if(name==='Seixo_da_Travessia')steppingStones.push({mesh,i,x,z,matrix:pose.matrix.clone()});
       if(solid)visibleSolids.add(i);
-      if(canopy||foreground){
+      if(canopy||trunk||foreground){
         if(!geometry.boundingSphere)geometry.computeBoundingSphere();
         const sphere=geometry.boundingSphere.clone().applyMatrix4(pose.matrix);
-        screening.push({mesh,parent,i,matrix:pose.matrix.clone(),sphere,foreground,solid,visibleSolids,hidden:false});
+        if(trunk)sphere.radius *= .80;
+        screening.push({mesh,parent,i,matrix:pose.matrix.clone(),sphere,foreground:foreground||trunk,solid,visibleSolids,hidden:false});
       }
     });
-    mesh.castShadow = (parent === art || parent === full) && name!=='Cogumelos' && !tread;
+    mesh.castShadow = trunk || canopy && parent===full || name==='Moita_de_Bagas';
     mesh.receiveShadow = true;
     parent.add(mesh);
-    if(name==='Passo_Pedra'||name==='Cogumelos')paint.outline(mesh,1.15);
+    if(name==='Seixo_da_Travessia')paint.outline(mesh,1.05);
     if(visibleSolids.size)solidBatches.push({mesh,visibleSolids});
   }
   let economical=false;
@@ -215,17 +217,8 @@ export function installBosque(group, library, layout, floor, edge, paint) {
     },
     setEconomy(low) { economical=low; details.visible = full.visible = !low; economy.visible=low; },
     clearSight(camera, hero, buddy, landmarks) {
-      art.visible=Math.hypot(hero.x-1,hero.z-3.4)<(economical?12.4:16.5);
+      art.visible=inSceneMaster(hero.x,hero.z)||Math.hypot(hero.x-1,hero.z-3.4)<(economical?12.4:16.5);
       if(!art.visible)return;
-      const dx=hero.x-camera.x, dz=hero.z-camera.z;
-      const distanceSq=dx*dx+dz*dz;
-      for(const { trunk,x,z,height,radius } of trunks){
-        const t=((x-camera.x)*dx+(z-camera.z)*dz)/distanceSq;
-        const rayY=T.MathUtils.lerp(camera.y,hero.y+.8,t);
-        const inFront=t>-.15 && t<.93;
-        const nearRay=(x-camera.x-t*dx)**2+(z-camera.z-t*dz)**2<(radius+.60)**2;
-        trunk.visible=!(inFront && nearRay && rayY<trunk.position.y+height);
-      }
       sight.update(camera,hero,buddy,landmarks);
       for(const item of screening){
         if(!item.parent.visible)continue;

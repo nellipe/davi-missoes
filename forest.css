@@ -601,6 +601,7 @@
   background: var(--chibi-ink);
 }
 .trail-shell {
+  position: relative;
   border: 3px solid var(--chibi-ink);
   border-radius: 26px;
   box-shadow: 0 6px var(--chibi-ink);
@@ -698,6 +699,7 @@
 }
 .trail-shell #forestMessage { max-width: min(270px,75%); }
 .trail-shell #forestMessage.pipo-speech {
+  width: max-content;
   top: var(--speech-y, 45%);
   left: var(--speech-x, 50%);
   bottom: auto;
@@ -773,12 +775,29 @@
   .forest-view .brand-cube { width: 36px; height: 36px; font-size: 1.25rem; }
   .forest-view > header nav { width: auto; gap: 0; padding: 3px; flex-wrap: nowrap; }
   .forest-view > header nav button { padding-inline: 7px; font-size: .74rem; }
-  .trail-shell .forest-camera { top: 76px; right: 10px; }
+  .trail-shell .forest-stage { height: 62svh; min-height: min(440px, 66svh); }
+  .trail-shell .forest-camera {
+    position: static;
+    padding: 8px 10px 12px;
+    justify-content: center;
+    gap: 8px;
+    background: var(--chibi-bar);
+    border-top: 3px solid var(--chibi-ink);
+  }
+  .trail-shell .forest-camera .f-button { border-radius: 15px; }
   .trail-shell .forest-dpad { grid-template: repeat(2,48px) / repeat(3,48px); gap: 4px; }
   .trail-shell .forest-interact { max-width: 155px; right: 10px; font-size: .9rem; }
   .trail-shell .forest-interact > span { width: 27px; height: 27px; }
-  .trail-shell .forest-route { right: 10px; bottom: 83px; }
+  .trail-shell #forestMessage.pipo-speech { max-width: min(218px,67%); }
+  .trail-shell .forest-route { right: 10px; bottom: 83px; padding-inline: 12px; }
+  .trail-shell .forest-route .forest-hint-prefix { display: none; }
   .forest-region-icon { width: 30px; height: 30px; }
   .trail-hud > .forest-region:first-child { padding-right: 8px; gap: 6px; }
   .trail-shell .forest-pipo { padding-inline: 9px; gap: 7px; }
+}
+@media (max-width: 380px) {
+  .forest-view > header { padding-inline: 8px; }
+  .forest-view #brand { font-size: .86rem; }
+  .forest-view .brand-cube { width: 32px; height: 32px; }
+  .forest-view > header nav button { padding-inline: 6px; font-size: .69rem; }
 }

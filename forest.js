@@ -10,10 +10,19 @@ import { createChibiPaint } from '/assets/forest/chibi.mjs';
 let Trail;
 let trailScene=null, trailLoading=null, currentRegion='', legacy=null, map2d=null;
 const localCamera=new T.Vector3(), localHero=new T.Vector3(), localBuddy=new T.Vector3();
+const skySoft=new T.Color('#dff2e7'), skyDefault=new T.Color('#ddf2fa');
 const clearingSight=createSight();
 const trailX=(x)=>x-data.map.trailOffset;
 const beyondSeam=(x)=>x>=data.map.seam;
 const regionAt=(x,z)=>beyondSeam(x)?Trail.region(trailX(x),z):'Clareira do Riacho';
+const nearMill=(x,z)=>Math.hypot(trailX(x),z-13);
+function cameraYaw(x,z) {
+  if(map2d)return 0;
+  if(!beyondSeam(x))return .55;
+  if(nearMill(x,z)<3.6)return .58;
+  if(Math.hypot(trailX(x)+9,z-1.4)<3.0)return .70;
+  return .18;
+}
 let buddyHead=null, reactUntil=0;
 let chibi;
 let regionBannerUntil=0, messageUntil=0, actionTarget='';
@@ -574,14 +583,14 @@ function layout() {
         ? '<svg id="worldMap" class="forest-map-2d" tabindex="0" role="group" aria-label="Floresta Encantada em 2D"></svg>'
         : '<canvas id="forestCanvas" tabindex="0" aria-label="Floresta Encantada. Ande com setas ou WASD; E para interagir." aria-describedby="forestInstructions"></canvas>'}
       <div id="forestLabels" class="forest-labels"></div>${chapter}
-      <div class="forest-camera">${cameraTools}</div>
       <p id="forestMessage" role="status"></p>
       <p id="forestArrival" role="status" hidden></p>
       <div class="forest-dpad" role="group" aria-label="Andar">${directions}</div>
-      ${button("Perguntar a Pipo","hint","","forest-route")}
+      ${button('<span class="forest-hint-prefix">Perguntar a </span>Pipo',"hint",'aria-label="Perguntar a Pipo"',"forest-route")}
       <button id="forestInteract" class="forest-interact" data-action="forest-nearby">Explorar · E</button>
       <div id="forestLoading" class="forest-loading">Abrindo o caminho da floresta…</div>
     </div>
+    ${cameraTools?`<div class="forest-camera" role="group" aria-label="Câmera da floresta">${cameraTools}</div>`:''}
     <div class="forest-pipo">
       ${button("⌘ Caminhos","paths",'aria-label="Lugares do bosque"')}
       ${map2d?'<button class="f-button" data-action="world-forest">Vista 3D</button>':''}
@@ -747,18 +756,18 @@ function updateCamera(dt = 1) {
     follow.x-=.55*Math.max(0,1-Math.hypot(x+9,pos.z-1.4)/2.3);
   }
   const heroScene=currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas';
-  const framing=distance+forkView-(heroScene ? (portraitTrail?1.1:2.6) : 0);
+  const log=heroScene?Math.max(0,1-Math.hypot(x+9,pos.z-1.4)/3.7):0;
+  const framing=distance+forkView-(heroScene ? (portraitTrail?.85:2.6) : 0)+(portraitTrail?log*.54:0);
   if(heroScene){
-    const log=Math.max(0,1-Math.hypot(x+9,pos.z-1.4)/3.7);
-    const wheel=Math.max(0,1-Math.hypot(x,pos.z-13)/4.0);
-    follow.x-=wheel*.95+log*.32;
-    follow.z-=wheel*1.1+log*.65;
+    const wheel=Math.max(0,1-nearMill(pos.x,pos.z)/4.0);
+    follow.x+=log*.45-wheel*.95;
+    follow.z-=wheel*.93+log*.65;
     follow.y-=log*.19;
   }
   look.lerp(follow, still?1:Math.min(1, dt * 5));
   const offset = new T.Vector3(
     Math.sin(angle) * framing,
-    framing * (heroScene ? (portraitTrail ?.47:.41) : .72),
+    framing * (heroScene ? (portraitTrail ? .42 : .39) : .72),
     Math.cos(angle) * framing,
   );
   camera.position.lerp(follow.clone().add(offset), still?1:Math.min(1, dt * 4));
@@ -829,8 +838,7 @@ function tick(now) {
   if (movingNow && !moving) save();
   movingNow = moving;
   const oldBuddy={x:pipo.position.x,z:pipo.position.z};
-  const desired={x:player.position.x+pipoOffset(player.position.x,player.position.z),z:player.position.z+.48};
-  const goal=walkable(desired.x,desired.z)?desired:{x:player.position.x,z:player.position.z};
+  const goal=pipoGoal(player.position);
   const buddyDelta={x:goal.x-oldBuddy.x,z:goal.z-oldBuddy.z};
   const buddyGap=Math.hypot(buddyDelta.x,buddyDelta.z);
   const budget=buddyGap>(moving?.005:.06)?Math.min(buddyGap,2.3*dt):0;
@@ -895,6 +903,9 @@ function tick(now) {
   if(map2d){
     map2d.draw(player.position,pipo.position,data,clock,still);
   }else{
+    const heroScene=currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas';
+    scene.fog.color.lerp(heroScene?skySoft:skyDefault,still?1:Math.min(1,dt*2.3));
+    scene.background.copy(scene.fog.color);
     updateCamera(dt);
     // Keep the bank visible while looking back through the passage. Beyond the
     // bend the clearing is outside the ordinary view and its assets stay cached.
@@ -987,9 +998,15 @@ function pipoHeight() {
   return floor(pipo.position.x,pipo.position.z)+.95
     +(still?0:.072*Math.sin(clock*4.2)+.17*Math.sin(Math.PI*reaction));
 }
-function pipoOffset(x,z) {
-  const atWheel=beyondSeam(x) ? 1-T.MathUtils.smoothstep(Math.hypot(trailX(x),z-13),2,5) : 0;
-  return T.MathUtils.lerp(-.78,.83,atWheel);
+function pipoGoal({x,z}) {
+  const near=beyondSeam(x)?1-T.MathUtils.smoothstep(nearMill(x,z),2,5):0;
+  const desired={x:x+T.MathUtils.lerp(-.78,.84,near),z:z+T.MathUtils.lerp(.48,-.24,near)};
+  if(walkable(desired.x,desired.z))return desired;
+  if(beyondSeam(x)&&Math.hypot(trailX(x)+9,z-1.4)<3){
+    for(const [dx,dz] of [[.74,.10],[.48,-.55],[-.57,-.47]])
+      if(walkable(x+dx,z+dz))return{x:x+dx,z:z+dz};
+  }
+  return {x,z};
 }
 function bind() {
   abort = new AbortController();
@@ -1280,7 +1297,7 @@ async function action(a, b) {
     return;
   }
   if (name === "camera") {
-    angle = map2d ? 0 : beyondSeam(player.position.x) ? .18 : .55;
+    angle = cameraYaw(player.position.x,player.position.z);
     distance = 8.7;
     return;
   }
@@ -1462,7 +1479,7 @@ async function open(options) {
   clock = 0;
   regionBannerUntil=0;messageUntil=0;actionTarget='';
   lastCalendarRefresh=performance.now();calendarPending=false;
-  angle=map2d ? 0 : beyondSeam(data.position.x) ? .18 : .55;
+  angle=cameraYaw(data.position.x,data.position.z);
   distance=8.7;waving=0;blinkAt=3.2;blinkUntil=0;lastSave=0;movingNow=false;
   adaptiveLow = false;
   clip = "Idle";
@@ -1640,8 +1657,8 @@ async function open(options) {
     floor(data.position.x, data.position.z)-supportHeight(playerSupport,actions),
     data.position.z,
   );
-  pipo.position.copy(player.position).add(new T.Vector3(pipoOffset(player.position.x,player.position.z),0,.48));
-  if(!walkable(pipo.position.x,pipo.position.z))pipo.position.copy(player.position);
+  const buddyStart=pipoGoal(player.position);
+  pipo.position.set(buddyStart.x,0,buddyStart.z);
   pipo.position.y=pipoHeight();
   if(currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas'){
     player.rotation.y=pipo.rotation.y=angle;
