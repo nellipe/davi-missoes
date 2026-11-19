@@ -1,0 +1,143 @@
+{
+  "synthetic": true,
+  "first": {
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "vendor": "Google Inc. (NVIDIA)",
+    "frames": 4,
+    "frameMs": [
+      1033.3,
+      16.600000000000136,
+      16.799999999999955
+    ],
+    "loadMs": [
+      174
+    ],
+    "readyMs": 1499.3000000044703,
+    "position": [
+      0,
+      0.1371125314062203,
+      0.7099999999999985
+    ],
+    "pipoPosition": [
+      -0.8,
+      0.3092672258062203,
+      1.4020441983999983
+    ],
+    "pipoScarfVisible": false,
+    "camera": [
+      6.794933976098569,
+      15.337112531406222,
+      10.592818786773572
+    ],
+    "characterSize": [
+      0.9426441546578532,
+      2.2951475746772667,
+      0.7628603848463744
+    ],
+    "quality": "auto",
+    "low": false,
+    "adaptiveLow": false,
+    "triangles": 1561377,
+    "calls": 304,
+    "animations": [
+      "Idle",
+      "Walk",
+      "Wave"
+    ],
+    "pipoAnimations": [
+      "Hover",
+      "Walk"
+    ],
+    "webgl": true,
+    "paused": false,
+    "animation": "Idle",
+    "pipoAnimation": "Hover",
+    "target": null,
+    "keys": [],
+    "angle": 0.55,
+    "feetY": 0.16211255532872335
+  },
+  "movingAfterSwap": {
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "vendor": "Google Inc. (NVIDIA)",
+    "frames": 27,
+    "frameMs": [
+      16.641999999999825,
+      16.699999999999818,
+      16.700000000000728,
+      16.599999999999454,
+      16.699999999999818,
+      16.600000000000364,
+      16.699999999999818,
+      16.600000000000364,
+      16.699999999999818,
+      16.600000000000364,
+      16.699999999999818,
+      16.699999999999818,
+      16.699999999999818,
+      16.600000000000364,
+      16.699999999999818,
+      16.600000000000364,
+      16.799999999999272,
+      16.600000000000364,
+      16.699999999999818,
+      16.699999999999818,
+      16.600000000000364,
+      16.600000000000364,
+      16.699999999999818,
+      16.800000000000182,
+      16.599999999999454,
+      16.600000000000364
+    ],
+    "loadMs": [
+      0
+    ],
+    "readyMs": 224.60000000149012,
+    "position": [
+      0.5860168312184841,
+      0.15245319785427802,
+      1.517376692372019
+    ],
+    "pipoPosition": [
+      -0.513462371343887,
+      0.18797300716056317,
+      2.362235067436305
+    ],
+    "pipoScarfVisible": false,
+    "camera": [
+      7.111232006929522,
+      15.326459529744566,
+      11.565561481785009
+    ],
+    "characterSize": [
+      1.1184418784724368,
+      2.294999909320295,
+      1.1679962932016665
+    ],
+    "quality": "auto",
+    "low": false,
+    "adaptiveLow": false,
+    "triangles": 1561377,
+    "calls": 304,
+    "animations": [
+      "Idle",
+      "Walk",
+      "Wave"
+    ],
+    "pipoAnimations": [
+      "Hover",
+      "Walk"
+    ],
+    "webgl": true,
+    "paused": false,
+    "animation": "Wave",
+    "pipoAnimation": "Walk",
+    "target": null,
+    "keys": [
+      "right"
+    ],
+    "angle": 0.55,
+    "feetY": 0.17745322177678108
+  },
+  "errors": []
+}

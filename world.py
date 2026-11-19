@@ -64,6 +64,17 @@ def today(): return dt.datetime.now(TZ).date().isoformat()
 def balance(c): return c.execute('SELECT COALESCE(SUM(delta),0) FROM world_ledger').fetchone()[0]
 
 
+def adjust_balance(c, body):
+    target = body.get('stars')
+    if type(target) is not int or not 0 <= target <= 10000:
+        raise ValueError('Escolha um saldo inteiro entre 0 e 10.000 estrelas.')
+    previous = balance(c)
+    c.execute('INSERT INTO world_ledger(id,delta,label,day,context) VALUES(?,?,?,?,?)',
+              ('adjust:' + secrets.token_hex(16), target - previous, 'Ajuste de saldo pelo responsável', today(),
+               json.dumps({'previous_balance': previous, 'new_balance': target})))
+    return config(c)
+
+
 def scene(c):
     owned={r['item_id'] for r in c.execute('SELECT item_id FROM world_inventory WHERE active=1')}
     return {'stars':balance(c),'avatar':dict(c.execute('SELECT * FROM world_state WHERE id=1').fetchone()),
@@ -81,7 +92,7 @@ def grant(c, key, amount, label, context=None):
                     'message':'O responsável ajustou as estrelas deste treino. Você pode continuar brincando!'}
         return {'delta':0,'stars':balance(c),'reason':'already','message':'As estrelas deste treino já foram guardadas. Você pode continuar brincando!'}
     limit=c.execute('SELECT daily_limit FROM world_settings WHERE id=1').fetchone()[0]
-    earned=c.execute('SELECT COALESCE(SUM(delta),0) FROM world_ledger WHERE day=? AND delta>0',(today(),)).fetchone()[0]
+    earned=c.execute("SELECT COALESCE(SUM(delta),0) FROM world_ledger WHERE day=? AND delta>0 AND id NOT GLOB 'adjust:*'",(today(),)).fetchone()[0]
     amount=max(0,min(amount,limit-earned))
     c.execute('INSERT INTO world_ledger(id,delta,label,day,context) VALUES(?,?,?,?,?)',
               (key,amount,label,today(),json.dumps(context or {},ensure_ascii=False)))

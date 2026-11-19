@@ -1,0 +1,90 @@
+{
+  "backlog_override": 0,
+  "concurrency": 48,
+  "runs": [
+    {
+      "start": 1,
+      "build": {
+        "version": "0.7B-chibi.2",
+        "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad"
+      },
+      "ready_ms": 339,
+      "alive": true,
+      "samples": {
+        "alive:0": 41
+      },
+      "build_after": 200,
+      "requests": 1200,
+      "failed": [],
+      "protocol": "h2",
+      "caddy_502": 0,
+      "caddy_refused": 0,
+      "example": null,
+      "python_traceback": false,
+      "failure_count": 0
+    },
+    {
+      "start": 2,
+      "build": {
+        "version": "0.7B-chibi.2",
+        "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad"
+      },
+      "ready_ms": 368,
+      "alive": true,
+      "samples": {
+        "alive:0": 43
+      },
+      "build_after": 200,
+      "requests": 1200,
+      "failed": [],
+      "protocol": "h2",
+      "caddy_502": 0,
+      "caddy_refused": 0,
+      "example": null,
+      "python_traceback": false,
+      "failure_count": 0
+    },
+    {
+      "start": 3,
+      "build": {
+        "version": "0.7B-chibi.2",
+        "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad"
+      },
+      "ready_ms": 366,
+      "alive": true,
+      "samples": {
+        "alive:0": 38
+      },
+      "build_after": 200,
+      "requests": 1200,
+      "failed": [],
+      "protocol": "h2",
+      "caddy_502": 0,
+      "caddy_refused": 0,
+      "example": null,
+      "python_traceback": false,
+      "failure_count": 0
+    },
+    {
+      "start": 4,
+      "build": {
+        "version": "0.7B-chibi.2",
+        "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad"
+      },
+      "ready_ms": 342,
+      "alive": true,
+      "samples": {
+        "alive:0": 40
+      },
+      "build_after": 200,
+      "requests": 1200,
+      "failed": [],
+      "protocol": "h2",
+      "caddy_502": 0,
+      "caddy_refused": 0,
+      "example": null,
+      "python_traceback": false,
+      "failure_count": 0
+    }
+  ]
+}

@@ -1,0 +1,218 @@
+{
+  "visits": [
+    {
+      "label": "clareira",
+      "seconds": 1,
+      "region": "Clareira do Riacho",
+      "position": [
+        0,
+        -0.11837866944172268,
+        6.25
+      ],
+      "calls": 202,
+      "triangles": 292102,
+      "fps": 56.3,
+      "medianMs": 16.699999999999818,
+      "p95ms": 16.799999999999727,
+      "low": false,
+      "dpr": 1,
+      "openingMs": 2382.300000011921,
+      "modelsMs": 375.59999999403954,
+      "bufferBytes": 4595908,
+      "textureBytes": 2975061
+    },
+    {
+      "label": "passagem",
+      "seconds": 11,
+      "region": "Clareira do Riacho",
+      "position": [
+        15.107649330512245,
+        0.7928140581583358,
+        5.088029776233069
+      ],
+      "calls": 302,
+      "triangles": 475788,
+      "fps": 60,
+      "medianMs": 16.69999999999891,
+      "p95ms": 16.80000000000109,
+      "low": false,
+      "dpr": 1,
+      "openingMs": 2382.300000011921,
+      "modelsMs": 375.59999999403954,
+      "bufferBytes": 5936540,
+      "textureBytes": 3761493
+    },
+    {
+      "label": "soleira",
+      "seconds": 22,
+      "region": "Soleira da Roda Baixa",
+      "position": [
+        28.00640077944827,
+        0.02661386224971152,
+        13.996939537538525
+      ],
+      "calls": 174,
+      "triangles": 288016,
+      "fps": 60,
+      "medianMs": 16.700000000000728,
+      "p95ms": 16.700000000000728,
+      "low": false,
+      "dpr": 1,
+      "openingMs": 2382.300000011921,
+      "modelsMs": 375.59999999403954,
+      "bufferBytes": 5936540,
+      "textureBytes": 3761493
+    },
+    {
+      "label": "bosque",
+      "seconds": 28,
+      "region": "Bosque das Bainhas",
+      "position": [
+        30.676757230391814,
+        0.19526792959119563,
+        6.484612667128447
+      ],
+      "calls": 180,
+      "triangles": 295446,
+      "fps": 60,
+      "medianMs": 16.69999999999709,
+      "p95ms": 16.700000000000728,
+      "low": false,
+      "dpr": 1,
+      "openingMs": 2382.300000011921,
+      "modelsMs": 375.59999999403954,
+      "bufferBytes": 5936540,
+      "textureBytes": 3761493
+    },
+    {
+      "label": "besouro",
+      "seconds": 41,
+      "region": "Bosque das Bainhas",
+      "position": [
+        18.994485885127162,
+        0.048878204771769726,
+        1.3830531259428138
+      ],
+      "calls": 182,
+      "triangles": 269408,
+      "fps": 60,
+      "medianMs": 16.69999999999709,
+      "p95ms": 16.799999999995634,
+      "low": false,
+      "dpr": 1,
+      "openingMs": 2382.300000011921,
+      "modelsMs": 375.59999999403954,
+      "bufferBytes": 5936540,
+      "textureBytes": 3761493
+    },
+    {
+      "label": "garganta",
+      "seconds": 55,
+      "region": "Garganta das Duas Margens",
+      "position": [
+        24.062386145755,
+        0.46654453452650396,
+        -12.43079835471368
+      ],
+      "calls": 82,
+      "triangles": 141708,
+      "fps": 60,
+      "medianMs": 16.69999999999709,
+      "p95ms": 16.80000000000291,
+      "low": false,
+      "dpr": 1,
+      "openingMs": 2382.300000011921,
+      "modelsMs": 375.59999999403954,
+      "bufferBytes": 5936540,
+      "textureBytes": 3761493
+    },
+    {
+      "label": "patio",
+      "seconds": 66,
+      "region": "Pátio dos Remendos",
+      "position": [
+        37.73093020593068,
+        -0.0006883111509714095,
+        -11.398120309802273
+      ],
+      "calls": 106,
+      "triangles": 171284,
+      "fps": 60,
+      "medianMs": 16.69999999999709,
+      "p95ms": 16.80000000000291,
+      "low": false,
+      "dpr": 1,
+      "openingMs": 2382.300000011921,
+      "modelsMs": 375.59999999403954,
+      "bufferBytes": 5936540,
+      "textureBytes": 3761493
+    },
+    {
+      "label": "copa",
+      "seconds": 74,
+      "region": "Copa da Nascente",
+      "position": [
+        46.50865789791749,
+        3.056884946359861,
+        -5.301878107961837
+      ],
+      "calls": 128,
+      "triangles": 174754,
+      "fps": 60,
+      "medianMs": 16.69999999999709,
+      "p95ms": 16.70000000001164,
+      "low": false,
+      "dpr": 1,
+      "openingMs": 2382.300000011921,
+      "modelsMs": 375.59999999403954,
+      "bufferBytes": 5936540,
+      "textureBytes": 3761493
+    },
+    {
+      "label": "retorno",
+      "seconds": 108,
+      "region": "Clareira do Riacho",
+      "position": [
+        6.292981638387018,
+        0.10483037310140197,
+        7.337682553495036
+      ],
+      "calls": 207,
+      "triangles": 289038,
+      "fps": 60,
+      "medianMs": 16.69999999999709,
+      "p95ms": 16.70000000001164,
+      "low": false,
+      "dpr": 1,
+      "openingMs": 2382.300000011921,
+      "modelsMs": 375.59999999403954,
+      "bufferBytes": 5936540,
+      "textureBytes": 3761493
+    },
+    {
+      "label": "mapa-2d",
+      "seconds": 111,
+      "region": "Clareira do Riacho",
+      "position": [
+        6.292981638387018,
+        0.12191370920979126,
+        7.337682553495036
+      ],
+      "fps": 46.9,
+      "medianMs": 16.699999999999818,
+      "p95ms": 33.303999999999974,
+      "low": false,
+      "openingMs": 39.900000005960464,
+      "bufferBytes": 0,
+      "textureBytes": 0
+    }
+  ],
+  "checkpoint": {
+    "x": 6.292981638387018,
+    "z": 7.337682553495036
+  },
+  "returned": true,
+  "continuousCanvas": true,
+  "resumed2d": true,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

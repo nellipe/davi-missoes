@@ -1,0 +1,141 @@
+{
+  "colors": {
+    "mint": {
+      "shirt": "37b686",
+      "sleeves": "7fdfad",
+      "hat": [],
+      "cape": [],
+      "buddy": [],
+      "pixels": {
+        "mint": 2759,
+        "sun": 4029,
+        "sky": 0,
+        "purple": 0,
+        "scarf": 926
+      },
+      "live": {
+        "mint": 379,
+        "sun": 310,
+        "sky": 0,
+        "purple": 0,
+        "scarf": 47
+      }
+    },
+    "sun": {
+      "shirt": "ffb72e",
+      "sleeves": "ffe079",
+      "hat": [],
+      "cape": [],
+      "buddy": [],
+      "pixels": {
+        "mint": 1244,
+        "sun": 5274,
+        "sky": 0,
+        "purple": 0,
+        "scarf": 926
+      },
+      "live": {
+        "mint": 74,
+        "sun": 612,
+        "sky": 0,
+        "purple": 0,
+        "scarf": 58
+      }
+    },
+    "sky": {
+      "shirt": "477de0",
+      "sleeves": "80aefa",
+      "hat": [],
+      "cape": [],
+      "buddy": [],
+      "pixels": {
+        "mint": 1244,
+        "sun": 4029,
+        "sky": 1515,
+        "purple": 0,
+        "scarf": 926
+      },
+      "live": {
+        "mint": 64,
+        "sun": 295,
+        "sky": 269,
+        "purple": 0,
+        "scarf": 46
+      }
+    }
+  },
+  "items": {
+    "hat": {
+      "before": {
+        "mint": 1244,
+        "sun": 4029,
+        "sky": 1515,
+        "purple": 0,
+        "scarf": 926
+      },
+      "painted": {
+        "mint": 1244,
+        "sun": 7428,
+        "sky": 1515,
+        "purple": 0,
+        "scarf": 926
+      },
+      "after": {
+        "mint": 1244,
+        "sun": 4029,
+        "sky": 1515,
+        "purple": 0,
+        "scarf": 926
+      }
+    },
+    "cape": {
+      "before": {
+        "mint": 1042,
+        "sun": 7884,
+        "sky": 1149,
+        "purple": 0,
+        "scarf": 458
+      },
+      "painted": {
+        "mint": 1042,
+        "sun": 7227,
+        "sky": 711,
+        "purple": 198,
+        "scarf": 458
+      },
+      "after": {
+        "mint": 1042,
+        "sun": 7884,
+        "sky": 1149,
+        "purple": 0,
+        "scarf": 458
+      }
+    },
+    "buddy": {
+      "before": {
+        "mint": 1244,
+        "sun": 7411,
+        "sky": 1491,
+        "purple": 164,
+        "scarf": 926
+      },
+      "painted": {
+        "mint": 932,
+        "sun": 7785,
+        "sky": 1491,
+        "purple": 164,
+        "scarf": 1285
+      },
+      "after": {
+        "mint": 1244,
+        "sun": 7411,
+        "sky": 1491,
+        "purple": 164,
+        "scarf": 926
+      }
+    }
+  },
+  "persisted": true,
+  "view2dSync": true,
+  "missionReturn": true
+}

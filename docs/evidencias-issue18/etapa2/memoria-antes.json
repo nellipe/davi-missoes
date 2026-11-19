@@ -1,0 +1,48 @@
+{
+  "scenario": "30 remounts before cached GLB GPU resource disposal",
+  "gc": "HeapProfiler.collectGarbage + Memory.getDOMCounters",
+  "samples": [
+    {
+      "cycle": 1,
+      "documents": 2,
+      "nodes": 648,
+      "jsEventListeners": 68
+    },
+    {
+      "cycle": 6,
+      "documents": 2,
+      "nodes": 1251,
+      "jsEventListeners": 68
+    },
+    {
+      "cycle": 11,
+      "documents": 2,
+      "nodes": 1862,
+      "jsEventListeners": 68
+    },
+    {
+      "cycle": 16,
+      "documents": 2,
+      "nodes": 2468,
+      "jsEventListeners": 68
+    },
+    {
+      "cycle": 21,
+      "documents": 2,
+      "nodes": 3071,
+      "jsEventListeners": 68
+    },
+    {
+      "cycle": 26,
+      "documents": 2,
+      "nodes": 3682,
+      "jsEventListeners": 68
+    },
+    {
+      "cycle": 30,
+      "documents": 2,
+      "nodes": 4163,
+      "jsEventListeners": 68
+    }
+  ]
+}

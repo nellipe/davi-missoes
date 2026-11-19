@@ -1,0 +1,170 @@
+{
+  "visits": [
+    {
+      "label": "clareira",
+      "seconds": 1,
+      "region": "Clareira do Riacho",
+      "position": [
+        0,
+        -0.12629535725583646,
+        6.25
+      ],
+      "calls": 180,
+      "triangles": 322634,
+      "p95ms": 16.700000000000273,
+      "low": false,
+      "bufferBytes": 4898508,
+      "textureBytes": 11887957
+    },
+    {
+      "label": "passagem",
+      "seconds": 10,
+      "region": "Clareira do Riacho",
+      "position": [
+        15.097700841909305,
+        0.7817722584051642,
+        5.0854965454870005
+      ],
+      "calls": 278,
+      "triangles": 519580,
+      "p95ms": 16.700000000000728,
+      "low": false,
+      "bufferBytes": 6137408,
+      "textureBytes": 12674389
+    },
+    {
+      "label": "soleira",
+      "seconds": 21,
+      "region": "Soleira da Roda Baixa",
+      "position": [
+        27.99589276266939,
+        0.019117414482258847,
+        13.986553190195409
+      ],
+      "calls": 177,
+      "triangles": 274474,
+      "p95ms": 16.700000000000728,
+      "low": false,
+      "bufferBytes": 6137408,
+      "textureBytes": 12674389
+    },
+    {
+      "label": "bosque",
+      "seconds": 27,
+      "region": "Bosque das Bainhas",
+      "position": [
+        30.67660714716609,
+        0.1873414652095043,
+        6.484626041964361
+      ],
+      "calls": 159,
+      "triangles": 285382,
+      "p95ms": 16.799999999999272,
+      "low": false,
+      "bufferBytes": 6137408,
+      "textureBytes": 12674389
+    },
+    {
+      "label": "besouro",
+      "seconds": 39,
+      "region": "Bosque das Bainhas",
+      "position": [
+        18.994882015267258,
+        0.651792185104437,
+        1.3853543169931406
+      ],
+      "calls": 269,
+      "triangles": 520987,
+      "p95ms": 16.700000000004366,
+      "low": false,
+      "bufferBytes": 6137408,
+      "textureBytes": 12674389
+    },
+    {
+      "label": "garganta",
+      "seconds": 53,
+      "region": "Garganta das Duas Margens",
+      "position": [
+        24.05068025775496,
+        0.4576199684039746,
+        -12.43261172250943
+      ],
+      "calls": 208,
+      "triangles": 517877,
+      "p95ms": 16.700000000004366,
+      "low": false,
+      "bufferBytes": 6137408,
+      "textureBytes": 12674389
+    },
+    {
+      "label": "patio",
+      "seconds": 63,
+      "region": "Pátio dos Remendos",
+      "position": [
+        37.70756191876055,
+        -0.0091326968677112,
+        -11.39330700900919
+      ],
+      "calls": 147,
+      "triangles": 294464,
+      "p95ms": 16.700000000004366,
+      "low": false,
+      "bufferBytes": 6137408,
+      "textureBytes": 12674389
+    },
+    {
+      "label": "copa",
+      "seconds": 71,
+      "region": "Copa da Nascente",
+      "position": [
+        46.509680934892245,
+        3.0489159213915453,
+        -5.301066100050398
+      ],
+      "calls": 178,
+      "triangles": 291732,
+      "p95ms": 16.69999999999709,
+      "low": false,
+      "bufferBytes": 6137408,
+      "textureBytes": 12674389
+    },
+    {
+      "label": "retorno",
+      "seconds": 104,
+      "region": "Clareira do Riacho",
+      "position": [
+        6.276639277988482,
+        0.0964996983218184,
+        7.342420865061115
+      ],
+      "calls": 184,
+      "triangles": 321814,
+      "p95ms": 16.70000000001164,
+      "low": false,
+      "bufferBytes": 6137408,
+      "textureBytes": 12674389
+    },
+    {
+      "label": "mapa-2d",
+      "seconds": 108,
+      "region": "Clareira do Riacho",
+      "position": [
+        6.276639277988482,
+        0.12149972224432148,
+        7.342420865061115
+      ],
+      "p95ms": 16.799999999999955,
+      "low": false,
+      "bufferBytes": 0,
+      "textureBytes": 0
+    }
+  ],
+  "checkpoint": {
+    "x": 6.276639277988482,
+    "z": 7.342420865061115
+  },
+  "returned": true,
+  "continuousCanvas": true,
+  "resumed2d": true,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

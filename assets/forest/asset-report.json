@@ -1,0 +1,36 @@
+{
+  "generator": "Blender 4.5.9 LTS",
+  "seed": 1607,
+  "assets": {
+    "forest.glb": {
+      "bytes": 3408380,
+      "triangles_before_instancing": 137391,
+      "objects": 1171
+    },
+    "activity.glb": {
+      "bytes": 81928,
+      "triangles_before_instancing": 554,
+      "objects": 7
+    },
+    "bridge.glb": {
+      "bytes": 533980,
+      "triangles_before_instancing": 11932,
+      "objects": 86
+    },
+    "treehouse.glb": {
+      "bytes": 937416,
+      "triangles_before_instancing": 17237,
+      "objects": 150
+    },
+    "davi.glb": {
+      "bytes": 568624,
+      "triangles_before_instancing": 13704,
+      "objects": 24
+    },
+    "pipo.glb": {
+      "bytes": 151176,
+      "triangles_before_instancing": 3580,
+      "objects": 13
+    }
+  }
+}

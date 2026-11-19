@@ -66,6 +66,49 @@ class WorldTests(HttpFixture):
         with server.db() as c:c.execute("UPDATE events SET title='Medicação essencial sintética' WHERE id=?",(self.eid,))
         self.assertEqual(self.child.request('/api/world/real','POST',claim)[1]['reason'],'care')
 
+    def test_parent_balance_adjustment_unlocks_bridge_and_preserves_progress(self):
+        adjustment = '/api/world/balance'
+        forest = '/api/forest/map'
+        crossing = [{'x':0,'z':z} for z in (1,0,-1,-2,-3,-4,-5,-5.4)]
+        self.assertEqual(self.child.request(forest+'/move','PUT',crossing[-1])[0],400)
+        self.assertEqual(self.child.request('/api/world/buy','POST',{'item_id':'bridge'})[0],400)
+        self.assertEqual(Client(self.port).request(adjustment,'PUT',{'stars':10000})[0],403)
+        self.assertEqual(self.child.request(adjustment,'PUT',{'stars':10000})[0],403)
+        self.assertEqual(self.parent.request(adjustment,'PUT',{'stars':10000},**{'X-CSRF-Token':''})[0],403)
+        for invalid in (None,True,-1,10001,1.5,'10000'):
+            self.assertEqual(self.parent.request(adjustment,'PUT',{'stars':invalid})[0],400)
+
+        config=self.parent.request(adjustment,'PUT',{'stars':10000})[1]
+        self.assertEqual(config['world']['stars'],10000)
+        self.assertEqual(config['history'][0]['context'],{'previous_balance':0,'new_balance':10000})
+        self.assertEqual(self.child.request(forest)[1]['economy']['stars'],10000)
+        self.assertEqual(self.child.request('/api/world/buy','POST',{'item_id':'bridge'})[1]['charged'],4)
+        for position in crossing:
+            self.assertEqual(self.child.request(forest+'/move','PUT',position)[0],200,position)
+
+        code=self.parent.request('/api/devices/code','POST')[1]['code']
+        other=Client(self.port)
+        self.assertEqual(other.request('/api/pair','POST',{'code':code})[0],200)
+        other.request('/api/me')
+        config=self.parent.request(adjustment,'PUT',{'stars':0})[1]
+        self.assertEqual(config['history'][0]['context'],{'previous_balance':9996,'new_balance':0})
+        self.assertTrue(config['inventory'][0]['active'])
+        config=self.parent.request(adjustment,'PUT',{'stars':17})[1]
+        self.assertEqual(config['world']['stars'],17)
+        server.initialize()
+        self.assertEqual(other.request(forest)[1]['position'],crossing[-1])
+        self.assertEqual(other.request('/api/world')[1]['stars'],17)
+        self.assertEqual(other.request('/api/world/buy','POST',{'item_id':'bridge'})[1]['charged'],0)
+
+        self.parent.request('/api/world/config','PUT',{**config['settings'],'daily_limit':1,'catalog':config['world']['catalog']})
+        self.assertEqual(self.finish()[1]['reward']['delta'],1)
+        self.parent.request(adjustment,'PUT',{'stars':0})
+        self.assertEqual(self.finish('order')[1]['reward']['delta'],0)
+        with server.db() as c:
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM step_progress').fetchone()[0],0)
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM completions').fetchone()[0],0)
+            self.assertEqual(c.execute("SELECT COUNT(*) FROM world_ledger WHERE id GLOB 'adjust:*'").fetchone()[0],4)
+
     def test_atomic_purchase_avatar_and_second_device_persistence(self):
         self.finish();self.finish('order');self.finish('bag')
         self.assertEqual(self.child.request('/api/world/buy','POST',{'item_id':'portal'})[0],400)
@@ -155,7 +198,7 @@ class WorldTests(HttpFixture):
         events=self.child.request('/api/calendar?start=2026-11-17&end=2026-11-18')[1]['events']
         self.assertFalse(events[0]['done'])
         self.assertFalse(self.parent.request(f'/api/events/{self.eid}/mission?date=2026-11-17')[1]['mission']['steps'][0]['done'])
-        self.assertEqual(self.parent.request('/api/me')[1]['version'],'0.7A-1')
+        self.assertEqual(self.parent.request('/api/me')[1]['version'],server.APP_VERSION)
 
     def test_upgrade_previous_world_preserves_ledger_inventory_and_legacy_credit(self):
         self.finish()

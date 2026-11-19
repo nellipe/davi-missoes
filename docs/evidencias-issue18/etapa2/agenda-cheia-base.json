@@ -1,0 +1,19 @@
+{
+  "total": 50,
+  "point": [
+    -2.7,
+    4.8
+  ],
+  "visits": [
+    {
+      "id": "activity-1",
+      "expected": "Mochila de teste",
+      "actual": "Atividade sintética 22"
+    },
+    {
+      "id": "activity-41",
+      "expected": "Atividade sintética 39",
+      "actual": "Atividade sintética 22"
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "stops": [
+    {
+      "name": "Soleira",
+      "seconds": 1.4,
+      "position": [
+        0,
+        0.018508252712314228,
+        14
+      ],
+      "region": "Soleira da Roda Baixa"
+    },
+    {
+      "name": "Bifurcação",
+      "seconds": 8.6,
+      "position": [
+        2.3973481028130266,
+        0.5482175225502077,
+        4.986846545626676
+      ],
+      "region": "Bosque das Bainhas"
+    },
+    {
+      "name": "Trilha da casca",
+      "seconds": 14,
+      "position": [
+        -5.3139793925755265,
+        0.13882097996274947,
+        2.0830434815486694
+      ],
+      "region": "Bosque das Bainhas"
+    },
+    {
+      "name": "Avesso da folha",
+      "seconds": 16.6,
+      "position": [
+        -9.006125732393773,
+        0.041052780946014014,
+        1.3825905429866285
+      ],
+      "region": "Bosque das Bainhas"
+    },
+    {
+      "name": "Reencontro",
+      "seconds": 27.3,
+      "position": [
+        0.0013881601316385606,
+        0.35165157322044766,
+        -7.018114517554412
+      ],
+      "region": "Garganta das Duas Margens"
+    },
+    {
+      "name": "Janela da queda",
+      "seconds": 31.4,
+      "position": [
+        -4.004769196944983,
+        0.450596028050245,
+        -12.519212429500755
+      ],
+      "region": "Garganta das Duas Margens"
+    },
+    {
+      "name": "Eco nas lajes",
+      "seconds": 42.6,
+      "position": [
+        6.997820539617589,
+        1.4739348059824846,
+        0.28770552049889897
+      ],
+      "region": "Bosque das Bainhas"
+    },
+    {
+      "name": "Volta à roda",
+      "seconds": 52.2,
+      "position": [
+        -0.024675336251126723,
+        0.0436678192600989,
+        14.005117616895445
+      ],
+      "region": "Soleira da Roda Baixa"
+    },
+    {
+      "name": "Retorno de Agora",
+      "seconds": 53.6,
+      "position": [
+        -0.024675336251126723,
+        0.018299832094379815,
+        14.005117616895445
+      ],
+      "region": "Soleira da Roda Baixa"
+    }
+  ],
+  "overlookVisibleFromStart": false,
+  "samples": 249,
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "frameP95ms": 16.700000000004366,
+  "maxGap": 1.0683961294327635,
+  "maxFeetError": 0.015692569431335665,
+  "maxCalls": 110,
+  "maxTriangles": 84764,
+  "low": false,
+  "stars": 0,
+  "errors": []
+}

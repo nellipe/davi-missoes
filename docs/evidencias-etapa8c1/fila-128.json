@@ -1,0 +1,132 @@
+{
+  "backlog_override": 0,
+  "concurrency": 24,
+  "runs": [
+    {
+      "start": 1,
+      "build": {
+        "version": "0.7B-chibi.2",
+        "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad"
+      },
+      "ready_ms": 360,
+      "alive": true,
+      "samples": {
+        "alive:0": 522
+      },
+      "build_after": 200,
+      "requests": 960,
+      "failed": [],
+      "protocol": "h2",
+      "gate": {
+        "https": {
+          "exit": 0,
+          "report": {
+            "rounds": 21,
+            "requests": 252,
+            "seconds": 12.49
+          }
+        },
+        "chromium": {
+          "exit": 0,
+          "report": {
+            "https": 200,
+            "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad",
+            "openings": 3,
+            "maps": 3,
+            "agora": true,
+            "issues": []
+          }
+        }
+      },
+      "caddy_502": 0,
+      "caddy_refused": 0,
+      "example": null,
+      "python_traceback": false,
+      "failure_count": 0
+    },
+    {
+      "start": 2,
+      "build": {
+        "version": "0.7B-chibi.2",
+        "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad"
+      },
+      "ready_ms": 351,
+      "alive": true,
+      "samples": {
+        "alive:0": 501
+      },
+      "build_after": 200,
+      "requests": 960,
+      "failed": [],
+      "protocol": "h2",
+      "gate": {
+        "https": {
+          "exit": 0,
+          "report": {
+            "rounds": 21,
+            "requests": 252,
+            "seconds": 12.48
+          }
+        },
+        "chromium": {
+          "exit": 0,
+          "report": {
+            "https": 200,
+            "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad",
+            "openings": 3,
+            "maps": 3,
+            "agora": true,
+            "issues": []
+          }
+        }
+      },
+      "caddy_502": 0,
+      "caddy_refused": 0,
+      "example": null,
+      "python_traceback": false,
+      "failure_count": 0
+    },
+    {
+      "start": 3,
+      "build": {
+        "version": "0.7B-chibi.2",
+        "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad"
+      },
+      "ready_ms": 370,
+      "alive": true,
+      "samples": {
+        "alive:0": 532
+      },
+      "build_after": 200,
+      "requests": 960,
+      "failed": [],
+      "protocol": "h2",
+      "gate": {
+        "https": {
+          "exit": 0,
+          "report": {
+            "rounds": 21,
+            "requests": 252,
+            "seconds": 12.5
+          }
+        },
+        "chromium": {
+          "exit": 0,
+          "report": {
+            "https": 200,
+            "commit": "01beea1e757cf5a9a52ac8a70ef89af3957d92ad",
+            "openings": 3,
+            "maps": 3,
+            "agora": true,
+            "issues": []
+          }
+        }
+      },
+      "caddy_502": 0,
+      "caddy_refused": 0,
+      "example": null,
+      "python_traceback": false,
+      "failure_count": 0
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "synthetic": true,
+  "realHardware": true,
+  "browser": "159.0.8154.6",
+  "metrics": [
+    {
+      "viewport": 1366,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "frameP50ms": 16.700000000000728,
+      "frameP95ms": 16.700000000000728,
+      "callsAllPasses": 350,
+      "trianglesAllPasses": 1731053,
+      "assetLoadMs": [
+        0
+      ]
+    },
+    {
+      "viewport": 390,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "low": true,
+      "p50ms": 16.700000000000045,
+      "p95ms": 16.800000000000182,
+      "callsAllPasses": 144
+    },
+    {
+      "viewport": 360,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "low": true,
+      "p50ms": 16.699999999999818,
+      "p95ms": 16.799999999999955,
+      "callsAllPasses": 144
+    },
+    {
+      "viewport": 1366,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 SUPER (0x00001F06) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "low": false,
+      "p50ms": 16.699999999999818,
+      "p95ms": 16.800000000000182,
+      "callsAllPasses": 360
+    }
+  ],
+  "checks": [
+    "Entrou em missão existente e voltou à floresta com a mesma posição.",
+    "Construiu a ponte pela interface e atravessou por movimento real.",
+    "A construção da casa mudou o cenário; interação preservou o saldo.",
+    "Controles de toque e teclado moveram os personagens.",
+    "Posição, saldo e construções persistiram após reload e em segundo contexto autorizado.",
+    "Fallback 2D automático sem WebGL e retorno manual mantidos."
+  ],
+  "errors": [],
+  "externalRequests": []
+}

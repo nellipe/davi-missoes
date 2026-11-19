@@ -9,7 +9,7 @@ const net = require('node:net');
 const {spawn} = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const data = fs.mkdtempSync(path.join(os.tmpdir(), 'davi-v06-synthetic-'));
-const evidence = path.join(root, 'docs', 'evidencias-v06-a');
+const evidence = process.env.FOREST_EVIDENCE_DIR || path.join(root, 'docs', 'evidencias-v06-a');
 fs.mkdirSync(evidence, {recursive:true});
 const report = {fixture:'Dados inteiramente sintéticos; servidor e navegador em loopback.',checks:[],captures:[],errors:[]};
 let server, browser;
@@ -21,7 +21,7 @@ async function main() {
   const base = `http://127.0.0.1:${port}`;
   const env = Object.fromEntries(Object.entries(process.env).filter(([k])=>!k.startsWith('DAVI_')));
   Object.assign(env,{DAVI_DATA_DIR:data,DAVI_HOST:'127.0.0.1',DAVI_PORT:String(port)});
-  const bootstrap = "import server; server.initialize(); server.set_setting('name','Explorador sintético'); server.set_setting('password',server.hash_password('SyntheticPassword123')); server.main()";
+  const bootstrap = "import datetime, server; server.timing.now=lambda:datetime.datetime(2026,11,17,11,0,tzinfo=server.TZ); server.initialize(); server.set_setting('name','Explorador sintético'); server.set_setting('password',server.hash_password('SyntheticPassword123')); server.main()";
   server = spawn(process.env.PYTHON || 'python',['-c',bootstrap],{cwd:root,env,stdio:'ignore',windowsHide:true});
   const api = await request.newContext({baseURL:base,extraHTTPHeaders:{Origin:base}});
   let ready = false;
@@ -45,7 +45,7 @@ async function main() {
   browser=await chromium.launch();
   const context=await browser.newContext({viewport:{width:1366,height:1000},reducedMotion:'reduce',locale:'pt-BR',extraHTTPHeaders:{Origin:base}});
   const page=await context.newPage();
-  await page.clock.setFixedTime(new Date('2026-11-17T13:00:00Z'));
+  await page.clock.setFixedTime(new Date('2026-11-17T14:00:00Z'));
   page.on('pageerror',e=>report.errors.push(e.message));
   page.on('dialog',d=>d.accept());
   const idle=()=>page.waitForFunction(()=>document.querySelector('#content')&&!document.querySelector('#content').hasAttribute('aria-busy'));
@@ -102,7 +102,7 @@ async function main() {
   const childContext=await browser.newContext({viewport:{width:360,height:1000},reducedMotion:'reduce',locale:'pt-BR',extraHTTPHeaders:{Origin:base}});
   assert.equal((await childContext.request.post(base+'/api/pair',{data:{code}})).status(),200);
   const childPage=await childContext.newPage();
-  await childPage.clock.setFixedTime(new Date('2026-11-17T13:00:00Z'));
+  await childPage.clock.setFixedTime(new Date('2026-11-17T14:00:00Z'));
   childPage.on('pageerror',e=>report.errors.push(e.message));
   const childIdle=()=>childPage.waitForFunction(()=>!document.querySelector('#content').hasAttribute('aria-busy'));
   const childGame=async action=>{await childIdle();await childPage.locator(`[data-action="game-${action}"]`).first().click();await childIdle();};
@@ -111,6 +111,7 @@ async function main() {
     if(await childPage.locator('#worldMap').count()){await childPage.locator('.w-hud [data-action="world-calendar"]').click();await childIdle();}
     await childPage.locator('[data-action="mission-open"]').first().click();await childIdle();
   };
+  await childPage.addInitScript(()=>localStorage.setItem('davi-forest-mode','island'));
   await childPage.goto(base);
   await openFirst();
   await childGame('do');
@@ -120,7 +121,7 @@ async function main() {
   await childPage.locator('[data-action="game-confirm"]').focus();
   await childPage.keyboard.press('Enter');
   await childIdle();
-  assert.equal(await childPage.evaluate(()=>document.activeElement.id),'gameStepTitle');
+  await childPage.waitForFunction(()=>document.activeElement.id==='gameStepTitle');
   await childPage.locator('#content').focus();
   await childPage.evaluate(()=>window.scrollTo(0,0));
   await childPage.screenshot({path:path.join(evidence,'passos-360.png'),fullPage:true});

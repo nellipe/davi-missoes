@@ -1,6 +1,6 @@
 /* Ilha local: SVG leve, câmera móvel e avatar de verdade. Estado vem do servidor. */
 window.DaviWorld=(()=>{
-  let host,w,abort,frame=0,last=0,keys=new Set(),target=null,dialog=null,message='',dirty=false,saveTimer=0,keyboardNavigation=false;
+  let host,w,abort,frame=0,last=0,keys=new Set(),target=null,dialog=null,message='',dirty=false,saveTimer=0,keyboardNavigation=false,active=false,saving=null,generation=0;
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const own=id=>w.inventory.includes(id);
   const item=id=>w.catalog.find(i=>i.id===id);
@@ -55,7 +55,7 @@ window.DaviWorld=(()=>{
   function render(){
     stop();
     const next=host.missions.find(e=>!e.done)||host.missions[0];
-    host.layout(`<div class="world-shell ${motion()?'':'w-still'}"><div class="w-hud"><div><span class="w-kicker">SEU PEQUENO GRANDE MUNDO</span><h1>Ilha das ideias</h1></div><div class="w-wallet" aria-label="${w.stars} estrelas guardadas"><span aria-hidden="true">✦</span><strong id="worldStars">${w.stars}</strong><small>estrelas</small></div><div class="w-hud-tools">${btn('♧ Meu personagem','wardrobe')}${btn('▣ Calendário','calendar')}</div></div>
+    host.layout(`<div class="world-shell ${motion()?'':'w-still'}"><div class="w-hud"><div><span class="w-kicker">SEU PEQUENO GRANDE MUNDO</span><h1>Ilha das ideias</h1></div><div class="w-wallet" aria-label="${w.stars} estrelas guardadas"><span aria-hidden="true">✦</span><strong id="worldStars">${w.stars}</strong><small>estrelas</small></div><div class="w-hud-tools"><button class="w-button" data-action="child-now">Agora</button><button type="button" class="w-button" data-action="world-picker">Mundos</button>${btn('♧ Meu personagem','wardrobe')}${btn('▣ Calendário','calendar')}</div></div>
       <div class="row between w-day-controls"><div class="actions"><button data-action="childprev" aria-label="Dia anterior">←</button><button data-action="childtoday">Hoje</button><button data-action="childnext" aria-label="Próximo dia">→</button></div><label>Dia <input id="childDate" type="date" value="${esc(host.date)}"></label>${btn('Atividades do dia · '+host.missions.length,'missions')}</div><p class="w-day-note">${esc(host.dateLabel)} · Todas as atividades estão em Atividades do dia, com ou sem roteiro.</p><div class="w-stage">${map()}<span class="w-map-label" aria-hidden="true">BOSQUE DAS DESCOBERTAS</span><div class="w-compass" aria-hidden="true">✧<small>N</small></div><div class="w-dpad" role="group" aria-label="Andar pelo mundo"><button type="button" data-world-dir="up" aria-label="Andar para cima">↑</button><button type="button" data-world-dir="left" aria-label="Andar para esquerda">←</button><button type="button" data-world-dir="down" aria-label="Andar para baixo">↓</button><button type="button" data-world-dir="right" aria-label="Andar para direita">→</button></div><div class="w-map-tip" id="worldMoveHint">Toque no chão para andar · setas ou WASD</div></div>
       <div class="w-dock"><div class="w-pipo">${pipo()}</div><div class="w-pipo-copy"><strong>Pipo, seu companheiro</strong><p id="worldMessage" role="status">${esc(message||'Cada ideia pode virar uma nova descoberta. Que lugar vamos visitar?')}</p></div>${next?btn(`⚑ ${esc(next.title)} <span>${next.has_mission?'Entrar na missão →':'Ver atividade na agenda →'}</span>`,next.has_mission?'play':'calendar',`data-event="${next.id}" data-date="${next.date}"`,'w-mission-button'):btn('Ver meus compromissos','calendar')}</div></div>
       ${dialog?dialogHTML():''}`);
@@ -82,8 +82,13 @@ window.DaviWorld=(()=>{
     svg.setAttribute('viewBox',`${cx-vw/2} ${cy-vh/2} ${vw} ${vh}`);
     document.getElementById('worldPlayer').setAttribute('transform',`translate(${w.avatar.x} ${w.avatar.y})`);
   }
-  async function save(){clearTimeout(saveTimer);if(!dirty)return;dirty=false;try{await host.api('/api/world/move','PUT',{x:w.avatar.x,y:w.avatar.y});}catch{dirty=true;}}
+  async function save(){
+    clearTimeout(saveTimer);if(saving){await saving;if(dirty)return save();return;}
+    if(!dirty||!w||!host)return;const api=host.api,position={x:w.avatar.x,y:w.avatar.y};dirty=false;
+    saving=api('/api/world/move','PUT',position).catch(()=>{dirty=true;}).finally(()=>{saving=null;});await saving;
+  }
   function step(now){
+    if(!active||!document.getElementById('worldMap')){frame=0;return;}
     if(!last)last=now;const dt=Math.min((now-last)/1000,.04);last=now;
     let dx=(keys.has('right')?1:0)-(keys.has('left')?1:0),dy=(keys.has('down')?1:0)-(keys.has('up')?1:0);
     if(target&&!motion()){w.avatar.x=target.x;w.avatar.y=target.y;target=null;dirty=true;camera();save();}
@@ -94,16 +99,17 @@ window.DaviWorld=(()=>{
     frame=keys.size||target?requestAnimationFrame(step):0;
   }
   function wake(){if(!frame){last=0;frame=requestAnimationFrame(step);}}
-  function stop(){if(abort)abort.abort();cancelAnimationFrame(frame);keys.clear();target=null;last=0;}
+  function stop(){if(abort)abort.abort();cancelAnimationFrame(frame);frame=0;keys.clear();target=null;last=0;}
   function bind(){
-    abort=new AbortController();const on=(el,event,fn)=>el.addEventListener(event,fn,{signal:abort.signal});
+    active=true;abort=new AbortController();const on=(el,event,fn)=>el.addEventListener(event,fn,{signal:abort.signal});
     const svg=document.getElementById('worldMap'),dirs={ArrowUp:'up',w:'up',ArrowDown:'down',s:'down',ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right'};
     on(document,'keydown',e=>{if(e.key==='Tab')keyboardNavigation=true;if(dialog||!(e.target===svg||e.target.closest('[data-world-dir]')))return;const dir=dirs[e.key];if(dir){e.preventDefault();target=null;keys.add(dir);wake();}});
     on(document,'keyup',e=>{if(dirs[e.key]){keys.delete(dirs[e.key]);save();}});
-    on(window,'blur',()=>{keys.clear();save();});
+    on(window,'blur',()=>{keys.clear();target=null;save();});
+    on(document,'visibilitychange',()=>{keys.clear();target=null;last=0;save();});
     on(document,'pointerup',()=>{keys.clear();save();});
     on(document,'pointercancel',()=>{keys.clear();save();});
-    document.querySelectorAll('[data-world-dir]').forEach(b=>on(b,'pointerdown',e=>{e.preventDefault();target=null;keys.add(b.dataset.worldDir);wake();}));
+    document.querySelectorAll('[data-world-dir]').forEach(b=>on(b,'pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);target=null;keys.add(b.dataset.worldDir);wake();}));
     on(svg,'pointerdown',e=>{
       keyboardNavigation=false;if(e.target.closest('button')||dialog)return;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(svg.getScreenCTM().inverse());
       svg.focus({preventScroll:true});
@@ -111,6 +117,15 @@ window.DaviWorld=(()=>{
     });
     on(svg,'focusin',e=>{if(keyboardNavigation&&e.target.dataset.x)camera({x:Number(e.target.dataset.x),y:Number(e.target.dataset.y)});});
     on(window,'resize',()=>camera());frame=0;
+    host.watchWorldBalance?.(abort.signal,()=>w.stars,stars=>{
+      w.stars=stars;
+      if(dialog && (dialog==='shop'||item(dialog)))render();
+      else {
+        const amount=document.getElementById('worldStars');
+        amount.textContent=stars;
+        amount.parentElement.setAttribute('aria-label',`${stars} estrelas guardadas`);
+      }
+    });
   }
   async function action(action,b){
     const name=action.replace('world-','');await save();
@@ -126,7 +141,7 @@ window.DaviWorld=(()=>{
     else dialog=name==='item'?b.dataset.item:name;
     render();if(!dialog)document.getElementById('worldMap').focus({preventScroll:true});
   }
-  function close(){stop();save();document.body.classList.remove('world-view');document.getElementById('worldDialog')?.close();}
-  async function open(options){close();host=options;w=await host.api('/api/world');dialog=null;message='';render();}
-  return {open,action,close};
+  function close(){generation++;active=false;stop();document.body.classList.remove('world-view');document.getElementById('worldDialog')?.close();return save();}
+  async function open(options){await close();const token=++generation;host=options;const next=await host.api('/api/world');if(token!==generation)return;w=next;dirty=false;dialog=null;message='';render();}
+  return {open,action,close,diagnostics:()=>({active,frameActive:!!frame,keys:[...keys],target,position:w?{x:w.avatar.x,y:w.avatar.y}:null})};
 })();

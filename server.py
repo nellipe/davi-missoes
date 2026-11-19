@@ -19,10 +19,41 @@ from urllib.parse import urlsplit, parse_qs
 from lan_security import Config, AuthStore
 import missions
 import world
+import forest
+import world_maps
 import schedule_window as timing
 
 ROOT = Path(__file__).resolve().parent
-APP_VERSION = '0.7A-1'
+APP_VERSION = '0.7B-chibi.2'
+
+
+def checkout_commit(root):
+    """Read the served checkout at process start, including linked worktrees."""
+    git = root / '.git'
+    try:
+        if git.is_file():
+            git = (root / git.read_text().strip().removeprefix('gitdir: ')).resolve()
+        head = (git / 'HEAD').read_text().strip()
+        if head.startswith('ref: refs/'):
+            ref = head[5:]
+            shared = git
+            if (git / 'commondir').is_file():
+                shared = (git / (git / 'commondir').read_text().strip()).resolve()
+            for entry in (git / ref, shared / ref):
+                if entry.is_file():
+                    head = entry.read_text().strip()
+                    break
+            else:
+                for entry in (shared / 'packed-refs').read_text().splitlines():
+                    if entry.endswith(' ' + ref):
+                        head = entry.split(' ', 1)[0]
+                        break
+        return head if re.fullmatch(r'[0-9a-f]{40}', head) else None
+    except (OSError, UnicodeError):
+        return None
+
+
+BUILD_COMMIT = checkout_commit(ROOT)
 DATA = Path(os.environ.get("DAVI_DATA_DIR", ROOT / "dados")).resolve()
 DB = DATA / "agenda.sqlite3"
 CONFIG = Config()
@@ -256,7 +287,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length",str(len(raw)))
         self.send_header("Cache-Control","no-store")
         self.send_header("X-Content-Type-Options","nosniff")
-        self.send_header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
         self.send_header("Referrer-Policy","no-referrer")
         for k,v in (extra or {}).items(): self.send_header(k,v)
         self.end_headers()
@@ -292,10 +323,19 @@ class Handler(BaseHTTPRequestHandler):
         if not self.request_ok(): return self.fail("Acesso não autorizado.",403)
         try:
             url=urlsplit(self.path); path=url.path
-            if path in ('/','/app.js','/app.css','/game.js','/game.css','/world.js','/world.css'):
+            if path.startswith(('/assets/forest/','/assets/worlds/','/vendor/three/')):
+                asset=(ROOT/path.lstrip('/')).resolve()
+                allowed=ROOT.joinpath(*path.split('/')[1:3])
+                kinds={'.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.glb':'model/gltf-binary','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2'}
+                if not asset.is_relative_to(allowed) or asset.suffix not in kinds or not asset.is_file():return self.fail('Não encontrado.',404)
+                kind=kinds[asset.suffix]
+                return self.send(200,asset.read_bytes(),kind)
+            if path in ('/','/app.js','/app.css','/game.js','/game.css','/world.js','/world.css','/forest.js','/forest.css'):
                 name='app.html' if path=='/' else path[1:]
                 kind='text/html; charset=utf-8' if name.endswith('.html') else 'text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
                 return self.send(200,(ROOT/name).read_bytes(),kind)
+            if path=='/api/build':
+                return self.send(200,{'version':APP_VERSION,'commit':BUILD_COMMIT})
             if path=="/api/me":
                 session=self.session()
                 extra={}
@@ -313,6 +353,10 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith('/api/') and not (self.session() or (
                     CONFIG.auto_child and path in ('/api/calendar','/api/holidays'))):
                 return self.fail("Autorize este dispositivo com o responsável.",403)
+            if path=='/api/forest/diagnostics':
+                if not self.is_parent():
+                    return self.fail('Acesso do responsável necessário.',403)
+                return self.send(200,{'version':APP_VERSION,'commit':BUILD_COMMIT})
             if path=="/api/holidays":
                 year=int(parse_qs(url.query).get("year",[str(today().year)])[0])
                 if not 2000<=year<=2100: raise ValueError("Ano fora do intervalo.")
@@ -340,6 +384,17 @@ class Handler(BaseHTTPRequestHandler):
                         return self.send(200,{'history':rows})
                     match=re.fullmatch(r'/api/missions/([a-zA-Z0-9_-]{1,80})',path)
                     if match: return self.send(200,missions.template(c,match.group(1)))
+            if path=='/api/forest/map':
+                resume_trail = parse_qs(url.query).get('resume') == ['trail']
+                with db() as c:return self.send(200,forest.map_scene(c, resume_trail))
+            if path=='/api/forest/trail':
+                with db() as c:return self.send(200,forest.trail_scene(c))
+            if path=='/api/forest':
+                with db() as c:return self.send(200,forest.scene(c))
+            if path=='/api/worlds':
+                with db() as c:return self.send(200,world_maps.selection(c))
+            if (match:=re.fullmatch(r'/api/worlds/([a-z]+)',path)) and match[1] in world_maps.LAYOUTS:
+                with db() as c:return self.send(200,world_maps.scene(c,match[1]))
             if path.startswith('/api/world'):
                 with db() as c:
                     if path=='/api/world': return self.send(200,world.scene(c))
@@ -403,14 +458,38 @@ class Handler(BaseHTTPRequestHandler):
                 if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c: result=timing.configure(c,body)
                 return self.send(200,result)
+            if path=='/api/forest/map/move' and method=='PUT':
+                with LOCK, db() as c:result=forest.map_move(c,body)
+                return self.send(200,result)
+            if path=='/api/forest/trail/move' and method=='PUT':
+                with LOCK, db() as c:result=forest.trail_move(c,body)
+                return self.send(200,result)
+            if path=='/api/forest/trail/shelter' and method=='PUT':
+                with LOCK, db() as c:result=forest.shelter_leaf(c,body)
+                return self.send(200,result)
+            if path=='/api/forest/move' and method=='PUT':
+                with LOCK, db() as c:result=forest.move(c,body)
+                return self.send(200,result)
+            if path=='/api/worlds/selection' and method=='PUT':
+                with LOCK, db() as c:result=world_maps.select(c,body)
+                return self.send(200,result)
+            if (match:=re.fullmatch(r'/api/worlds/([a-z]+)/(move|interact)',path)) and match[1] in world_maps.LAYOUTS:
+                with LOCK, db() as c:
+                    if match[2]=='move' and method=='PUT': result=world_maps.move(c,match[1],body)
+                    elif match[2]=='interact' and method=='POST':
+                        c.execute('BEGIN IMMEDIATE')
+                        result=world_maps.interact(c,match[1],body)
+                    else: return self.fail('Rota não encontrada.',404)
+                return self.send(200,result)
             if path.startswith('/api/world'):
-                if path in ('/api/world/config','/api/world/revoke','/api/world/inventory') and not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                if path in ('/api/world/config','/api/world/revoke','/api/world/inventory','/api/world/balance') and session['role']!='parent': return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c:
                     c.execute('BEGIN IMMEDIATE')
                     if path=='/api/world/buy' and method=='POST': result=world.buy(c,body)
                     elif path=='/api/world/equip' and method=='PUT': result=world.equip(c,body)
                     elif path=='/api/world/move' and method=='PUT': result=world.move(c,body)
                     elif path=='/api/world/config' and method=='PUT': result=world.configure(c,body)
+                    elif path=='/api/world/balance' and method=='PUT': result=world.adjust_balance(c,body)
                     elif path=='/api/world/revoke' and method=='POST': result=world.revoke(c,body)
                     elif path=='/api/world/inventory' and method=='PUT': result=world.inventory_control(c,body)
                     elif path=='/api/world/real' and method=='POST':
@@ -522,6 +601,12 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError,TypeError,KeyError,json.JSONDecodeError) as e:return self.fail(str(e))
         except Exception:print("Erro interno de escrita.");return self.fail("Erro interno.",500)
 
+class DaviHTTPServer(ThreadingHTTPServer):
+    # Caddy multiplexes a page's HTTP/2 requests into concurrent upstream
+    # connections. Python 3.13's default of five drops bursts on Windows.
+    request_queue_size = 128
+
+
 def main():
     initialize()
     if CONFIG.simple_lan:
@@ -532,7 +617,7 @@ def main():
     if CONFIG.secure:
         from maintenance import scheduled_backup
         Thread(target=scheduled_backup, args=(DB, DATA / 'backups', stop), daemon=True).start()
-    httpd=ThreadingHTTPServer((HOST,PORT),Handler)
+    httpd=DaviHTTPServer((HOST,PORT),Handler)
     httpd.daemon_threads=True
     try: httpd.serve_forever()
     except KeyboardInterrupt: pass

@@ -1,0 +1,17 @@
+{
+  "events": [
+    "webgl-lost",
+    "webgl-restored",
+    "webgl-lost",
+    "fallback",
+    "webgl-warn"
+  ],
+  "noWebGL": "2D e agenda",
+  "resumed": [
+    0,
+    -0.12629535725583646,
+    6.25
+  ],
+  "errors": [],
+  "noGLErrors": []
+}

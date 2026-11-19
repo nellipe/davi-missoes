@@ -52,13 +52,13 @@ window.DaviGame = (() => {
     const types={'🎒':'bag','🥋':'dobok','🎗️':'belt','🚰':'bottle','💧':'bottle','📚':'book','📓':'notebook','✏️':'case'};
     return art(types[step.icon],step.icon);
   }
-  function sound() {
-    if (preferences().sound !== true) return;
+  function sound(notes=[523,659,784], enabled=preferences().sound===true, beat=.09) {
+    if (!enabled) return;
     try {
       const audio=new (window.AudioContext || window.webkitAudioContext)();
       const gain=audio.createGain(); gain.gain.value=.035; gain.connect(audio.destination);
-      [523,659,784].forEach((frequency,i)=>{const note=audio.createOscillator();note.type='sine';note.frequency.value=frequency;note.connect(gain);note.start(audio.currentTime+i*.09);note.stop(audio.currentTime+i*.09+.12);});
-      setTimeout(()=>audio.close(),600);
+      notes.forEach((frequency,i)=>{const note=audio.createOscillator();note.type='sine';note.frequency.value=frequency;note.connect(gain);note.start(audio.currentTime+i*beat);note.stop(audio.currentTime+i*beat+beat+.03);});
+      setTimeout(()=>audio.close(),Math.max(600,(beat*notes.length+.1)*1000));
     } catch {}
   }
   function stopVoice() { if ('speechSynthesis' in window) speechSynthesis.cancel(); }
@@ -150,6 +150,10 @@ window.DaviGame = (() => {
     scene(`<div class="g-celebration"><div class="g-confetti" aria-hidden="true">${Array.from({length:12},()=>'<i>✦</i>').join('')}</div><span class="g-eyebrow">${real?'SEUS PASSOS NA VIDA REAL':completed?'TREINO CONCLUÍDO':'CAMINHO CONECTADO'}</span><div class="g-victory-art">${robot('g-victory')}<span>✦</span><span>✧</span></div><h1 tabindex="-1" id="gameWinTitle">${real?'Um passo faz diferença!':completed?'Memória em ação!':'Boa conexão!'}</h1><p>${real?`${g.m.confirmed} de ${g.m.total} passos realizados. Combine com o responsável o que vem agora.`:g.mode==='learn'?'Você explorou a sequência. Agora ela já é uma ideia conhecida!':completed?'Você observou, experimentou e lembrou. Isso é praticar!':'As ideias se encontraram. Vamos ligar mais um caminho?'}</p>
       ${rewardChest()}<div class="g-win-actions">${!completed?button('Próximo desafio →','next-round','g-primary'):button(real?'Voltar para os modos':'Levar para a vida real ⚑',real?'hub':'do','g-primary')}${button(completed?'Pausa · voltar à agenda':'Pausa · sair do jogo','exit','g-quiet')}${completed&&!real?button('Jogar de novo ↺',g.mode==='learn'?'learn':'replay','g-text'):''}</div><p class="g-footnote">${real?'A conclusão do compromisso continua na agenda.':'Treino de memória não marca nenhuma tarefa real como feita.'}</p></div>`,'g-finale');
   }
+  function showReward(reward) {
+    g.reward=reward;
+    if(reward?.delta>0)host.onReward?.(reward);
+  }
   function rewardChest() {
     if(!g.reward)return '';
     if(!g.reward.delta)return `<p class="g-footnote">${esc(g.reward.message)}</p>`;
@@ -196,9 +200,9 @@ window.DaviGame = (() => {
       if(name==='confirm'&&!g.m.steps[g.index].done) {const s=g.m.steps[g.index];g.m=await host.api(`/api/events/${g.m.event_id}/mission/steps/${encodeURIComponent(s.id)}`,'PUT',{date:g.m.date,template_id:g.m.id,revision:g.m.revision,done:true});sound();}
       if(g.mode==='learn') {
         const result=await host.api('/api/world/practice/'+g.server.id+'/advance','POST',{step_id:g.m.steps[g.index].id});
-        if(result.reward)g.reward=result.reward;
+        if(result.reward)showReward(result.reward);
       }
-      if(g.mode==='do'&&g.m.confirmed===g.m.total)g.reward=await host.api('/api/world/real','POST',{event_id:g.m.event_id,date:g.m.date});
+      if(g.mode==='do'&&g.m.confirmed===g.m.total)showReward(await host.api('/api/world/real','POST',{event_id:g.m.event_id,date:g.m.date}));
       if(g.index<g.m.steps.length-1)g.index++;else {g.screen=g.mode==='do'?'real-end':'win';if(g.mode==='learn')completePractice();sound();}
     } else if(name==='undo') {const s=g.m.steps[g.index];g.m=await host.api(`/api/events/${g.m.event_id}/mission/steps/${encodeURIComponent(s.id)}`,'PUT',{date:g.m.date,template_id:g.m.id,revision:g.m.revision,done:false});notice('Este passo voltou a ficar pendente. Tudo bem rever o combinado.');}
     else if(name==='order'||name==='bag') {await newRound(name,true);focusTitle();return;}
@@ -217,7 +221,7 @@ window.DaviGame = (() => {
     }
     else if(name==='check') {
       const result=await host.api('/api/world/practice/'+g.server.id+'/answer','POST',{round:g.server.cursor,selected:g.selected});
-      if(result.correct) {g.practice.rounds=result.cursor;g.reward=result.reward;g.screen='win';if(result.completed)completePractice();sound();}
+      if(result.correct) {g.practice.rounds=result.cursor;showReward(result.reward);g.screen='win';if(result.completed)completePractice();sound();}
       else notice(g.kind==='order'?'As ideias ainda estão procurando o caminho. Retire um passo ou recomece. Uma pista pode ajudar!':'Esta bolsa está diferente da lista do jogo. Você pode tirar, trocar ou pedir uma pista!');
     } else if(name==='next-round') {await newRound(g.kind);focusTitle();return;}
     render();
