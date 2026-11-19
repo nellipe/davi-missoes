@@ -20,6 +20,7 @@ from lan_security import Config, AuthStore
 import missions
 import world
 import forest
+import world_maps
 import schedule_window as timing
 
 ROOT = Path(__file__).resolve().parent
@@ -322,9 +323,9 @@ class Handler(BaseHTTPRequestHandler):
         if not self.request_ok(): return self.fail("Acesso não autorizado.",403)
         try:
             url=urlsplit(self.path); path=url.path
-            if path.startswith(('/assets/forest/','/vendor/three/')):
+            if path.startswith(('/assets/forest/','/assets/worlds/','/vendor/three/')):
                 asset=(ROOT/path.lstrip('/')).resolve()
-                allowed=ROOT/('assets/forest' if path.startswith('/assets/forest/') else 'vendor/three')
+                allowed=ROOT.joinpath(*path.split('/')[1:3])
                 kinds={'.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.glb':'model/gltf-binary','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2'}
                 if not asset.is_relative_to(allowed) or asset.suffix not in kinds or not asset.is_file():return self.fail('Não encontrado.',404)
                 kind=kinds[asset.suffix]
@@ -390,6 +391,10 @@ class Handler(BaseHTTPRequestHandler):
                 with db() as c:return self.send(200,forest.trail_scene(c))
             if path=='/api/forest':
                 with db() as c:return self.send(200,forest.scene(c))
+            if path=='/api/worlds':
+                with db() as c:return self.send(200,world_maps.selection(c))
+            if (match:=re.fullmatch(r'/api/worlds/([a-z]+)',path)) and match[1] in world_maps.LAYOUTS:
+                with db() as c:return self.send(200,world_maps.scene(c,match[1]))
             if path.startswith('/api/world'):
                 with db() as c:
                     if path=='/api/world': return self.send(200,world.scene(c))
@@ -464,6 +469,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200,result)
             if path=='/api/forest/move' and method=='PUT':
                 with LOCK, db() as c:result=forest.move(c,body)
+                return self.send(200,result)
+            if path=='/api/worlds/selection' and method=='PUT':
+                with LOCK, db() as c:result=world_maps.select(c,body)
+                return self.send(200,result)
+            if (match:=re.fullmatch(r'/api/worlds/([a-z]+)/(move|interact)',path)) and match[1] in world_maps.LAYOUTS:
+                with LOCK, db() as c:
+                    if match[2]=='move' and method=='PUT': result=world_maps.move(c,match[1],body)
+                    elif match[2]=='interact' and method=='POST': result=world_maps.interact(c,match[1],body)
+                    else: return self.fail('Rota não encontrada.',404)
                 return self.send(200,result)
             if path.startswith('/api/world'):
                 if path in ('/api/world/config','/api/world/revoke','/api/world/inventory','/api/world/balance') and session['role']!='parent': return self.fail('Acesso do responsável necessário.',403)

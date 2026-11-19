@@ -11,17 +11,21 @@ import { createSight } from '/assets/forest/sight.mjs';
 import { createChibiPaint } from '/assets/forest/chibi.mjs';
 let Trail;
 let navigation, companion;
+let newMap, newScene, sceneEndpoint;
 let trailScene=null, trailLoading=null, currentRegion='', legacy=null, map2d=null;
 const localCamera=new T.Vector3(), localHero=new T.Vector3(), localBuddy=new T.Vector3();
 const skySoft=new T.Color('#dff2e7'), skyDefault=new T.Color('#ddf2fa');
 const clearingSight=createSight();
 const trailX=(x)=>x-data.map.trailOffset;
-const beyondSeam=(x)=>x>=data.map.seam;
-const regionAt=(x,z)=>beyondSeam(x)?Trail.region(trailX(x),z):'Clareira do Riacho';
+const beyondSeam=(x)=>!newMap&&x>=data.map.seam;
+const regionAt=(x,z)=>newMap?newMap.region(x,z):beyondSeam(x)?Trail.region(trailX(x),z):'Clareira do Riacho';
+const worldTitle=()=>newMap?data.layout.title:'Floresta Encantada';
+const defaultDistance=()=>newMap?data.layout.camera.distance:8.7;
 const nearMill=(x,z)=>Math.hypot(trailX(x),z-13);
 const nearRecanto=(x,z)=>Math.hypot(trailX(x)-recanto.action[0],z-recanto.action[1]);
 function cameraYaw(x,z) {
   if(map2d)return 0;
+  if(newMap)return data.layout.camera.yaw;
   if(!beyondSeam(x))return .55;
   if(nearMill(x,z)<3.6)return .58;
   return .18;
@@ -152,6 +156,7 @@ function bankHeight(x,z) {
   return clearingHeight(data.terrain,data.map,x,z);
 }
 function floor(x, z) {
+  if(newMap)return newMap.height(x,z)+.018;
   if(beyondSeam(x))return Trail.floor(trailX(x),z);
   const land = bankHeight(x,z);
   if (deckProfile.length && owned('bridge') && Math.abs(x)<=1.12 && z>=deckProfile[0].z && z<=deckProfile.at(-1).z) {
@@ -363,12 +368,38 @@ function syncMotion() {
   }
 }
 async function assets() {
-  return Promise.all(['forest','bridge','treehouse','davi','pipo','activity'].map(asset));
+  const common=['davi','pipo','activity'];
+  return Promise.all((newMap?common:['forest','bridge','treehouse',...common]).map(asset));
 }
 function asset(name) {
-  if(!assetCache.has(name))assetCache.set(name,new GLTFLoader().loadAsync('/assets/forest/'+name+'.glb')
-    .then(result=>({name,...result})).catch(error=>{assetCache.delete(name);throw error;}));
+  if(!assetCache.has(name)){
+    const pending=new GLTFLoader().loadAsync('/assets/forest/'+name+'.glb')
+      .then(result=>({name,...result})).catch(error=>{
+        if(assetCache.get(name)===pending)assetCache.delete(name);
+        throw error;
+      });
+    assetCache.set(name,pending);
+  }
   return assetCache.get(name);
+}
+function releaseForestAssets(){
+  for(const name of ['forest','bridge','treehouse','bosque']){
+    const pending=assetCache.get(name);
+    if(!pending)continue;
+    assetCache.delete(name);
+    pending.then(({scene})=>{
+      const resources=new Set();
+      scene.traverse(o=>{
+        if(!o.isMesh)return;
+        resources.add(o.geometry);
+        for(const material of (Array.isArray(o.material)?o.material:[o.material])){
+          resources.add(material);
+          for(const value of Object.values(material))if(value?.isTexture)resources.add(value);
+        }
+      });
+      for(const item of resources){item.dispose();if(item.isTexture)item.image?.close?.();}
+    }).catch(()=>{});
+  }
 }
 function loadTrail(token) {
   if(trailLoading)return trailLoading;
@@ -609,28 +640,30 @@ function motes() {
 }
 function layout() {
   const now = '<button class="f-button forest-now" type="button" data-action="child-now">Agora</button>';
+  const worlds='<button class="f-button forest-worlds" type="button" data-action="world-picker">Mundos</button>';
   const options = button("☷","options",'aria-label="Opções do mundo"');
-  const chapter='<header class="trail-hud"><div class="forest-region"><span aria-hidden="true" class="forest-region-icon">❧</span><div><small>Floresta Encantada</small><h1 id="forestRegion">'+esc(currentRegion)+'</h1><small id="forestMotionBadge" hidden>Movimento reduzido</small></div></div><div class="forest-tools">'+now+options+'</div></header>';
+  const title=esc(worldTitle());
+  const chapter='<header class="trail-hud"><div class="forest-region"><span aria-hidden="true" class="forest-region-icon">'+esc(newMap?data.layout.icon:'❧')+'</span><div><small>'+title+'</small><h1 id="forestRegion">'+esc(currentRegion)+'</h1><small id="forestMotionBadge" hidden>Movimento reduzido</small></div></div><div class="forest-tools">'+worlds+now+options+'</div></header>';
   const cameraTools=map2d?'':button("↶","rotate",'data-turn="-1" aria-label="Girar câmera à esquerda"')
     +button("⌖","camera",'aria-label="Centralizar câmera"')+button("↷","rotate",'data-turn="1" aria-label="Girar câmera à direita"');
   const directions = [["up","↑","frente"],["left","←","esquerda"],["down","↓","trás"],["right","→","direita"]]
     .map(([dir,icon,label])=>`<button data-forest-dir="${dir}" aria-label="Andar para ${label}">${icon}</button>`).join('');
-  host.layout(`<section class="forest-shell trail-shell">
+  host.layout(`<section class="forest-shell trail-shell" data-world="${esc(data.world??'forest')}">
     <div class="forest-stage" id="forestStage">
       ${map2d
-        ? '<svg id="worldMap" class="forest-map-2d" tabindex="0" role="group" aria-label="Floresta Encantada em 2D"></svg>'
-        : '<canvas id="forestCanvas" tabindex="0" aria-label="Floresta Encantada. Ande com setas ou WASD; E para interagir." aria-describedby="forestInstructions"></canvas>'}
+        ? `<svg id="worldMap" class="forest-map-2d" tabindex="0" role="group" aria-label="${title} em 2D"></svg>`
+        : `<canvas id="forestCanvas" tabindex="0" aria-label="${title}. Ande com setas ou WASD; E para interagir." aria-describedby="forestInstructions"></canvas>`}
       <div id="forestLabels" class="forest-labels"></div>${chapter}
       <p id="forestMessage" role="status"></p>
       <p id="forestArrival" role="status" hidden></p>
       <div class="forest-dpad" role="group" aria-label="Andar">${directions}</div>
       ${button('<span class="forest-hint-prefix">Perguntar a </span>Pipo',"hint",'aria-label="Perguntar a Pipo"',"forest-route")}
       <button id="forestInteract" class="forest-interact" data-action="forest-nearby">Explorar · E</button>
-      <div id="forestLoading" class="forest-loading">Abrindo o caminho da floresta…</div>
+      <div id="forestLoading" class="forest-loading">Carregando ${title}…</div>
     </div>
-    ${cameraTools?`<div class="forest-camera" role="group" aria-label="Câmera da floresta">${cameraTools}</div>`:''}
+    ${cameraTools?`<div class="forest-camera" role="group" aria-label="Câmera do mundo">${cameraTools}</div>`:''}
     <div class="forest-pipo">
-      ${button("⌘ Caminhos","paths",'aria-label="Lugares do bosque"')}
+      ${button("⌘ Caminhos","paths",`aria-label="${newMap?'Lugares do mundo':'Lugares do bosque'}"`)}
       ${map2d?'<button class="f-button" data-action="world-forest">Vista 3D</button>':''}
       ${button("Ver agenda","calendar")}
       ${button('<span aria-hidden="true">★</span> <span id="forestBalance"><strong>'+data.economy.stars+'</strong><span class="sr-only"> estrelas disponíveis</span></span>',"shop",'aria-label="Oficina" aria-describedby="forestBalance"',"forest-wallet")}
@@ -641,7 +674,7 @@ function layout() {
   canvas=document.getElementById(map2d?"worldMap":"forestCanvas");
 }
 function createFeatures() {
-  features=[
+  features=newMap?[...data.layout.places]:[
     {id:'bridge',x:0,z:.9,title:'Ponte do riacho',icon:'⌁'},
     {id:'house',x:3.5,z:-6.1,title:'Casa na árvore',icon:'⌂'},
     {id:'chest',x:-4,z:-4,title:'Baú de descobertas',icon:'✦'},
@@ -651,13 +684,14 @@ function createFeatures() {
     {id:'wardrobe',x:5.2,z:6.8,title:'Meu personagem',icon:'♧'},
     {id:'portal',x:8.3,z:1.5,title:'Portal dos jogos',icon:'✧'}
   ];
-  const slots=[[-2.7,4.8],[3,3.4],[-1.8,9],[2.7,9],[-7.2,7.3],[8.2,6.5]].filter(([x,z])=>walkable(x,z));
+  const slots=(newMap?[[11,8.9],[14,9.4],[10,9.5],[15,7.9],[8,9],[13,10.1]]:
+    [[-2.7,4.8],[3,3.4],[-1.8,9],[2.7,9],[-7.2,7.3],[8.2,6.5]]).filter(([x,z])=>walkable(x,z));
   // Additional activities extend along valid trail edges, never disappear into a menu.
   for(let z=2;z<=9;z+=1.5)for(let x=-11;x<=11;x+=2) if(walkable(x,z)&&features.every(f=>Math.hypot(x-f.x,z-f.z)>1.6)&&slots.every(([a,b])=>Math.hypot(x-a,z-b)>1.3))slots.push([x,z]);
   host.missions.forEach((activity,i)=>{
     const [x,z]=slots[i%slots.length];features.push({id:'activity-'+activity.id,x,z,title:activity.title,icon:activity.icon||'⚑',activity});
   });
-  features.push(...Trail.places.map(f=>({...f,x:f.x+data.map.trailOffset,icon:f.icon??'❧',discovery:!f.action})));
+  if(!newMap)features.push(...Trail.places.map(f=>({...f,x:f.x+data.map.trailOffset,icon:f.icon??'❧',discovery:!f.action})));
   const box=document.getElementById('forestLabels');
   const marked=features.filter(f=>!f.discovery);
   box.innerHTML=marked.map(f=>`<button type="button" class="forest-label" data-action="forest-travel" data-id="${esc(f.id)}" aria-label="Caminhar até ${esc(f.title)}"><span aria-hidden="true">${esc(f.icon)}</span><span class="f-label-copy">${esc(f.activity?f.activity.time:f.title)}</span></button>`).join('');
@@ -668,7 +702,7 @@ function updateLabels() {
   const visible=features.map(f=>({f,d:Math.hypot(player.position.x-f.x,player.position.z-f.z)})).sort((a,b)=>a.d-b.d).slice(0,innerWidth<700?3:5).map(o=>o.f.id);
   const placed=[];
   for(const {feature:f,element} of labels) {
-    const p=map2d?map2d.ndc(f.x,f.z):new T.Vector3(f.x,floor(f.x,f.z)+1.2,f.z).project(camera);
+    const p=map2d?map2d.ndc(f.x,f.z):new T.Vector3(f.x,floor(f.x,f.z)+(f.labelHeight??1.2),f.z).project(camera);
     const away=Math.hypot(player.position.x-f.x,player.position.z-f.z)>1.8;
     const show=away&&visible.includes(f.id)&&p.z>-1&&p.z<1&&Math.abs(p.x)<.92&&p.y<.8&&p.y>-.65;
     element.hidden=!show;
@@ -680,7 +714,7 @@ function updateLabels() {
       const w=Math.min(160,45+(f.activity?f.activity.time:f.title).length*6),x=(p.x*.5+.5)*width;
       let y=(-p.y*.5+.5)*height;
       for(let attempt=0;attempt<4;attempt++){if(!placed.some(r=>Math.abs(r.x-x)<(r.w+w)/2+6&&Math.abs(r.y-y)<38))break;y-=38;}
-      if(y<95||y>height-145){element.hidden=true;continue;}
+      if(y<95||y>height-145||(!map2d&&x>width-175&&y<158)){element.hidden=true;continue;}
       placed.push({x,y,w});element.style.left=`${(p.x*.5+.5)*width}px`;element.style.top=`${y}px`;}
   }
 }
@@ -754,15 +788,16 @@ function setQuality() {
     if (g.userData.detail) g.visible = !low;
   }
   trailScene?.setEconomy(low);
+  newScene?.setEconomy(low);
   resize();
 }
 async function save() {
-  if(savePending) { await savePending; if(dirty) return save(); return; }
+  if(savePending) { try{await savePending;}catch{return;} if(dirty) return save(); return; }
   if (!dirty || !player) return;
   saving = true;
   dirty = false;
   const api=host.api,position={x:player.position.x,z:player.position.z};
-  savePending=api('/api/forest/map/move','PUT',position);
+  savePending=api(sceneEndpoint+'/move','PUT',position);
   try {
     await savePending;
   } catch (e) {
@@ -802,10 +837,17 @@ function updateCamera(dt = 1) {
     follow.z=T.MathUtils.lerp(follow.z,recanto.focus[1],log*.77);
     follow.y-=log*.24;
   }
-  look.lerp(follow, still?1:Math.min(1, dt * 5));
+  const aim=follow.clone();
+  if(newMap){
+    const lead=camera.aspect<.85?.78:1.6;
+    aim.x-=Math.sin(angle)*lead;
+    aim.z-=Math.cos(angle)*lead;
+    aim.y+=.25;
+  }
+  look.lerp(aim, still?1:Math.min(1, dt * 5));
   const offset = new T.Vector3(
     Math.sin(angle) * framing,
-    framing * (heroScene ? (portraitTrail ? .42 + log*.10 : .39 + log*.24) : .72),
+    framing * (newMap?.55:heroScene ? (portraitTrail ? .42 + log*.10 : .39 + log*.24) : .72),
     Math.cos(angle) * framing,
   );
   camera.position.lerp(follow.clone().add(offset), still?1:Math.min(1, dt * 4));
@@ -825,6 +867,45 @@ function updateCamera(dt = 1) {
   for(const {object,sphere,passage} of legacySight){
     const atPassage=pos.x>12 && pos.x<19.5 && pos.z>3.3 && pos.z<8.1;
     object.visible=!(passage&&atPassage) && !clearingSight.covers(sphere.center,sphere.radius,.14);
+  }
+}
+function updateForestScenery(dt, near, moving, buddyMoving) {
+  const z=player.position.z;
+  const heroScene=currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas';
+  scene.fog.color.lerp(heroScene?skySoft:skyDefault,still?1:Math.min(1,dt*2.3));
+  scene.background.copy(scene.fog.color);
+  updateCamera(dt);
+  // Keep the bank visible while looking back through the passage. Beyond the
+  // bend the clearing is outside the ordinary view and its assets stay cached.
+  const west=Math.sin(angle)>.68;
+  const atPassage=player.position.z>3.3 && player.position.z<8.1;
+  const bankLimit=west?(low?23:27):(atPassage?19.5:17.8);
+  legacy.visible=player.position.x<bankLimit;
+  if(player.position.x>=6 && !trailLoading){
+    const token=generation;
+    loadTrail(token).catch(error=>{
+      if(token===generation)message('A trilha não carregou. Abra a vista 2D nas opções para continuar.');
+      console.warn(error.message);
+    });
+  }
+  if(trailScene)trailScene.group.visible=player.position.x>8;
+  if(trailScene?.group.visible){
+    const gap=nearRecanto(player.position.x,z);
+    if(gap<1.7 && !moving && !target){
+      for(const character of buddyMoving?[player]:[player,pipo]){
+        const dx=(character===pipo?camera.position.x:recanto.focus[0]+data.map.trailOffset)-character.position.x;
+        const dz=(character===pipo?camera.position.z:recanto.focus[1])-character.position.z;
+        const turn=Math.atan2(dx,dz)-character.rotation.y;
+        character.rotation.y+=Math.atan2(Math.sin(turn),Math.cos(turn))*(still?1:Math.min(1,dt*6));
+      }
+    }
+    const greetingPitch=gap<1.7&&!buddyMoving?-.28:0;
+    pipo.rotation.x=T.MathUtils.lerp(pipo.rotation.x,greetingPitch,still?1:Math.min(1,dt*6));
+    localCamera.copy(camera.position).x-=data.map.trailOffset;
+    localHero.copy(player.position).x-=data.map.trailOffset;
+    localBuddy.copy(pipo.position).x-=data.map.trailOffset;
+    if(trailScene.tick(clock,still,localCamera,localHero,localBuddy,near.d<1.8?near.id:'',moving,dt,discoveryStep))
+      reactUntil=clock+1.5;
   }
 }
 function tick(now) {
@@ -921,12 +1002,12 @@ function tick(now) {
     shader.uniforms.forestTime.value = still ? 0 : clock;
   if(water)water.material.uniforms.time.value = still ? 0 : clock;
   if (particles && !still) particles.rotation.y = Math.sin(clock * 0.1) * 0.035;
-  const localX=trailX(player.position.x), z=player.position.z;
+  const z=player.position.z;
   const region=regionAt(player.position.x,z);
   if(region!==currentRegion){
     const arrival=document.getElementById('forestArrival');
     if(currentRegion){
-      const article=/^(Bosque|Pátio)/.test(region)?'ao':'à';
+      const article=/^(Bosque|Pátio|Farol|Jardim|Bairro|Vale)/.test(region)?'ao':'à';
       arrival.textContent='Você chegou '+article+' '+region;
       arrival.hidden=false;
       regionBannerUntil=clock+2;
@@ -944,41 +1025,11 @@ function tick(now) {
   if(map2d){
     map2d.draw(player.position,pipo.position,data,clock,still,nextBuddy.scale);
   }else{
-    const heroScene=currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas';
-    scene.fog.color.lerp(heroScene?skySoft:skyDefault,still?1:Math.min(1,dt*2.3));
-    scene.background.copy(scene.fog.color);
-    updateCamera(dt);
-    // Keep the bank visible while looking back through the passage. Beyond the
-    // bend the clearing is outside the ordinary view and its assets stay cached.
-    const west=Math.sin(angle)>.68;
-    const atPassage=player.position.z>3.3 && player.position.z<8.1;
-    const bankLimit=west?(low?23:27):(atPassage?19.5:17.8);
-    legacy.visible=player.position.x<bankLimit;
-    if(player.position.x>=6 && !trailLoading){
-      const token=generation;
-      loadTrail(token).catch(error=>{
-        if(token===generation)message('A trilha não carregou. Abra a vista 2D nas opções para continuar.');
-        console.warn(error.message);
-      });
-    }
-    if(trailScene)trailScene.group.visible=player.position.x>8;
-    if(trailScene?.group.visible){
-      const gap=nearRecanto(player.position.x,z);
-      if(gap<1.7 && !moving && !target){
-        for(const character of buddyMoving?[player]:[player,pipo]){
-          const dx=(character===pipo?camera.position.x:recanto.focus[0]+data.map.trailOffset)-character.position.x;
-          const dz=(character===pipo?camera.position.z:recanto.focus[1])-character.position.z;
-          const turn=Math.atan2(dx,dz)-character.rotation.y;
-          character.rotation.y+=Math.atan2(Math.sin(turn),Math.cos(turn))*(still?1:Math.min(1,dt*6));
-        }
-      }
-      const greetingPitch=gap<1.7&&!buddyMoving?-.28:0;
-      pipo.rotation.x=T.MathUtils.lerp(pipo.rotation.x,greetingPitch,still?1:Math.min(1,dt*6));
-      localCamera.copy(camera.position).x-=data.map.trailOffset;
-      localHero.copy(player.position).x-=data.map.trailOffset;
-      localBuddy.copy(pipo.position).x-=data.map.trailOffset;
-      if(trailScene.tick(clock,still,localCamera,localHero,localBuddy,near.d<1.8?near.id:'',moving,dt,discoveryStep))
-        reactUntil=clock+1.5;
+    if(newScene){
+      updateCamera(dt);
+      newScene.tick(clock,dt,still,player.position);
+    }else{
+      updateForestScenery(dt,near,moving,buddyMoving);
     }
     if(!low && Math.abs(sunLight.target.position.x-player.position.x)>5){
       sunLight.target.position.x=player.position.x;
@@ -1182,7 +1233,7 @@ function bind() {
     },5000);
     save();
     message(
-      "A floresta pausou neste aparelho. Abra a vista 2D nas opções para continuar.",
+      "O mundo pausou neste aparelho. Abra a vista 2D nas opções para continuar.",
     );
   });
   on(canvas, "webglcontextrestored", () => {
@@ -1214,8 +1265,22 @@ function bind() {
 function renderDialog() {
   let title = "",
     body = "";
+  const place=newMap?data.layout.places.find(p=>p.id===modal):null;
   if(modal==='paths') {
-    title='Caminhos do bosque';body='<p>Escolha um lugar. Vamos caminhar até ele; ao chegar, toque em Explorar.</p><div class="f-missions">'+features.map(f=>button(esc(f.icon)+' '+esc(f.title)+(f.activity?' · '+esc(f.activity.time):''),'travel',`data-id="${esc(f.id)}"`)).join('')+'</div>';
+    title=newMap?'Lugares para explorar':'Caminhos do bosque';body='<p>Escolha um lugar. Vamos caminhar até ele. Ao chegar, toque em Explorar.</p><div class="f-missions">'+features.map(f=>button(esc(f.icon)+' '+esc(f.title)+(f.activity?' · '+esc(f.activity.time):''),'travel',`data-id="${esc(f.id)}"`)).join('')+'</div>';
+  } else if(place) {
+    title=esc(place.title);
+    const collected=data.progress.includes(place.id);
+    const required=(place.requires??[]).filter(id=>!data.progress.includes(id));
+    body=`<p>${esc(collected&&place.success?place.success:place.text)}</p>`;
+    if(required.length){
+      const missing=required.map(id=>data.layout.places.find(p=>p.id===id).title);
+      body+=`<p>Para continuar, visite ${esc(missing.join(', '))}.</p>`;
+    }else if(!collected&&place.collect){
+      body+=button(esc(place.collect),'collect',`data-id="${esc(place.id)}"`,'f-primary');
+    }else if(collected&&!place.success){
+      body+='<p role="status">Descoberta guardada ✓</p>';
+    }
   } else if (modal?.startsWith('activity-')) {
     const e=features.find(f=>f.id===modal).activity;
     title=e.title;body=`<p>${esc(e.time)} · ${e.done?'Concluída':'Pendente'}</p><p>${e.window?esc(windowLabel(e.window)):''}</p><p>${e.has_mission?'Aprender, Fazer e Lembrar continuam disponíveis. A confirmação real respeita o horário do servidor.':'Esta atividade não tem roteiro e continua disponível na agenda.'}</p>${e.has_mission?button('Entrar na missão','mission',`data-id="${e.id}" data-date="${e.date}"`):button('Ver atividade na agenda','calendar')}`;
@@ -1245,21 +1310,21 @@ function renderDialog() {
     title = id === "portal" ? "Portal dos jogos" : id === "bridge" ? "A ponte do riacho" : "Uma casa entre as folhas";
     body = `<p>${id === "bridge" ? "Tábuas de madeira, cordas firmes e um caminho até a outra margem." : (id === "portal" ? "Um arco de descobertas para praticar os jogos das suas missões." : "Um refúgio nas copas para imaginar, descansar e guardar boas ideias.")}</p><p>${i.removed ? "O responsável removeu esta construção. Peça a ele para reativar sem nova cobrança." : i.owned ? (id === "bridge" ? "Sua ponte está pronta! Siga pelo centro e atravesse com o Pipo." : "Seu refúgio está pronto. Que história vamos levar para a vida real?") : `Construir: ${i.price} estrelas · seu saldo: ${data.economy.stars}.`}</p>${!i.removed && !i.owned && i.available ? button("Construir por " + i.price + " ✦", "buy", `data-id="${id}" ${data.economy.stars < i.price ? "disabled" : ""}`, "f-primary") : ""}${i.owned ? button(id === "bridge" ? "Vamos atravessar" : "Abrir meu diário", id === "bridge" ? "cross" : "missions") : ""}`;
   } else if (modal === "shop") {
-    title = "Oficina do bosque";
+    title = newMap?"Oficina do Pipo":"Oficina do bosque";
     body = `<p>Seu saldo: ${data.economy.stars} estrelas. Construções e acessórios continuam guardados entre os aparelhos.</p><div class="f-shop">${data.economy.catalog.map((i) => `<article><h3>${esc(i.name)}</h3><p>${esc(i.description)}</p><strong>${i.removed ? "Removido pelo responsável" : i.owned ? "Já é seu" : i.price + " ✦"}</strong>${!i.owned && !i.removed && i.available ? button("Guardar", "buy", `data-id="${i.id}" ${data.economy.stars < i.price ? "disabled" : ""}`) : i.owned && i.kind !== "building" ? button(data.economy.avatar[i.id] ? "Tirar" : "Usar", "equip", `data-id="${i.id}"`) : ""}</article>`).join("")}</div>`;
   } else {
     title = "Do seu jeito";
     body = `<label for="forestQuality">Qualidade</label><select id="forestQuality"><option value="auto">Automática</option><option value="low">Econômica</option><option value="high">Detalhada</option></select>
-      <label for="forestMotion">Animações do bosque</label>
+      <label for="forestMotion">Animações do mundo</label>
       <select id="forestMotion" aria-describedby="forestMotionStatus">
         <option value="system">Seguir o aparelho</option>
         <option value="full">Ativar neste navegador</option>
         <option value="reduced">Reduzir neste navegador</option>
       </select><p id="forestMotionStatus" role="status"></p>
-      <div class="f-options">${map2d?'':button("Vista 2D da floresta","fallback")}<button type="button" class="f-button" data-action="world-island">Ilha das ideias</button></div>`;
+      <div class="f-options">${map2d?'':button(newMap?'Vista 2D do mundo':'Vista 2D da floresta',"fallback")}<button type="button" class="f-button" data-action="world-island">Ilha das ideias</button></div>`;
   }
   document.getElementById("forestDialogBody").innerHTML =
-    `<div class="f-dialog-top"><span>O DIÁRIO DO BOSQUE</span>${button("Fechar ×", "close")}</div><h2 id="forestDialogTitle">${title}</h2>${body}`;
+    `<div class="f-dialog-top"><span>${newMap?esc(worldTitle()):'O DIÁRIO DO BOSQUE'}</span>${button("Fechar ×", "close")}</div><h2 id="forestDialogTitle">${title}</h2>${body}`;
   const preview=document.getElementById('forestOutfitPreview');
   if(preview)drawOutfit(renderer,preview,player,pipo,wardrobeBack);
   if (modal === "options") {
@@ -1292,9 +1357,10 @@ function dialog(name) {
 }
 async function refresh() {
   const token=generation;
-  const fresh=await host.api("/api/forest/map");
+  const fresh=await host.api(sceneEndpoint);
   if(token!==generation)return false;
   data=fresh;
+  newScene?.progress(data.progress);
   navigation=createNavigation(data.map,data.collision,data.economy.inventory);
   syncOwned();
   if (!walkable(player.position.x, player.position.z)) {
@@ -1306,7 +1372,21 @@ async function refresh() {
 async function action(a, b) {
   const name = a.replace("forest-", "");
   if(name==='hint'){
-    message('Pipo: '+(beyondSeam(player.position.x)?Trail.hint(trailX(player.position.x),player.position.z):'Siga a margem junto às bandeirinhas azuis.'));
+    message('Pipo: '+(newMap?data.layout.hint:beyondSeam(player.position.x)?Trail.hint(trailX(player.position.x),player.position.z):'Siga a margem junto às bandeirinhas azuis.'));
+    return;
+  }
+  if(name==='collect'&&newMap){
+    const token=generation;
+    await save();
+    if(token!==generation)return;
+    const result=await host.api(sceneEndpoint+'/interact','POST',{place:b.dataset.id});
+    if(token!==generation)return;
+    data.progress=result.progress;
+    newScene?.progress(data.progress);
+    if(data.layout.places.find(p=>p.id===b.dataset.id)?.requires)DaviGame.sound();
+    reactUntil=clock+1.5;
+    renderDialog();
+    document.querySelector('[data-action=forest-close]')?.focus();
     return;
   }
   if (name === "calendar") {
@@ -1338,7 +1418,7 @@ async function action(a, b) {
       destination(...point);
       if (target) {selectedPlace=place;return;}
     }
-    if(!owned('bridge') && !beyondSeam(x) && z<-4)message('Pipo: A ponte abre o caminho até a outra margem.');
+    if(!newMap && !owned('bridge') && !beyondSeam(x) && z<-4)message('Pipo: A ponte abre o caminho até a outra margem.');
     return;
   }
   if (name === "rotate") {
@@ -1351,7 +1431,7 @@ async function action(a, b) {
   }
   if (name === "camera") {
     angle = cameraYaw(player.position.x,player.position.z);
-    distance = 8.7;
+    distance = defaultDistance();
     return;
   }
   if (name === "close") {
@@ -1392,7 +1472,10 @@ async function action(a, b) {
       if(near.id==='echo')pipo.rotation.y=Math.atan2(near.x-pipo.position.x,near.z-pipo.position.z);
       return;
     }
-    if (near.d < 1.8) { if(near.id==='calendar')await action('forest-calendar',{});else dialog(near.action??near.id); }
+    if (near.d < 1.8) {
+      if(near.id==='calendar')await action('forest-calendar',{});
+      else {newScene?.greet(near.id,clock);dialog(near.action??near.id);}
+    }
     return;
   }
   if (name === "buy") {
@@ -1407,7 +1490,7 @@ async function action(a, b) {
       await outfitPending;
       if(token!==generation||!await refresh())return;
       waving = clock + 1.8;
-      message("Pipo: Conseguimos! O bosque ganhou uma nova história.");
+      message(newMap?"Pipo: Sua descoberta ficou guardada!":"Pipo: Conseguimos! O bosque ganhou uma nova história.");
     }finally{
       outfitPending=null;
     }
@@ -1485,6 +1568,7 @@ function dispose() {
   chibi?.dispose();chibi=null;
   trailScene?.group.traverse(o=>{if(o.isInstancedMesh)o.dispose();});
   trailScene=null;trailLoading=null;currentRegion='';buddyHead=null;reactUntil=0;
+  newScene?.dispose();newScene=null;newMap=null;
   legacy=null;map2d=null;
   renderer?.dispose();
   renderer?.forceContextLoss();
@@ -1500,7 +1584,7 @@ async function close() {
   abort?.abort();cancelAnimationFrame(frame);frame=0;
   keys.clear();target=null;path=[];
   if(player) await save();
-  if(token===generation)dispose();
+  if(token===generation){dispose();releaseForestAssets();}
 }
 async function open(options) {
   const openStarted = performance.now();
@@ -1511,14 +1595,25 @@ async function open(options) {
   if(token!==generation)return false;
   dispose();
   host = options;
-  data=await host.api('/api/forest/map'+(preference('place','forest')==='trail'?'?resume=trail':''));
+  const alternate=host.worldId && host.worldId!=='forest';
+  sceneEndpoint=alternate?`/api/worlds/${host.worldId}`:'/api/forest/map';
+  if(alternate)releaseForestAssets();
+  const resume=!alternate&&preference('place','forest')==='trail'?'?resume=trail':'';
+  data=await host.api(sceneEndpoint+resume);
   if(token!==generation)return false;
   navigation=createNavigation(data.map,data.collision,data.economy.inventory);
   companion=createCompanion(walkable,data.map.bounds);
-  Trail=await import('/assets/forest/trail.mjs');
-  if(token!==generation)return false;
-  Trail.configure(data.layout,z=>bankHeight(data.map.seam,z),data.map);
-  const mapModule=host.mode==='2d'?await import('/assets/forest/map-2d.mjs'):null;
+  if(alternate){
+    const {landscape,regionAt}=await import('/assets/worlds/terrain.mjs');
+    if(token!==generation)return false;
+    const {layout}=data;
+    newMap={height:landscape(data).height,region:(x,z)=>regionAt(layout,x,z)};
+  }else{
+    Trail=await import('/assets/forest/trail.mjs');
+    if(token!==generation)return false;
+    Trail.configure(data.layout,z=>bankHeight(data.map.seam,z),data.map);
+  }
+  const mapModule=host.mode==='2d'?await (alternate?import('/assets/worlds/map-2d.mjs'):import('/assets/forest/map-2d.mjs')):null;
   if(token!==generation)return false;
   if(mapModule)map2d=mapModule.createMap();
   quality = preference("quality", "auto");
@@ -1534,7 +1629,7 @@ async function open(options) {
   regionBannerUntil=0;messageUntil=0;actionTarget='';
   lastCalendarRefresh=performance.now();calendarPending=false;
   angle=cameraYaw(data.position.x,data.position.z);
-  distance=8.7;waving=0;blinkAt=3.2;blinkUntil=0;lastSave=0;movingNow=false;
+  distance=defaultDistance();waving=0;blinkAt=3.2;blinkUntil=0;lastSave=0;movingNow=false;
   adaptiveLow = false;
   clip = "Idle";
   pipoClip = "Hover";
@@ -1577,8 +1672,9 @@ async function open(options) {
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   renderer.info.autoReset = false;
   scene = new T.Scene();
-  scene.background=new T.Color('#ddf2fa');
-  scene.fog=new T.Fog('#ddf2fa',16,42);
+  const sky=newMap?data.layout.sky:'#ddf2fa';
+  scene.background=new T.Color(sky);
+  scene.fog=new T.Fog(sky,alternate?19:16,42);
   chibi=createChibiPaint();
   legacy=new T.Group();
   scene.add(legacy);
@@ -1607,8 +1703,26 @@ async function open(options) {
   rim.position.set(10, 8, -13);
   scene.add(rim);
   const started = performance.now();
-  const [loaded]=await Promise.all([assets(),data.position.x>=6?loadTrail(token):null]);
+  const sceneData=data;
+  const environment=alternate?import('/assets/worlds/scene.mjs').then(({loadWorld})=>loadWorld(sceneData)).then(map=>{
+    if(token!==generation)map.dispose();
+    else newScene=map;
+  }):data.position.x>=6?loadTrail(token):null;
+  let loaded;
+  try{
+    [loaded]=await Promise.all([assets(),environment]);
+  }catch(error){
+    if(token===generation){generation++;dispose();}
+    console.warn('Vista 3D indisponível:',error.message);
+    return false;
+  }
   if(token!==generation)return false;
+  if(newScene){
+    scene.add(newScene.group);
+    terrain=newScene.ground;
+    newScene.progress(data.progress);
+    newScene.tick(0,0,true,data.position);
+  }
   stats.loads.push(performance.now() - started);
   for (const asset of loaded) {
     if(asset.name==='activity')continue;
@@ -1731,7 +1845,7 @@ async function open(options) {
     }
     prepare(markers);batch(markers);
   }
-  createWater();cascade();motes();
+  if(!newMap){createWater();cascade();motes();}
   setQuality();
   bind();
   updateCamera();
@@ -1796,7 +1910,7 @@ window.DaviForest = {
         ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
         : gl?.getParameter(gl.RENDERER),
       vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : null,
-      place:player&&beyondSeam(player.position.x)?"trail":"forest",region:currentRegion,view:map2d?"2d":"3d",
+      place:data?.world??(player&&beyondSeam(player.position.x)?"trail":"forest"),region:currentRegion,view:map2d?"2d":"3d",
       shelter:trailScene?.shelter.diagnostics()??null,
       hedgehog:trailScene?{
         progress:trailScene.hedgehog.progress,

@@ -7,7 +7,7 @@ const esc = (value) => String(value).replace(/[&<>"']/g, c => ({
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 }[c]));
 
-function floorPath(bounds,{rows,cell},kind) {
+export function floorPath(bounds,{rows,cell},kind) {
   const [xmin,,zmin]=bounds;
   let path='';
   rows.forEach((row,j)=>{
@@ -22,14 +22,61 @@ function floorPath(bounds,{rows,cell},kind) {
   return path;
 }
 
-export function createMap() {
-  let svg, davi, pipo, shelter, beetle, bridge, ownedMarks, boats, clothes, accessoryMarks, controlledSolids;
-  let avatar, inventory;
-  const release={wheel:null,source:null};
-  let view = [-8,0,16,16];
+export function createViewport() {
+  let svg;
+  let view=[-8,0,16,16];
   return {
+    attach(canvas){svg=canvas;},
+    center(player){
+      const width=svg.clientWidth,height=svg.clientHeight;
+      if(!width||!height)return false;
+      const w=width<640?14:25,h=w*height/width;
+      view=[player.x-w/2,player.z-h*.53,w,h];
+      svg.setAttribute('viewBox',view.join(' '));
+      return true;
+    },
+    ndc(x,z){return {x:2*(x-view[0])/view[2]-1,y:1-2*(z-view[1])/view[3],z:0};},
+    project(x,z){
+      const p=this.ndc(x,z),rect=svg.getBoundingClientRect();
+      const visible=Math.abs(p.x)<1&&Math.abs(p.y)<1;
+      return {x:rect.x+(p.x+1)*rect.width/2,y:rect.y+(1-p.y)*rect.height/2,visible,groundVisible:visible};
+    },
+    point(x,y){
+      const rect=svg.getBoundingClientRect();
+      return {x:view[0]+(x-rect.x)*view[2]/rect.width,z:view[1]+(y-rect.y)*view[3]/rect.height};
+    },
+  };
+}
+
+export const actorSymbols=`
+  <g id="forest2dPipo"><circle r=".36" fill="#75d5ba" stroke="#24473e" stroke-width=".06"/><circle cy="-.08" r=".17" fill="#f6dda5"/><path data-accessory="buddy" d="M-.34 .12Q0 .28.34 .12l-.02 .14-.13 .01 .09 .20-.14 .04-.08-.22Q-.12 .34-.28 .25Z" fill="#e77a4d"/></g>
+  <g id="forest2dDavi"><path data-accessory="cape" d="M-.23-.05h.46L.53 .49Q0 .66-.53 .49Z" fill="#a486ce" stroke="#e6d0ee" stroke-width=".07"/><circle data-clothes r=".46" fill="#255b64" stroke="#f8e1ae" stroke-width=".11"/><circle cy="-.11" r=".28" fill="#efbf89"/><path d="M-.3-.15Q-.26-.5.23-.35L.3-.1Z" fill="#483024"/><path data-accessory="hat" d="M-.25-.29L-.19-.53Q0-.65.2-.53l.05 .24.13 .05Q0-.14-.38-.24Z" fill="#e2ad5f" stroke="#805541" stroke-width=".06"/></g>`;
+
+export function mapActors(svg){
+  const davi=svg.querySelector('#forest2dDavi'),pipo=svg.querySelector('#forest2dPipo');
+  const clothes=svg.querySelector('[data-clothes]'),accessories=svg.querySelectorAll('[data-accessory]');
+  let avatar;
+  return (player,buddy,economy,scale)=>{
+    davi.setAttribute('transform',`translate(${player.x} ${player.z})`);
+    pipo.setAttribute('transform',`translate(${buddy.x} ${buddy.z}) scale(${scale})`);
+    if(avatar!==economy.avatar){
+      avatar=economy.avatar;
+      clothes.setAttribute('fill',(colors[avatar.color]??colors.mint).cloth);
+      for(const mark of accessories)mark.setAttribute('visibility',worn(economy,mark.dataset.accessory)?'visible':'hidden');
+    }
+  };
+}
+
+export function createMap() {
+  let svg, actors, shelter, beetle, bridge, ownedMarks, boats, controlledSolids;
+  let inventory;
+  const release={wheel:null,source:null};
+  const viewport=createViewport();
+  return {
+    ...viewport,
     mount(canvas,data,features) {
       svg=canvas;
+      viewport.attach(canvas);
       const {trailOffset,connection}=data.map;
       const lines=data.layout.paths.slice(0,-1).map((path,i)=>({...path,color:COLORS[i], offset:trailOffset}));
       lines.push({...connection,color:COLORS[8],offset:0});
@@ -66,36 +113,21 @@ export function createMap() {
           <ellipse cy=".1" rx=".26" ry=".19" fill="#ffd8a0"/><circle cy=".25" r=".055" fill="#34264a"/>
         </g>
         ${features.map(f=>`<g transform="translate(${f.x} ${f.z})" ${['house','portal'].includes(f.id)?`data-owned-mark="${f.id}"`:''}><circle r=".62" fill="#314e45" stroke="#f5e5ae" stroke-width=".07"/><text y=".25" text-anchor="middle" font-size=".78" fill="#ffebbf">${esc(f.icon)}</text></g>`).join('')}
-        <g id="forest2dPipo"><circle r=".36" fill="#75d5ba" stroke="#24473e" stroke-width=".06"/><circle cy="-.08" r=".17" fill="#f6dda5"/><path data-accessory="buddy" d="M-.34 .12Q0 .28.34 .12l-.02 .14-.13 .01 .09 .20-.14 .04-.08-.22Q-.12 .34-.28 .25Z" fill="#e77a4d"/></g>
-        <g id="forest2dDavi"><path data-accessory="cape" d="M-.23-.05h.46L.53 .49Q0 .66-.53 .49Z" fill="#a486ce" stroke="#e6d0ee" stroke-width=".07"/><circle data-clothes r=".46" fill="#255b64" stroke="#f8e1ae" stroke-width=".11"/><circle cy="-.11" r=".28" fill="#efbf89"/><path d="M-.3-.15Q-.26-.5.23-.35L.3-.1Z" fill="#483024"/><path data-accessory="hat" d="M-.25-.29L-.19-.53Q0-.65.2-.53l.05 .24.13 .05Q0-.14-.38-.24Z" fill="#e2ad5f" stroke="#805541" stroke-width=".06"/></g>`;
-      davi=svg.querySelector('#forest2dDavi');
-      pipo=svg.querySelector('#forest2dPipo');
+        ${actorSymbols}`;
+      actors=mapActors(svg);
       shelter=svg.querySelector('#forest2dWet');
       beetle=svg.querySelector('#forest2dBeetle');
       bridge=svg.querySelector('#forest2dBridge');
       ownedMarks=svg.querySelectorAll('[data-owned-mark]');
       boats=Array.from(svg.querySelectorAll('[data-boat]'));
-      clothes=svg.querySelector('[data-clothes]');
-      accessoryMarks=svg.querySelectorAll('[data-accessory]');
       controlledSolids=svg.querySelectorAll('[data-solid-owner]');
     },
     interact(id,time) {
       if(Object.hasOwn(release,id))release[id]=time;
     },
     draw(player,buddy,data,time=0,still=false,buddyScale=1) {
-      const width=svg.clientWidth, height=svg.clientHeight;
-      if(!width||!height)return;
-      const w=width<640?14:25, h=w*height/width;
-      view=[player.x-w/2,player.z-h*.53,w,h];
-      svg.setAttribute('viewBox',view.join(' '));
-      davi.setAttribute('transform',`translate(${player.x} ${player.z})`);
-      pipo.setAttribute('transform',`translate(${buddy.x} ${buddy.z}) scale(${buddyScale})`);
-      if(avatar!==data.economy.avatar){
-        avatar=data.economy.avatar;
-        clothes.setAttribute('fill',(colors[avatar.color]??colors.mint).cloth);
-        for(const mark of accessoryMarks)
-          mark.setAttribute('visibility',worn(data.economy,mark.dataset.accessory)?'visible':'hidden');
-      }
+      if(!viewport.center(player))return;
+      actors(player,buddy,data.economy,buddyScale);
       for(const boat of boats){
         const id=boat.dataset.boat,p=boatProgress(time,release[id],still,id==='wheel'?3.6:4.5);
         const [x,z]=id==='wheel'?[-1.38,10.36+3.31*p]:[18.9-7.52*p,-6.13-3.91*p];
@@ -113,17 +145,5 @@ export function createMap() {
           solid.setAttribute('visibility',inventory.includes(solid.dataset.solidOwner)?'visible':'hidden');
       }
     },
-    ndc(x,z) {
-      return {x:2*(x-view[0])/view[2]-1,y:1-2*(z-view[1])/view[3],z:0};
-    },
-    project(x,z) {
-      const p=this.ndc(x,z),rect=svg.getBoundingClientRect();
-      const visible=Math.abs(p.x)<1&&Math.abs(p.y)<1;
-      return {x:rect.x+(p.x+1)*rect.width/2,y:rect.y+(1-p.y)*rect.height/2,visible,groundVisible:visible};
-    },
-    point(x,y) {
-      const rect=svg.getBoundingClientRect();
-      return {x:view[0]+(x-rect.x)*view[2]/rect.width,z:view[1]+(y-rect.y)*view[3]/rect.height};
-    }
   };
 }

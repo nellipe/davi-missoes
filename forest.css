@@ -801,3 +801,29 @@
   .forest-view .brand-cube { width: 32px; height: 32px; }
   .forest-view > header nav button { padding-inline: 6px; font-size: .69rem; }
 }
+
+.trail-shell[data-world="praia"] { --chibi-leaf:#8bd8d4; --chibi-bar:#e2f3eb; --chibi-paper:#fff3d5; }
+.trail-shell[data-world="dinossauros"] { --chibi-leaf:#b4d488; --chibi-bar:#f4e5c7; --chibi-paper:#fff0d6; }
+.trail-shell[data-world="inventores"] { --chibi-leaf:#d5b7ea; --chibi-bar:#e8e0f3; --chibi-paper:#f8eff9; }
+.forest-view .forest-tools .forest-worlds { background:var(--chibi-paper); color:var(--chibi-ink); white-space:nowrap; }
+.world-picker { width:min(94vw,32rem); }
+.world-picker h2 { margin:0; color:inherit; font-size:clamp(1.05rem,4vw,1.4rem); }
+.world-picker-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; padding:.6rem 0; }
+.world-picker .world-choice {
+  display:grid; grid-template-columns:2rem 1fr; gap:.15rem .55rem;
+  align-items:center; align-content:center; min-height:4.6rem; text-align:left; color:#24394b; background:#e5efd9;
+}
+.world-picker .world-choice > span { grid-row:span 2; text-align:center; font-size:1.55rem; }
+.world-picker .world-choice > small { font-size:.73rem; }
+.world-picker [data-world="praia"] { background:#d5eeee; }
+.world-picker [data-world="dinossauros"] { background:#f7e7c2; }
+.world-picker [data-world="inventores"] { background:#e9def5; }
+.world-picker [data-world="island"] { background:#dbe9f6; }
+.world-picker [aria-current="true"] { outline:2px solid currentColor; outline-offset:-5px; }
+@media (max-width: 470px) {
+  .trail-hud .forest-tools { flex-wrap:nowrap; gap:4px; }
+  .trail-hud .forest-tools .f-button { min-width:0; padding-inline:7px; }
+  .trail-hud .forest-region { min-width:0; }
+  .trail-hud .forest-region h1 { overflow-wrap:anywhere; }
+  .world-picker .world-choice { padding:8px; font-size:.88rem; grid-template-columns:1.5rem 1fr; }
+}

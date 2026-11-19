@@ -1,0 +1,107 @@
+"""Shared layouts and independent checkpoints for the explorable 3D worlds."""
+import json
+import math
+from pathlib import Path
+
+import world
+from forest import map_scene as forest_scene, read_json_setting
+from forest_navigation import create_navigation, overlaps, safe_position
+
+BOUNDS = [-17, 50, -14, 17]
+CELL = .5
+LAYOUTS = json.loads((Path(__file__).parent / 'assets/worlds/layouts.json').read_text(encoding='utf-8'))
+WORLDS = {
+    'forest': {'title': 'Floresta Encantada', 'icon': '❧'},
+    **LAYOUTS,
+    'island': {'title': 'Ilha das ideias', 'icon': '✧'},
+}
+
+
+def collision(layout):
+    xmin, xmax, zmin, zmax = BOUNDS
+    rows = []
+    for j in range(round((zmax-zmin)/CELL)):
+        z = zmin+(j+.5)*CELL
+        rows.append(''.join(
+            '0' if any(overlaps(xmin+(i+.5)*CELL, z, p) for p in layout['water']) else '1'
+            for i in range(round((xmax-xmin)/CELL))
+        ))
+
+    footprints = [(model, x, z, angle, *footprint)
+                  for model, x, z, angle, _, *footprint in layout['props'] if footprint]
+    solids = []
+    for model, x, z, angle, rx, rz, *shape in [*footprints, *layout.get('solids', ())]:
+        yaw = math.radians(angle)
+        s, c = math.sin(yaw), math.cos(yaw)
+        # The GLB and collision footprint share the same yaw and world axes.
+        if shape == ['box']:
+            ring = [(-rx,-rz),(rx,-rz),(rx,rz),(-rx,rz)]
+        else:
+            ring = [(rx*math.cos(i*math.tau/12), rz*math.sin(i*math.tau/12)) for i in range(12)]
+        solids.append([model, [[x+a*c+b*s, z-a*s+b*c] for a, b in ring]])
+    return {'cell': CELL, 'margin': .29, 'rows': rows, 'solids': solids}
+
+
+COLLISIONS = {key: collision(layout) for key, layout in LAYOUTS.items()}
+NAVIGATION = {key: create_navigation(BOUNDS, data) for key, data in COLLISIONS.items()}
+
+
+def save(c, key, value):
+    c.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+              (key, json.dumps(value)))
+
+
+def selection(c):
+    selected = read_json_setting(c, 'selected_world')
+    return {
+        'selected': selected if isinstance(selected, str) and selected in WORLDS else 'forest',
+        'worlds': [{'id': key, 'title': value['title'], 'icon': value['icon']} for key, value in WORLDS.items()],
+    }
+
+
+def select(c, body):
+    key = body.get('world')
+    if not isinstance(key, str) or key not in WORLDS:
+        raise ValueError('Escolha um dos mundos disponíveis.')
+    if key == 'island' and read_json_setting(c, 'forest_position') is None:
+        # Freeze the legacy checkpoint before the island can move its own avatar.
+        resume_trail = read_json_setting(c, 'trail_position') is not None
+        save(c, 'forest_position', forest_scene(c, resume_trail)['position'])
+    save(c, 'selected_world', key)
+    return selection(c)
+
+
+def progress(c, key):
+    entries = read_json_setting(c, f'world_activity_{key}')
+    return entries if isinstance(entries, list) else []
+
+
+def scene(c, key):
+    layout = LAYOUTS[key]
+    previous = read_json_setting(c, f'world_position_{key}')
+    position = safe_position(previous, NAVIGATION[key], layout['spawn'], BOUNDS)
+    return {'world': key, 'economy': world.scene(c), 'position': position, 'layout': layout,
+            'map': {'bounds': BOUNDS}, 'collision': COLLISIONS[key], 'progress': progress(c, key)}
+
+
+def move(c, key, body):
+    x, z = body.get('x'), body.get('z')
+    if not NAVIGATION[key](x, z):
+        raise ValueError('Essa posição não tem chão seguro.')
+    save(c, f'world_position_{key}', {'x': x, 'z': z})
+    return {'ok': True}
+
+
+def interact(c, key, body):
+    place = next((p for p in LAYOUTS[key]['places'] if p['id'] == body.get('place') and 'collect' in p), None)
+    previous = read_json_setting(c, f'world_position_{key}')
+    position = safe_position(previous, NAVIGATION[key], LAYOUTS[key]['spawn'], BOUNDS)
+    if place is None or math.hypot(position['x']-place['x'], position['z']-place['z']) >= 1.8:
+        raise ValueError('Aproxime-se para explorar este lugar.')
+    collected = progress(c, key)
+    if any(required not in collected for required in place.get('requires', ())):
+        raise ValueError('Visite as outras descobertas primeiro.')
+    if place['id'] not in collected:
+        collected.append(place['id'])
+        save(c, f'world_activity_{key}', collected)
+    return {'progress': collected}

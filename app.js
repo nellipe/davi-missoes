@@ -5,6 +5,7 @@ const state = {
   me: null,
   forestMode: null,
   forestReward: null,
+  worldSelection: null,
   view: "child",
   date: "",
   month: "",
@@ -77,6 +78,7 @@ function alertMsg(msg) {
 async function api(path, method = "GET", body) {
   const r = await fetch(path, {
     method,
+    keepalive: method==='PUT' && path.endsWith('/move'),
     credentials: "same-origin",
     headers: { "Content-Type": "application/json", ...(state.me?.csrf ? { "X-CSRF-Token": state.me.csrf } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -452,15 +454,18 @@ async function child() {
   await fetchCalendar(state.date, state.date);
   if (state.childSurface!=='calendar' && typeof DaviWorld!=='undefined') {
     state.view='child-world';
+    state.worldSelection ??= await api('/api/worlds').catch(()=>null);
     if(!state.forestMode){try{state.forestMode=localStorage.getItem('davi-forest-mode')||'3d';}catch{state.forestMode='3d';}}
-    if(state.forestMode!=='island'){
+    const worldId=state.worldSelection?.selected ?? (state.forestMode==='island'?'island':'forest');
+    const mode=state.forestMode==='2d'?'2d':'3d';
+    if(worldId!=='island'){
       await DaviWorld.close();
       try{const forest=await import('/forest.js');
-        const options={layout,api,watchWorldBalance,run:safe,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,reward:state.forestReward,
+        const options={layout,api,watchWorldBalance,worldId,run:safe,missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,reward:state.forestReward,
           onCalendar:async()=>{state.childSurface='calendar';await child();},
           onFallback:async()=>{state.forestMode='2d';try{localStorage.setItem('davi-forest-mode','2d');}catch{}await child();}};
-        const ready=await forest.open({...options,mode:state.forestMode});
-        if(ready || (state.forestMode!=='2d' && await forest.open({...options,mode:'2d'}))){
+        const ready=await forest.open({...options,mode});
+        if(ready || (mode!=='2d' && await forest.open({...options,mode:'2d'}))){
           state.forestReward=null;
           return;
         }
@@ -472,6 +477,17 @@ async function child() {
     return;
   }
   renderChild();
+}
+function showWorldPicker() {
+  const dialog=document.createElement('dialog');
+  dialog.className='forest-dialog world-picker';
+  dialog.setAttribute('aria-labelledby','worldPickerTitle');
+  const {worlds,selected}=state.worldSelection ?? {selected:state.forestMode==='island'?'island':'forest',worlds:[{id:'forest',title:'Floresta Encantada',icon:'❧'},{id:'island',title:'Ilha das ideias',icon:'✧'}]};
+  dialog.innerHTML='<div class="f-dialog-top"><h2 id="worldPickerTitle">Escolha um mundo</h2><form method="dialog"><button class="f-button">Fechar ×</button></form></div><div class="world-picker-grid">'+worlds.map(w=>
+    `<button type="button" class="f-button world-choice" data-action="world-select" data-world="${esc(w.id)}" aria-current="${w.id===selected?'true':'false'}"><span aria-hidden="true">${esc(w.icon)}</span><strong>${esc(w.title)}</strong>${w.id===selected?'<small>Você está aqui</small>':''}</button>`).join('')+'</div>';
+  document.body.append(dialog);
+  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+  dialog.showModal();
 }
 function renderChild() {
   const clock = calendarClock();
@@ -904,10 +920,27 @@ async function action(e) {
       state.childSurface='world';
       await child();
     }
+    else if(a==='world-picker') showWorldPicker();
+    else if(a==='world-select'||a==='world-island'){
+      const world=a==='world-island'?'island':b.dataset.world;
+      const picker=b.closest('.world-picker');
+      if(world!==state.worldSelection?.selected){
+        if(state.worldSelection)state.worldSelection=await api('/api/worlds/selection','PUT',{world});
+        else {
+          state.forestMode=world==='island'?'island':'3d';
+          try{localStorage.setItem('davi-forest-mode',state.forestMode);}catch{}
+        }
+        picker?.close();
+        await window.DaviForest?.close();
+        await DaviWorld.close();
+        state.childSurface='world';
+        await child();
+      }else picker?.close();
+    }
     else if(a.startsWith('forest-')) await DaviForest.action(a,b);
-    else if(a==='world-forest'||a==='world-island'){
+    else if(a==='world-forest'){
       await window.DaviForest?.close();
-      state.forestMode=a==='world-forest'?'3d':'island';
+      state.forestMode='3d';
       try{localStorage.setItem('davi-forest-mode',state.forestMode);}catch{}
       await child();
     }
@@ -1008,6 +1041,7 @@ document.addEventListener("change", (e) => {
     });
 });
 document.addEventListener("submit", (e) => {
+  if(e.target.method==='dialog')return;
   e.preventDefault();
   safe(async () => {
     if (e.target.id === 'scheduleForm') {

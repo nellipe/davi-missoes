@@ -39,7 +39,7 @@ def trail_walkable(x, z):
             and map_walkable(x+OFFSET, z, ()))
 
 
-def saved_position(c, key):
+def read_json_setting(c, key):
     row = c.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
     try:
         return json.loads(row[0]) if row else None
@@ -48,7 +48,7 @@ def saved_position(c, key):
 
 
 def trail_scene(c):
-    previous = saved_position(c, 'trail_position')
+    previous = read_json_setting(c, 'trail_position')
     position = TRAIL['spawn']
     if isinstance(previous, dict) and type(previous.get('x')) in (int, float):
         projected = {'x': previous['x']+OFFSET, 'z': previous.get('z')}
@@ -82,7 +82,7 @@ def trail_move(c, body):
 def map_scene(c, resume_trail=False):
     result = scene(c)
     inventory = result['economy']['inventory']
-    candidate = saved_position(c, 'forest_position')
+    candidate = read_json_setting(c, 'forest_position')
     if candidate is not None:
         result['position'] = safe_position(candidate, lambda x,z: map_walkable(x,z,inventory), result['position'])
     elif resume_trail:
@@ -98,8 +98,6 @@ def map_move(c, body):
     inventory = world.scene(c)['inventory']
     if not map_walkable(x, z, inventory):
         raise ValueError('Essa posição não tem chão seguro.')
-    if walkable(x, z, inventory) and world.walkable(530+x*12, 370+z*12, inventory):
-        world.move(c, {'x': 530+x*12, 'y': 370+z*12})
     c.execute("INSERT INTO settings(key,value) VALUES('forest_position',?) "
               "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps({'x':x,'z':z}),))
     return {'ok': True}
