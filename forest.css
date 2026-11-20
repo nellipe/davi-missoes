@@ -490,6 +490,8 @@
 .forest-label[hidden] { display:none; }
 .forest-label span:first-child { color:#735629; margin-right:4px; }
 .f-label-copy { white-space:nowrap; }
+.f-activity-list h4 { margin: .25rem 0 .65rem; overflow-wrap: anywhere; }
+.f-activity-actions { display:flex; flex-wrap:wrap; gap:8px; }
 .forest-route { position:absolute; bottom:86px; right:20px; background:#fff7deed; }
 .forest-label[data-state="open"] { border-bottom:3px solid #497458; }
 .forest-label[data-state="upcoming"] { border-bottom:3px solid #a17b3f; }
@@ -621,6 +623,10 @@
   font-family: inherit;
   font-weight: 600;
 }
+.trail-shell .forest-label[data-state="open"] { border-bottom-color:#407553; }
+.trail-shell .forest-label[data-state="upcoming"] { border-bottom-color:#947033; }
+.trail-shell .forest-label[data-state="done"] { border-bottom-color:#477c9b; }
+.trail-shell .forest-label[data-state="expired"] { border-bottom-color:#79687a; }
 .forest-view .f-button:not(:disabled):active,
 .trail-shell .forest-interact:active,
 .trail-shell .forest-dpad button.pressed {

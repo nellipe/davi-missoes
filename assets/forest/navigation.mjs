@@ -151,14 +151,15 @@ function pop(heap) {
   heap[i]=tail;
   return first;
 }
-const DIRECTIONS=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+export const ROUTE_DIRECTIONS=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+export const ROUTE_STEP=.38;
 export function route(start, goal, valid, bounds=[17,11.5], budget=14000) {
   if (!valid(start.x,start.z)||!valid(goal.x,goal.z)) return [];
   if (segmentClear(start,goal,valid)) return [{...goal}];
   const [xmin,xmax,zmin,zmax]=bounds.length===4?bounds:[-bounds[0],bounds[0],-bounds[1],bounds[1]];
-  const size=.38, cell=p=>[Math.round(p.x/size),Math.round(p.z/size)], key=(x,z)=>x*1024+z;
+  const size=ROUTE_STEP, cell=p=>[Math.round(p.x/size),Math.round(p.z/size)], key=(x,z)=>x*1024+z;
   const [sx,sz]=cell(start),[gx,gz]=cell(goal),open=[],cost=new Map();
-  for(const [dx,dz] of [[0,0],...DIRECTIONS]){
+  for(const [dx,dz] of [[0,0],...ROUTE_DIRECTIONS]){
     const x=sx+dx,z=sz+dz,point={x:x*size,z:z*size};
     if(!segmentClear(start,point,valid))continue;
     const g=Math.hypot(point.x-start.x,point.z-start.z)/size;
@@ -170,7 +171,7 @@ export function route(start, goal, valid, bounds=[17,11.5], budget=14000) {
     if(node.g!==cost.get(nk)) continue;
     const current={x:node.x*size,z:node.z*size};
     if(Math.hypot(node.x-gx,node.z-gz)<1.8&&segmentClear(current,goal,valid)){found=node;break;}
-    for(const [dx,dz] of DIRECTIONS) {
+    for(const [dx,dz] of ROUTE_DIRECTIONS) {
       const x=node.x+dx,z=node.z+dz,point={x:x*size,z:z*size},g=node.g+Math.hypot(dx,dz),k=key(x,z);
       if(point.x<xmin||point.x>xmax||point.z<zmin||point.z>zmax||g>=(cost.get(k)??Infinity)||!segmentClear(current,point,valid))continue;
       cost.set(k,g);push(open,{x,z,g,f:g+Math.hypot(x-gx,z-gz),parent:node});

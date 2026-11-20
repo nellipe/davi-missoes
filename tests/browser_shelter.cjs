@@ -271,7 +271,7 @@ session(stem, async ({ page, api, guided, write }) => {
     await press('world-forest');
     await ready(page);
     assert(distance(where, (await diag(page)).position) < .035);
-    assert(!(await page.evaluate(() => DaviWorld.diagnostics().active)));
+    assert.equal(await page.evaluate(() => typeof window.DaviWorld),'undefined');
   }
   const after = await (await api.get('/api/world')).json();
   assert.deepEqual(after, before);

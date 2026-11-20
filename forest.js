@@ -9,6 +9,7 @@ import { recanto } from '/assets/forest/recanto.mjs';
 import { applyOutfit, colors, drawOutfit, outfitDiagnostics, portrait, worn } from '/assets/forest/wardrobe.mjs';
 import { createSight } from '/assets/forest/sight.mjs';
 import { createChibiPaint } from '/assets/forest/chibi.mjs';
+import { activityGround, activityStatus, activityStatusLabel, placeActivities } from '/assets/forest/activity-placement.mjs';
 let Trail;
 let navigation, companion;
 let newMap, newScene, sceneEndpoint;
@@ -48,7 +49,10 @@ let generation = 0, savePending = null, path = [], movingNow = false;
 let ownedMaterials = new Set(), ownedGeometry = new Set(), ownedTextures = new Set();
 const supportCache = new Map();
 let playerSupport;
-let features=[], labels=[], selectedPlace=null;
+let features=[], calendarOnly=[], labels=[], selectedPlace=null;
+let activityModel, activitySigns;
+const surveyCache=new Map();
+let last3dCamera;
 let lastCalendarRefresh=0,calendarPending=false;
 let sunLight,
   adaptiveLow = false;
@@ -672,7 +676,8 @@ function layout() {
     ${cameraTools?`<div class="forest-camera" role="group" aria-label="Câmera do mundo">${cameraTools}</div>`:''}
     <div class="forest-pipo">
       ${button("⌘ Caminhos","paths",`aria-label="${newMap?'Lugares do mundo':'Lugares do bosque'}"`)}
-      ${map2d?'<button class="f-button" data-action="world-forest">Vista 3D</button>':''}
+      ${map2d?'<button class="f-button" data-action="world-forest">Vista 3D</button>':button('Vista 2D','view-2d')}
+      ${button('Meu personagem','wardrobe')}
       ${button("Ver agenda","calendar")}
       ${button('<span aria-hidden="true">★</span> <span id="forestBalance"><strong>'+data.economy.stars+'</strong><span class="sr-only"> estrelas disponíveis</span></span>',"shop",'aria-label="Oficina" aria-describedby="forestBalance"',"forest-wallet")}
       ${newMap?`<output id="worldFinds" class="world-finds" aria-live="polite">${discoveryCount()}</output>`:''}
@@ -683,7 +688,7 @@ function layout() {
   canvas=document.getElementById(map2d?"worldMap":"forestCanvas");
 }
 function createFeatures() {
-  features=newMap?[...data.layout.places]:[
+  const landmarks=newMap?[...data.layout.places]:[
     {id:'bridge',x:0,z:.9,title:'Ponte do riacho',icon:'⌁'},
     {id:'house',x:3.5,z:-6.1,title:'Casa na árvore',icon:'⌂'},
     {id:'chest',x:-4,z:-4,title:'Baú de descobertas',icon:'✦'},
@@ -693,39 +698,94 @@ function createFeatures() {
     {id:'wardrobe',x:5.2,z:6.8,title:'Meu personagem',icon:'♧'},
     {id:'portal',x:8.3,z:1.5,title:'Portal dos jogos',icon:'✧'}
   ];
-  const slots=(newMap?[[11,8.9],[14,9.4],[10,9.5],[15,7.9],[8,9],[13,10.1]]:
-    [[-2.7,4.8],[3,3.4],[-1.8,9],[2.7,9],[-7.2,7.3],[8.2,6.5]]).filter(([x,z])=>walkable(x,z));
-  // Additional activities extend along valid trail edges, never disappear into a menu.
-  for(let z=2;z<=9;z+=1.5)for(let x=-11;x<=11;x+=2) if(walkable(x,z)&&features.every(f=>Math.hypot(x-f.x,z-f.z)>1.6)&&slots.every(([a,b])=>Math.hypot(x-a,z-b)>1.3))slots.push([x,z]);
-  host.missions.forEach((activity,i)=>{
-    const [x,z]=slots[i%slots.length];features.push({id:'activity-'+activity.id,x,z,title:activity.title,icon:activity.icon||'⚑',activity});
-  });
-  if(!newMap)features.push(...Trail.places.map(f=>({...f,x:f.x+data.map.trailOffset,icon:f.icon??'❧',discovery:!f.action})));
+  if(!newMap)landmarks.push(...Trail.places.map(f=>({...f,x:f.x+data.map.trailOffset,icon:f.icon??'❧',discovery:!f.action})));
+  const spawn=newMap?data.layout.spawn:data.spawn??{x:0,z:7.5};
+  const world=data.world??'forest';
+  let assigned=[];
+  if(host.missions.length){
+    if(!surveyCache.has(world))surveyCache.set(world,activityGround({map:data.map,collision:data.collision,spawn,landmarks,sector:regionAt,
+      scenery:newMap?data.layout.props.map(([,x,z])=>({x,z})):[]}));
+    assigned=placeActivities(surveyCache.get(world),host.missions,{world,date:host.date,spawn});
+  }
+  const destinations=assigned.map(({activity,...point})=>({...point,id:'activity-'+activity.id,title:activity.title,icon:activity.icon||'⚑',activity}));
+  const ids=new Set(destinations.map(f=>f.activity.id));
+  features=[...landmarks,...destinations];
+  calendarOnly=host.missions.filter(e=>!ids.has(e.id)).map(activity=>({id:'activity-'+activity.id,title:activity.title,icon:activity.icon||'⚑',activity}));
   const box=document.getElementById('forestLabels');
   const marked=features.filter(f=>!f.discovery);
-  box.innerHTML=marked.map(f=>`<button type="button" class="forest-label" data-action="forest-travel" data-id="${esc(f.id)}" aria-label="Caminhar até ${esc(f.title)}"><span aria-hidden="true">${esc(f.icon)}</span><span class="f-label-copy">${esc(f.activity?f.activity.time:f.title)}</span></button>`).join('');
-  labels=marked.map((f,i)=>({feature:f,element:box.children[i]}));
+  box.innerHTML=marked.map(f=>`<button type="button" hidden class="forest-label" data-action="forest-travel" data-id="${esc(f.id)}" aria-label="Caminhar até ${esc(f.title)}"><span aria-hidden="true">${esc(f.icon)}</span><span class="f-label-copy">${esc(f.title)}</span></button>`).join('');
+  labels=marked.map((f,i)=>({feature:f,element:box.children[i],width:0,height:0}));
+  updateActivityLabels();
+  if(activityModel)installActivitySigns();
+  if(map2d?.setActivitySigns)map2d.setActivitySigns(features);
 }
+function updateActivityLabels(){
+  for(const label of labels){
+    const {feature:f,element}=label;
+    if(!f.activity)continue;
+    const status=activityStatusLabel(f.activity);
+    const description=`${f.title} · ${f.activity.time} · ${status}`;
+    element.dataset.state=activityStatus(f.activity);
+    element.title=description;
+    element.setAttribute('aria-label','Caminhar até '+description);
+    element.querySelector('.f-label-copy').textContent=`${f.activity.time} · ${status}`;
+    label.width=0;
+  }
+}
+
+function releaseActivitySigns(){
+  if(!activitySigns)return;
+  for(const mesh of activitySigns.children){mesh.dispose();mesh.material.dispose();}
+  activitySigns.removeFromParent();
+  activitySigns=null;
+}
+
+function installActivitySigns(){
+  releaseActivitySigns();
+  const signs=features.filter(f=>f.activity);
+  if(!signs.length)return;
+  activitySigns=new T.Group();
+  activitySigns.name='Placas de compromissos';
+  scene.add(activitySigns);
+  activityModel.updateMatrixWorld(true);
+  const position=new T.Matrix4();
+  activityModel.traverse(source=>{
+    if(!source.isMesh)return;
+    const mesh=new T.InstancedMesh(source.geometry,source.material.clone(),signs.length);
+    signs.forEach((f,i)=>mesh.setMatrixAt(i,position.makeTranslation(f.x,floor(f.x,f.z),f.z).multiply(source.matrixWorld)));
+    mesh.instanceMatrix.needsUpdate=true;
+    mesh.receiveShadow=true;
+    activitySigns.add(mesh);
+  });
+}
+
 function updateLabels() {
   const width=stage.clientWidth,height=stage.clientHeight;
-  const visible=features.map(f=>({f,d:Math.hypot(player.position.x-f.x,player.position.z-f.z)})).sort((a,b)=>a.d-b.d).slice(0,innerWidth<700?3:5).map(o=>o.f.id);
-  const placed=[];
-  for(const {feature:f,element} of labels) {
+  const limit=width<700?3:5,placed=[],shown=new Set();
+  const candidates=labels.map(label=>({label,d:Math.hypot(player.position.x-label.feature.x,player.position.z-label.feature.z)}))
+    .filter(({d})=>d>1.8&&d<24).sort((a,b)=>a.d-b.d);
+  for(const {label} of candidates){
+    if(placed.length>=limit)break;
+    const {feature:f,element}=label;
     const p=map2d?map2d.ndc(f.x,f.z):new T.Vector3(f.x,floor(f.x,f.z)+(f.labelHeight??1.2),f.z).project(camera);
-    const away=Math.hypot(player.position.x-f.x,player.position.z-f.z)>1.8;
-    const show=away&&visible.includes(f.id)&&p.z>-1&&p.z<1&&Math.abs(p.x)<.92&&p.y<.8&&p.y>-.65;
-    element.hidden=!show;
-    element.dataset.state=f.activity?.window?.state||'';
-    const stateText={open:'Disponível',upcoming:'Mais tarde',expired:'Encerrada'}[f.activity?.window?.state];
-    element.title=f.title+(stateText?' · '+stateText:'');
-    if(f.activity)element.querySelector('.f-label-copy').textContent=f.activity.time+' · '+(stateText||'Atividade');
-    if(show){
-      const w=Math.min(160,45+(f.activity?f.activity.time:f.title).length*6),x=(p.x*.5+.5)*width;
-      let y=(-p.y*.5+.5)*height;
-      for(let attempt=0;attempt<4;attempt++){if(!placed.some(r=>Math.abs(r.x-x)<(r.w+w)/2+6&&Math.abs(r.y-y)<38))break;y-=38;}
-      if(y<95||y>height-145||(!map2d&&x>width-175&&y<158)){element.hidden=true;continue;}
-      placed.push({x,y,w});element.style.left=`${(p.x*.5+.5)*width}px`;element.style.top=`${y}px`;}
+    if(!(p.z>-1&&p.z<1&&Math.abs(p.x)<.92&&p.y<.8&&p.y>-.65))continue;
+    const base=(-p.y*.5+.5)*height;
+    if(base<122||base>height-120)continue;
+    element.hidden=false;
+    if(!label.width){label.width=element.offsetWidth;label.height=element.offsetHeight;}
+    const {width:w,height:h}=label;
+    const x=T.MathUtils.clamp((p.x*.5+.5)*width,w/2+8,width-w/2-8);
+    for(const shift of [0,-1,1,-2]){
+      const y=base+shift*(h+7);
+      if(y-h<91||y>height-124||(!map2d&&width>=700&&x+w/2>width-175&&y-h<137))continue;
+      const rect={left:x-w/2,right:x+w/2,top:y-h,bottom:y};
+      if(placed.some(r=>r.left<rect.right+6&&rect.left<r.right+6&&r.top<rect.bottom+7&&rect.top<r.bottom+7))continue;
+      placed.push(rect);shown.add(element);
+      element.style.left=`${x}px`;element.style.top=`${y}px`;
+      break;
+    }
   }
+  for(const {element} of labels)element.hidden=!shown.has(element);
 }
 function nearest() {
   if (selectedPlace) {
@@ -1081,8 +1141,22 @@ function tick(now) {
     host.api(`/api/calendar?start=${host.date}&end=${host.date}`).then(result=>{
       if(token!==generation)return;
       const activities=new Map(result.events.map(e=>[e.id,e]));
-      for(const f of features)if(f.activity&&activities.has(f.activity.id))f.activity=activities.get(f.activity.id);
-    }).catch(e=>message(e.message)).finally(()=>{calendarPending=false;});
+      const displayed=[...features.filter(f=>f.activity),...calendarOnly];
+      const changed=displayed.length!==activities.size||displayed.some(f=>!activities.has(f.activity.id));
+      host.missions=result.events;
+      if(changed&&!modal){
+        createFeatures();
+        selectedPlace=features.find(f=>f.id===selectedPlace?.id)??null;
+        actionTarget='';
+      }else{
+        for(const f of displayed)if(activities.has(f.activity.id)){
+          f.activity=activities.get(f.activity.id);
+          f.title=f.activity.title;
+        }
+        updateActivityLabels();
+        map2d?.setActivitySigns(features);
+      }
+    }).catch(e=>{if(token===generation)message(e.message);}).finally(()=>{if(token===generation)calendarPending=false;});
   }
   const b = document.getElementById("forestInteract");
   if (b) {
@@ -1266,7 +1340,8 @@ function bind() {
     canvas.focus({ preventScroll: true });
   });
   observer = new ResizeObserver(() => {
-  if(renderer)setQuality();
+    for(const label of labels)label.width=0;
+    if(renderer)setQuality();
     else if(player)map2d?.draw(player.position,pipo.position,data,clock,still);
   });
   observer.observe(stage);
@@ -1285,7 +1360,12 @@ function renderDialog() {
     body = "";
   const place=newMap?data.layout.places.find(p=>p.id===modal):null;
   if(modal==='paths') {
-    title=newMap?'Lugares para explorar':'Caminhos do bosque';body='<p>Escolha um lugar. Vamos caminhar até ele. Ao chegar, toque em Explorar.</p><div class="f-missions">'+features.map(f=>button(esc(f.icon)+' '+esc(f.title)+(f.activity?' · '+esc(f.activity.time):''),'travel',`data-id="${esc(f.id)}"`)).join('')+'</div>';
+    title=newMap?'Lugares para explorar':'Caminhos do bosque';
+    const events=[...features.filter(f=>f.activity),...calendarOnly].sort((a,b)=>a.activity.time.localeCompare(b.activity.time));
+    body='<p>Escolha um lugar para caminhar com o Pipo.</p><div class="f-missions">'+features.filter(f=>!f.activity).map(f=>
+      button(esc(f.icon)+' '+esc(f.title),'travel',`data-id="${esc(f.id)}"`)).join('')+'</div>';
+    if(events.length)body+=`<h3>Compromissos · ${esc(host.dateLabel)}</h3><div class="f-missions f-activity-list">${events.map(f=>
+      `<article><small>${esc(f.activity.time)} · ${esc(activityStatusLabel(f.activity))}${f.sector?' · '+esc(f.sector):''}</small><h4>${esc(f.title)}</h4><div class="f-activity-actions">${f.sector?button('Caminhar','travel',`data-id="${esc(f.id)}" aria-label="Caminhar até ${esc(f.title)}"`):''}${button('Abrir atividade','activity-details',`data-id="${esc(f.id)}" aria-label="Abrir atividade ${esc(f.title)}"`)}</div></article>`).join('')}</div>`;
   } else if(place) {
     title=esc(place.title);
     const collected=data.progress.includes(place.id);
@@ -1312,8 +1392,8 @@ function renderDialog() {
       body+=button(esc(place.inspect),'inspect-world',`data-id="${esc(place.id)}"`,'f-primary');
     }
   } else if (modal?.startsWith('activity-')) {
-    const e=features.find(f=>f.id===modal).activity;
-    title=e.title;body=`<p>${esc(e.time)} · ${e.done?'Concluída':'Pendente'}</p><p>${e.window?esc(windowLabel(e.window)):''}</p><p>${e.has_mission?'Aprender, Fazer e Lembrar continuam disponíveis. A confirmação real respeita o horário do servidor.':'Esta atividade não tem roteiro e continua disponível na agenda.'}</p>${e.has_mission?button('Entrar na missão','mission',`data-id="${e.id}" data-date="${e.date}"`):button('Ver atividade na agenda','calendar')}`;
+    const e=[...features,...calendarOnly].find(f=>f.id===modal).activity;
+    title=esc(e.title);body=`<p>${esc(e.time)} · ${esc(activityStatusLabel(e))}</p><p>${e.window?esc(windowLabel(e.window)):''}</p><p>${e.has_mission?'Aprender, Fazer e Lembrar continuam disponíveis. A confirmação real respeita o horário do servidor.':'Esta atividade continua disponível na agenda.'}</p>${e.has_mission?button('Entrar na missão','mission',`data-id="${e.id}" data-date="${esc(e.date)}"`):button('Ver atividade na agenda','calendar',`data-id="${e.id}" data-date="${esc(e.date)}"`)}`;
   } else if (modal === 'wardrobe') {
     title='Seu jeito de explorar';
     const economy=data.economy;
@@ -1351,7 +1431,7 @@ function renderDialog() {
         <option value="full">Ativar neste navegador</option>
         <option value="reduced">Reduzir neste navegador</option>
       </select><p id="forestMotionStatus" role="status"></p>
-      <div class="f-options">${map2d?'':button(newMap?'Vista 2D do mundo':'Vista 2D da floresta',"fallback")}<button type="button" class="f-button" data-action="world-island">Ilha das ideias</button></div>`;
+      <div class="f-options">${map2d?'':button(newMap?'Vista 2D do mundo':'Vista 2D da floresta',"fallback")}</div>`;
   }
   document.getElementById("forestDialogBody").innerHTML =
     `<div class="f-dialog-top"><span>${newMap?esc(worldTitle()):'O DIÁRIO DO BOSQUE'}</span>${button("Fechar ×", "close")}</div><h2 id="forestDialogTitle" tabindex="-1">${title}</h2>${body}`;
@@ -1526,7 +1606,7 @@ async function action(a, b) {
   }
   if (name === "calendar") {
     await save();
-    await host.onCalendar();
+    await host.onCalendar(b.dataset?.id?{id:Number(b.dataset.id),date:b.dataset.date}:undefined);
     return;
   }
   if (name === "mission") {
@@ -1534,10 +1614,16 @@ async function action(a, b) {
     await host.onMission(Number(b.dataset.id), b.dataset.date);
     return;
   }
-  if (name === "fallback") {
-    await save();
-    await close();
-    await host.onFallback();
+  if (name === 'fallback'||name==='view-2d'||name==='view-3d') {
+    await changeView(name==='view-3d'?'3d':'2d');
+    return;
+  }
+  if(name==='activity-details'){
+    if([...features,...calendarOnly].some(f=>f.activity&&f.id===b.dataset.id)){
+      modal=b.dataset.id;
+      renderDialog();
+      document.getElementById('forestDialogTitle').focus();
+    }
     return;
   }
   if (name === 'travel') {
@@ -1551,7 +1637,11 @@ async function action(a, b) {
       .sort(([a,b],[c,d])=>Math.hypot(a-player.position.x,b-player.position.z)-Math.hypot(c-player.position.x,d-player.position.z));
     for (const point of approaches) {
       destination(...point);
-      if (target) {selectedPlace=place;return;}
+      if (target) {
+        selectedPlace=place;
+        canvas.focus({preventScroll:true});
+        return;
+      }
     }
     if(!newMap && !owned('bridge') && !beyondSeam(x) && z<-4)message('Pipo: A ponte abre o caminho até a outra margem.');
     return;
@@ -1694,6 +1784,7 @@ function dispose() {
   });
   staticGroups = [];
   composer?.dispose();
+  releaseActivitySigns();activityModel=null;
   const skeletons=new Set();
   scene?.traverse(o=>{if(o.skeleton)skeletons.add(o.skeleton);});
   skeletons.forEach(s=>s.dispose());
@@ -1713,7 +1804,7 @@ function dispose() {
   renderer=null;composer=null;
   scene?.clear();
   canvas=null;stage=null;observer=null;abort=null;camera=null;
-  bridge=null;house=null;water=null;particles=null;pipoActions={};labels=[];features=[];
+  bridge=null;house=null;water=null;particles=null;pipoActions={};labels=[];features=[];calendarOnly=[];
   deckProfile=[];deckHitMesh=null;deckBoards=[];selectedPlace=null;
   scene=null;player=null;pipo=null;terrain=null;sunLight=null;
 }
@@ -1722,9 +1813,44 @@ async function close() {
   abort?.abort();cancelAnimationFrame(frame);frame=0;
   keys.clear();target=null;path=[];
   if(player) await save();
-  if(token===generation){dispose();releaseForestAssets();}
+  if(token===generation){dispose();releaseForestAssets();last3dCamera=null;}
 }
-async function open(options) {
+async function changeView(mode){
+  if(!player||host.mode===mode)return;
+  if(renderer)last3dCamera={angle,distance};
+  const pose={hero:player.position.clone(),buddy:pipo.position.clone(),heroYaw:player.rotation.y,buddyYaw:pipo.rotation.y};
+  const options={...host,mode,reward:null};
+  keys.clear();target=null;path=[];
+  cancelAnimationFrame(frame);frame=0;
+  const tryView=async view=>{
+    try{return await open({...options,mode:view},pose);}
+    catch(error){console.warn('Vista do mundo indisponível',error);return false;}
+  };
+  if(await tryView(mode)){
+    host.onView?.(mode);
+    canvas.focus({preventScroll:true});
+    return;
+  }
+  if(mode==='3d'&&await tryView('2d')){
+    host.onView?.('2d');
+    message('A vista 2D está disponível neste aparelho.');
+    canvas.focus({preventScroll:true});
+    return;
+  }
+  await options.onCalendar();
+}
+
+function restoreActors(pose){
+  const hero=pose?.hero&&walkable(pose.hero.x,pose.hero.z)?pose.hero:data.position;
+  player.position.set(hero.x,floor(hero.x,hero.z)-supportHeight(playerSupport,actions),hero.z);
+  const buddy=pose?.buddy&&walkable(pose.buddy.x,pose.buddy.z)?pose.buddy:pipoGoal(player.position);
+  pipo.position.set(buddy.x,0,buddy.z);
+  pipo.position.y=pipoHeight();
+  if(pose){player.rotation.y=pose.heroYaw;pipo.rotation.y=pose.buddyYaw;}
+  else if(currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas')player.rotation.y=pipo.rotation.y=angle;
+}
+
+async function open(options,pose=null) {
   const openStarted = performance.now();
   const token=++generation;
   if (player) await save();
@@ -1740,6 +1866,7 @@ async function open(options) {
   data=await host.api(sceneEndpoint+resume);
   if(token!==generation)return false;
   navigation=createNavigation(data.map,data.collision,data.economy.inventory);
+  if(pose&&walkable(pose.hero.x,pose.hero.z))data.position={x:pose.hero.x,z:pose.hero.z};
   companion=createCompanion(walkable,data.map.bounds);
   if(alternate){
     const [{landscape,regionAt},micro]=await Promise.all([import('/assets/worlds/terrain.mjs'),import('/assets/worlds/challenges.mjs')]);
@@ -1769,6 +1896,7 @@ async function open(options) {
   lastCalendarRefresh=performance.now();calendarPending=false;
   angle=cameraYaw(data.position.x,data.position.z);
   distance=defaultDistance();waving=0;blinkAt=3.2;blinkUntil=0;lastSave=0;movingNow=false;
+  if(pose&&!map2d&&last3dCamera)({angle,distance}=last3dCamera);
   adaptiveLow = false;
   clip = "Idle";
   pipoClip = "Hover";
@@ -1779,8 +1907,7 @@ async function open(options) {
   if(map2d){
     player=new T.Object3D();
     pipo=new T.Object3D();
-    player.position.set(data.position.x,0,data.position.z);
-    pipo.position.copy(player.position);
+    restoreActors(pose);
     createFeatures();
     map2d.mount(canvas,data,features);
     map2d.draw(player.position,pipo.position,data);
@@ -1959,31 +2086,12 @@ async function open(options) {
       buddyHead=root.getObjectByName('Head');if(buddyHead)headBase.copy(buddyHead.quaternion);
     }
   }
-  player.position.set(
-    data.position.x,
-    floor(data.position.x, data.position.z)-supportHeight(playerSupport,actions),
-    data.position.z,
-  );
-  const buddyStart=pipoGoal(player.position);
-  pipo.position.set(buddyStart.x,0,buddyStart.z);
-  pipo.position.y=pipoHeight();
-  if(currentRegion==='Soleira da Roda Baixa'||currentRegion==='Bosque das Bainhas'){
-    player.rotation.y=pipo.rotation.y=angle;
-  }
+  restoreActors(pose);
   createContactShadows();
   look.copy(player.position).add(new T.Vector3(0, 0.9, 0));
   syncOwned();
+  activityModel=loaded.find(a=>a.name==='activity')?.scene;
   createFeatures();
-  const marker=loaded.find(a=>a.name==='activity');
-  if(marker) {
-    const markers=new T.Group(),materials=new Map();legacy.add(markers);
-    for(const f of features.filter(f=>f.activity)) {
-      const root=cloneRig(marker.scene);root.position.set(f.x,floor(f.x,f.z),f.z);
-      root.traverse(o=>{if(o.isMesh){if(!materials.has(o.material.uuid)){const mat=o.material.clone();ownedMaterials.add(mat);materials.set(o.material.uuid,mat);}o.material=materials.get(o.material.uuid);}});
-      markers.add(root);
-    }
-    prepare(markers);batch(markers);
-  }
   if(!newMap){createWater();cascade();motes();}
   setQuality();
   bind();
@@ -2082,7 +2190,7 @@ window.DaviForest = {
       webgl: !!renderer && !gl?.isContextLost(),
       paused,
       moving: movingNow,
-      features: features.map(f=>({id:f.id,x:f.x,z:f.z,title:f.title,window:f.activity?.window?.state,hasMission:f.activity?.has_mission})),
+      features: features.map(f=>({id:f.id,x:f.x,z:f.z,title:f.title,sector:f.sector,window:f.activity?.window?.state,hasMission:f.activity?.has_mission})),
       navigationValid: player ? walkable(player.position.x,player.position.z) : null,
       pipoNavigationValid: pipo ? walkable(pipo.position.x,pipo.position.z) : null,
       companion: companion?.diagnostics(),

@@ -125,7 +125,7 @@ session(
       await click('world-forest');
       await ready(page);
       assert(distance(at, (await diag(page)).position) < 0.025);
-      assert(!(await page.evaluate(() => DaviWorld.diagnostics().active)));
+      assert.equal(await page.evaluate(() => typeof window.DaviWorld),'undefined');
       await page.locator('#forestCanvas').focus();
       await page.keyboard.down('ArrowRight');
       await page.waitForTimeout(220);

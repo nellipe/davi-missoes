@@ -80,16 +80,19 @@ def trail_move(c, body):
 
 
 def map_scene(c, resume_trail=False):
-    result = scene(c)
-    inventory = result['economy']['inventory']
+    economy = world.scene(c)
+    inventory = economy['inventory']
+    spawn = {'x': SPAWN[0], 'z': SPAWN[1]}
+    position = spawn
     candidate = read_json_setting(c, 'forest_position')
     if candidate is not None:
-        result['position'] = safe_position(candidate, lambda x,z: map_walkable(x,z,inventory), result['position'])
+        position = safe_position(candidate, lambda x,z: map_walkable(x,z,inventory), spawn)
     elif resume_trail:
         previously = trail_scene(c)['position']
-        result['position'] = {'x': previously['x']+OFFSET, 'z': previously['z']}
+        position = {'x': previously['x']+OFFSET, 'z': previously['z']}
     leaf = c.execute("SELECT value FROM settings WHERE key='trail_shelter_leaf'").fetchone()
-    return {**result, 'map': FOREST, 'layout': FULL_TRAIL, 'collision': COLLISION,
+    return {'economy': economy, 'position': position, 'spawn': spawn, 'terrain': TERRAIN,
+            'map': FOREST, 'layout': FULL_TRAIL, 'collision': COLLISION,
             'leaf_up': bool(leaf and leaf[0] == 'up')}
 
 
