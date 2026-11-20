@@ -1,4 +1,4 @@
-import { actorSymbols, createViewport, floorPath, mapActors } from '/assets/forest/map-2d.mjs';
+import { actorSymbols, createViewport, drawActivitySigns, floorPath, mapActors } from '/assets/forest/map-2d.mjs';
 
 const foliage=/palm|fern|dune-plants|cycad|horsetail|planter/;
 const symbols={
@@ -22,10 +22,11 @@ function artFor(name){
 
 export function createMap() {
   const viewport=createViewport();
-  let actors,tokens,lastProgress,ripple,visit;
+  let svg,actors,tokens,lastProgress,ripple,visit;
   return {
     ...viewport,
     mount(canvas,data,features){
+      svg=canvas;
       viewport.attach(canvas);
       const {layout,map,collision}=data;
       const coast=floorPath(map.bounds,collision,'1');
@@ -33,6 +34,7 @@ export function createMap() {
       const props=collision.solids.map(([name,polygon])=>`<polygon points="${polygon.map(p=>p.join(',')).join(' ')}" fill="${foliage.test(name)?'#70a582':layout.edge}"/>`).join('');
       const scenery=layout.props.map(([name,x,z,angle,size])=>`<g transform="translate(${x} ${z}) rotate(${-angle}) scale(${size})">${artFor(name)}</g>`).join('');
       const city=data.world==='inventores';
+      const places=features.filter(f=>!f.activity);
       canvas.innerHTML=`<defs><clipPath id="worldLand"><path d="${coast}"/></clipPath><pattern id="worldPattern" width="1.27" height="1.13" patternUnits="userSpaceOnUse"><path d="M.14 .28h.35M.75 .72h.23" stroke="#fff6d9" stroke-width=".044" opacity=".55"/></pattern></defs>
         <rect x="-80" y="-80" width="200" height="170" fill="${layout.waterColor}"/><path d="${coast}" fill="${layout.ground}"/>
         <rect x="-80" y="-80" width="200" height="170" fill="url(#worldPattern)"/>
@@ -42,12 +44,14 @@ export function createMap() {
         </g>
         <g stroke="#526876" stroke-width=".08" opacity=".67">${props}</g><g>${scenery}</g>
         <circle data-discovery-ring r=".5" fill="none" stroke="#fff1b6" stroke-width=".14" visibility="hidden"/>
-        ${features.map(({id,x,z})=>`<g transform="translate(${x} ${z})" data-world-token="${id}"><circle r=".57" fill="#405963" stroke="#fff2ca" stroke-width=".08"/><text y=".24" text-anchor="middle" font-size=".70" fill="#ffedbf"></text></g>`).join('')}${actorSymbols}`;
+        ${places.map(({id,x,z})=>`<g transform="translate(${x} ${z})" data-world-token="${id}"><circle r=".57" fill="#405963" stroke="#fff2ca" stroke-width=".08"/><text y=".24" text-anchor="middle" font-size=".70" fill="#ffedbf"></text></g>`).join('')}<g data-calendar-signs></g>${actorSymbols}`;
       tokens=Array.from(canvas.querySelectorAll('[data-world-token]'));
-      tokens.forEach((token,i)=>{token.querySelector('text').textContent=features[i].icon;});
+      tokens.forEach((token,i)=>{token.querySelector('text').textContent=places[i].icon;});
+      drawActivitySigns(svg,features);
       ripple=canvas.querySelector('[data-discovery-ring]');
       actors=mapActors(canvas);
     },
+    setActivitySigns(features){drawActivitySigns(svg,features);},
     reveal(place,time){
       visit={time};
       ripple.setAttribute('cx',place.x);

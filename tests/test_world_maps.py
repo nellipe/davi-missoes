@@ -89,6 +89,29 @@ class WorldMapTests(HttpFixture):
         self.assertEqual(other.request('/api/worlds/selection','PUT',{'world':'forest'},**{'X-CSRF-Token':''})[0], 403)
         self.assertEqual(Client(self.port).request('/api/worlds/praia')[0], 403)
 
+    def test_legacy_island_selection_resumes_forest_without_writing_island_data(self):
+        self.child.request('/api/world/move', 'PUT', {'x':505, 'y':455})
+        old_state = self.child.request('/api/world')[1]
+        forest = self.child.request('/api/forest/map')[1]
+        self.assertEqual(forest['position'], forest['spawn'])
+        position = {'x':28, 'z':10}
+        self.assertEqual(self.child.request('/api/forest/map/move', 'PUT', position)[0], 200)
+        for value in ('island', json.dumps('island')):
+            with self.subTest(value=value):
+                server.set_setting('selected_world', value)
+                selection = self.child.request('/api/worlds')[1]
+                self.assertEqual(selection['selected'], 'forest')
+                self.assertEqual(selection['view'], '2d')
+                self.assertEqual([entry['id'] for entry in selection['worlds']],
+                                 ['forest', 'praia', 'dinossauros', 'inventores'])
+                with server.db() as conn:
+                    self.assertEqual(conn.execute("SELECT value FROM settings WHERE key='selected_world'").fetchone()[0], value)
+                self.assertEqual(self.child.request('/api/forest/map')[1]['position'], position)
+                self.assertEqual(self.child.request('/api/world')[1], old_state)
+        alias = self.child.request('/api/worlds/selection', 'PUT', {'world':'island'})[1]
+        self.assertEqual((alias['selected'], alias['view']), ('forest', '2d'))
+        self.assertEqual(self.child.request('/api/worlds')[1]['selected'], 'forest')
+
     def test_discoveries_require_proximity_and_save_without_awarding_stars(self):
         for key, layout in world_maps.LAYOUTS.items():
             with self.subTest(world=key):

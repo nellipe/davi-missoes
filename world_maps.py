@@ -5,7 +5,7 @@ from pathlib import Path
 
 import world
 import world_challenges as challenges
-from forest import map_scene as forest_scene, read_json_setting
+from forest import read_json_setting
 from forest_navigation import create_navigation, overlaps, safe_position
 
 BOUNDS = [-17, 50, -14, 17]
@@ -14,7 +14,6 @@ LAYOUTS = json.loads((Path(__file__).parent / 'assets/worlds/layouts.json').read
 WORLDS = {
     'forest': {'title': 'Floresta Encantada', 'icon': '❧'},
     **LAYOUTS,
-    'island': {'title': 'Ilha das ideias', 'icon': '✧'},
 }
 
 
@@ -54,22 +53,28 @@ def save(c, key, value):
 
 def selection(c):
     selected = read_json_setting(c, 'selected_world')
+    legacy = selected == 'island' or (selected is None and c.execute(
+        "SELECT 1 FROM settings WHERE key='selected_world' AND value='island'"
+    ).fetchone() is not None)
     return {
         'selected': selected if isinstance(selected, str) and selected in WORLDS else 'forest',
         'worlds': [{'id': key, 'title': value['title'], 'icon': value['icon']} for key, value in WORLDS.items()],
+        **({'view': '2d'} if legacy else {}),
     }
 
 
 def select(c, body):
     key = body.get('world')
+    legacy = key == 'island'
+    if legacy:
+        key = 'forest'
     if not isinstance(key, str) or key not in WORLDS:
         raise ValueError('Escolha um dos mundos disponíveis.')
-    if key == 'island' and read_json_setting(c, 'forest_position') is None:
-        # Freeze the legacy checkpoint before the island can move its own avatar.
-        resume_trail = read_json_setting(c, 'trail_position') is not None
-        save(c, 'forest_position', forest_scene(c, resume_trail)['position'])
     save(c, 'selected_world', key)
-    return selection(c)
+    result = selection(c)
+    if legacy:
+        result['view'] = '2d'
+    return result
 
 
 def progress(c, key):

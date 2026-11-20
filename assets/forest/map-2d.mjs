@@ -1,11 +1,28 @@
 import { boatProgress } from './boat.mjs';
 import { colors, worn } from './wardrobe.mjs';
 import { recanto } from './recanto.mjs';
+import { activityStatus, activityStatusLabel } from './activity-placement.mjs';
 
 const COLORS = ['#ddc299','#a77655','#cfceae','#a98262','#bfc4a7','#b9ad91','#d2966d','#e3d9ab','#d4c394'];
 const esc = (value) => String(value).replace(/[&<>"']/g, c => ({
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 }[c]));
+
+const signColors={upcoming:'#b88439',open:'#357653',done:'#477c9b',expired:'#79687a'};
+
+export function drawActivitySigns(svg,features){
+  const signs=svg?.querySelector('[data-calendar-signs]');
+  if(!signs)return;
+  signs.innerHTML=features.filter(f=>f.activity).map(({x,z,activity})=>{
+    const label=[activity.title,activity.time,activityStatusLabel(activity)].join(' · ');
+    return `<g transform="translate(${x} ${z})" data-activity-id="${esc(activity.id)}">
+      <title>${esc(label)}</title><circle r=".48" fill="#3f3d3c" opacity=".39"/>
+      <path d="M0 .29V-.36" stroke="#523e39" stroke-width=".14" stroke-linecap="round"/>
+      <rect x="-.5" y="-.63" width="1" height=".63" rx=".13" fill="${signColors[activityStatus(activity)]??signColors.upcoming}" stroke="#fff1c3" stroke-width=".10"/>
+      <path d="M-.28-.42h.56m-.56 .2h.39" stroke="#fff1c3" stroke-width=".09" stroke-linecap="round"/>
+    </g>`;
+  }).join('');
+}
 
 export function floorPath(bounds,{rows,cell},kind) {
   const [xmin,,zmin]=bounds;
@@ -112,8 +129,10 @@ export function createMap() {
           <path d="M-.31 .05L-.39 -.14l.15 .03.02-.23.15 .14.12-.22.10 .19.19-.09-.05 .23.14 .01-.09 .17z" fill="#824c34"/>
           <ellipse cy=".1" rx=".26" ry=".19" fill="#ffd8a0"/><circle cy=".25" r=".055" fill="#34264a"/>
         </g>
-        ${features.map(f=>`<g transform="translate(${f.x} ${f.z})" ${['house','portal'].includes(f.id)?`data-owned-mark="${f.id}"`:''}><circle r=".62" fill="#314e45" stroke="#f5e5ae" stroke-width=".07"/><text y=".25" text-anchor="middle" font-size=".78" fill="#ffebbf">${esc(f.icon)}</text></g>`).join('')}
+        ${features.filter(f=>!f.activity).map(f=>`<g transform="translate(${f.x} ${f.z})" ${['house','portal'].includes(f.id)?`data-owned-mark="${f.id}"`:''}><circle r=".62" fill="#314e45" stroke="#f5e5ae" stroke-width=".07"/><text y=".25" text-anchor="middle" font-size=".78" fill="#ffebbf">${esc(f.icon)}</text></g>`).join('')}
+        <g data-calendar-signs></g>
         ${actorSymbols}`;
+      drawActivitySigns(svg,features);
       actors=mapActors(svg);
       shelter=svg.querySelector('#forest2dWet');
       beetle=svg.querySelector('#forest2dBeetle');
@@ -122,6 +141,7 @@ export function createMap() {
       boats=Array.from(svg.querySelectorAll('[data-boat]'));
       controlledSolids=svg.querySelectorAll('[data-solid-owner]');
     },
+    setActivitySigns(features){drawActivitySigns(svg,features);},
     interact(id,time) {
       if(Object.hasOwn(release,id))release[id]=time;
     },

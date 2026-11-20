@@ -207,8 +207,8 @@ def record(browser, origin, parent, headers, device, key, scratch):
     assert len(saved['progress'])==4
     assert saved['economy']['inventory']==initial['economy']['inventory']
     assert saved['economy']['stars']==initial['economy']['stars']
-    select_in_ui(page,'island')
-    page.get_by_role('heading',name='Ilha das ideias').wait_for()
+    select_in_ui(page,'forest')
+    page.locator('.trail-shell[data-world="forest"] #forestCanvas[data-ready=true]').wait_for(timeout=45000)
     select_in_ui(page,key)
     page.locator('#forestCanvas[data-ready=true]').wait_for(timeout=45000)
     resumed=stamp(page)

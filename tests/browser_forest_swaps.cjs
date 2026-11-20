@@ -48,7 +48,7 @@ session('alternancias', async ({ page, context, errors }) => {
     await oldMap.dispose();
     await page.keyboard.up(held);
     assert.equal(await map.count(),0);
-    assert.equal(await page.evaluate(()=>DaviWorld.diagnostics().active),false);
+    assert.equal(await page.evaluate(()=>typeof window.DaviWorld),'undefined');
     if (i % 2) {
       await page.locator('[data-action=forest-rotate][data-turn="1"]').click();
       await page.waitForTimeout(750);
