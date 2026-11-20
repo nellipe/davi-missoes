@@ -30,6 +30,15 @@ BROWSERS = {'desktop':{'width':1366,'height':820}, 'mobile':{'width':390,'height
 VIDEO_SIZES = {'desktop':{'width':854,'height':512}, 'mobile':BROWSERS['mobile']}
 
 
+def allow_legacy_fixture(server):
+    """Open the chapters for recordings that test earlier stages on synthetic data."""
+    import campaign
+    import screen_time
+    with server.db() as connection:
+        screen_time.configure(connection, {**screen_time.DEFAULT,'enabled':False},server.timing.now().timestamp())
+        connection.executemany('INSERT OR IGNORE INTO campaign_unlocks VALUES(1,?)',[(world,) for world in campaign.CHAPTERS])
+
+
 def set_quality(page, value):
     page.locator('[data-action=forest-options]').click()
     page.locator('#forestQuality').select_option(value)
@@ -259,6 +268,7 @@ def main():
         from lan_security import Config
 
         server.initialize()
+        allow_legacy_fixture(server)
         server.set_setting('password',server.hash_password(PASSWORD))
         with server.DaviHTTPServer(('127.0.0.1',0),server.Handler) as http:
             server.CONFIG=Config({'DAVI_PORT':str(http.server_port)})

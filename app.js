@@ -75,12 +75,13 @@ function alertMsg(msg) {
   $("alert").hidden = !msg;
   if (msg) $("alert").scrollIntoView({ block: "nearest", behavior: "instant" });
 }
-async function api(path, method = "GET", body) {
+async function api(path, method = "GET", body, options={}) {
   const r = await fetch(path, {
     method,
-    keepalive: method==='PUT' && path.endsWith('/move'),
+    keepalive: options.keepalive || (method==='PUT' && path.endsWith('/move')),
     credentials: "same-origin",
-    headers: { "Content-Type": "application/json", ...(state.me?.csrf ? { "X-CSRF-Token": state.me.csrf } : {}) },
+    headers: { "Content-Type": "application/json", ...(state.me?.csrf ? { "X-CSRF-Token": state.me.csrf } : {}),
+      ...globalThis.DaviCampaign?.headers(!state.view.startsWith('parent')||path==='/api/adventure/validation') },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   let j;
@@ -89,7 +90,7 @@ async function api(path, method = "GET", body) {
   } catch (e) {
     throw Error("Resposta inválida do servidor");
   }
-  if (!r.ok) throw Error(j.error || "Não foi possível completar a ação");
+  if (!r.ok) throw Object.assign(Error(j.error || j.message || "Não foi possível completar a ação"),{status:r.status});
   return j;
 }
 function watchWorldBalance(signal, current, apply) {
@@ -163,6 +164,7 @@ function layout(html) {
     : null;
   $("content").innerHTML = html;
   nav();
+  globalThis.DaviCampaign?.decorate(state.view,$("content"));
   if (inside) {
     const match = [
       ...$("content").querySelectorAll("button,input,select,textarea,a"),
@@ -453,19 +455,29 @@ async function child() {
   await fetchCalendar(state.date, state.date);
   if(state.childSurface!=='calendar'&&typeof window!=='undefined'){
     try{
+      if(window.DaviCampaign&&!await DaviCampaign.enter(api,showCampaignPause))return;
       if(!state.worldSelection)await loadWorldSelection();
+      else if(window.DaviCampaign){
+        const fresh=canonicalWorlds(await api('/api/worlds'));
+        if(fresh.campaign?.validation)fresh.selected=state.worldSelection.selected;
+        state.worldSelection=fresh;
+      }
       const forest=await import('/forest.js');
       state.view='child-world';
       const options={layout,api,watchWorldBalance,worldId:state.worldSelection.selected,run:safe,
         missions:dayEvents(state.date),date:state.date,dateLabel:fmt(state.date),onMission:openMission,
-        onCalendar:openChildCalendar,onView:rememberWorldView,reward:state.forestReward};
+        onCalendar:openChildCalendar,onView:rememberWorldView,reward:state.forestReward,
+        campaign:state.worldSelection.campaign,onChapters:showWorldPicker,campaignStatus:()=>api('/api/adventure')};
       for(const mode of state.forestMode==='2d'?['2d']:['3d','2d']){
         try{
           if(await forest.open({...options,mode})){
             state.forestReward=null;
             return;
           }
-        }catch(error){console.warn('Vista do mundo indisponível',error.message);}
+        }catch(error){
+          if(error.status===423&&window.DaviCampaign){showCampaignPause(error.message);return;}
+          console.warn('Vista do mundo indisponível',error.message);
+        }
       }
       await forest.close();
     }catch(error){console.warn('Mundos indisponíveis',error.message);}
@@ -506,13 +518,24 @@ async function openChildCalendar(event){
     card.focus({preventScroll:true});
   }
 }
-function showWorldPicker() {
+function showCampaignPause(message){
+  document.querySelector('.world-picker[open]')?.close();
+  state.view='child-paused';
+  state.childSurface='calendar';
+  layout(DaviCampaign.paused(message,esc));
+  $('campaignPauseTitle').focus({preventScroll:true});
+}
+async function showWorldPicker() {
+  const view=state.view;
   const dialog=document.createElement('dialog');
   dialog.className='forest-dialog world-picker';
   dialog.setAttribute('aria-labelledby','worldPickerTitle');
   const {worlds,selected}=state.worldSelection;
-  dialog.innerHTML='<div class="f-dialog-top"><h2 id="worldPickerTitle">Escolha um mundo</h2><form method="dialog"><button class="f-button">Fechar ×</button></form></div><div class="world-picker-grid">'+worlds.map(w=>
-    `<button type="button" class="f-button world-choice" data-action="world-select" data-world="${esc(w.id)}" aria-current="${w.id===selected?'true':'false'}"><span aria-hidden="true">${esc(w.icon)}</span><strong>${esc(w.title)}</strong>${w.id===selected?'<small>Você está aqui</small>':''}</button>`).join('')+'</div>';
+  const campaign=globalThis.DaviCampaign&&await api('/api/adventure');
+  if(state.view!==view)return;
+  dialog.innerHTML='<div class="f-dialog-top"><h2 id="worldPickerTitle">Escolha um mundo</h2><form method="dialog"><button class="f-button">Fechar ×</button></form></div>'+
+    (campaign?DaviCampaign.chapters(campaign,selected,esc):'<div class="world-picker-grid">'+worlds.map(w=>
+      `<button type="button" class="f-button world-choice" data-action="world-select" data-world="${esc(w.id)}" aria-current="${w.id===selected?'true':'false'}"><span aria-hidden="true">${esc(w.icon)}</span><strong>${esc(w.title)}</strong>${w.id===selected?'<small>Você está aqui</small>':''}</button>`).join('')+'</div>');
   document.body.append(dialog);
   dialog.addEventListener('close',()=>dialog.remove(),{once:true});
   dialog.showModal();
@@ -659,7 +682,7 @@ async function parentMonth() {
   }
   const selected = dayEvents(state.selected);
   layout(
-    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável · versão ' + esc(state.me.version || 'anterior') + '</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="world-settings">Mundo e estrelas</button><button data-action="mission-library">Roteiros de missões</button><button data-action="forest-diagnostics-start">Medir desempenho</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
+    '<div class="row between parent-title"><div><div class="eyebrow">Painel do responsável · versão ' + esc(state.me.version || 'anterior') + '</div><h1>Calendário do Davi</h1></div><div class="actions"><button data-action="world-settings">Mundo e estrelas</button>'+(globalThis.DaviCampaign?'<button data-action="campaign-admin">Aventura e pausas</button>':'')+'<button data-action="mission-library">Roteiros de missões</button><button data-action="forest-diagnostics-start">Medir desempenho</button><button data-action="settings">⚙ Preferências</button><button data-action="logout">Sair 🔒</button></div></div>' +
       '<div class="panel calendar-panel"><div class="row between"><h2>' +
       esc(fmt(first, { month: "long", year: "numeric" })) +
       '</h2><div class="row calendar-controls"><button data-action="monthprev">← Mês anterior</button><button data-action="monthtoday">Hoje</button><button data-action="monthnext">Próximo mês →</button></div></div><div class="month">' +
@@ -851,8 +874,10 @@ async function openMission(id,date) {
   const data = await api('/api/events/' + id + '/mission?date=' + date);
   if (!data.mission) throw Error('Esta ocorrência não tem roteiro. Volte à agenda.');
   if (!parent) {
+    if(globalThis.DaviCampaign&&!await DaviCampaign.enter(api,showCampaignPause))return;
     state.view='child-game';
-    DaviGame.open({mission:data.mission,title:data.title,dateLabel:fmt(date),layout,api,
+    const renderGame=html=>{if(state.view==='child-game'&&(!globalThis.DaviCampaign||DaviCampaign.permit()))layout(html);};
+    DaviGame.open({mission:data.mission,title:data.title,dateLabel:fmt(date),layout:renderGame,api,
       onReward:reward=>{state.forestReward=reward;},
       onPractice:session=>{state.practiceSessions=[...(state.practiceSessions || []),session].slice(-10);},
       onExit:async()=>{state.childSurface='world';await child();}});
@@ -913,6 +938,19 @@ async function worldSettings(updated) {
     '</div><p>Zero desativa a concessão. Repetir, editar ou desfazer não gera estrelas extras. Fazer só recompensa roteiros originais de preparação/organização elegíveis; medicação e higiene essencial ficam excluídas.</p>'+config.world.catalog.map(i=>'<fieldset><legend>'+esc(i.name)+'</legend><label><input type="checkbox" id="available-'+i.id+'" '+(i.available?'checked':'')+'>Disponível na oficina</label><label for="price-'+i.id+'">Preço em estrelas</label><input type="number" id="price-'+i.id+'" min="0" max="100" required value="'+i.price+'"><span>'+(i.removed?'Adquirido · removido':i.owned?'Já adquirido':'Ainda não adquirido')+'</span></fieldset>').join('')+
     '<button type="submit" class="primary">Salvar combinados</button></form></details><section class="panel"><h2>Itens adquiridos</h2><p>Remover oculta o item e seus acessórios sem devolver estrelas. Reativar não cobra novamente.</p>'+config.inventory.map(i=>'<p>'+esc(config.world.catalog.find(c=>c.id===i.item_id).name)+' · '+(i.active?'Ativo':'Removido')+' <button data-action="parent-inventory" data-item="'+i.item_id+'" data-active="'+!i.active+'">'+(i.active?'Remover':'Reativar')+'</button></p>').join('')+'</section><section class="panel"><h2>Histórico de estrelas e conquistas</h2><p>Revogar preserva o registro e impede novo crédito pela mesma atividade, data e modalidade. Saldo negativo bloqueia compras até recompor; nenhum item é retirado automaticamente. Passos e conclusão são corrigidos separadamente no calendário.</p>'+ (config.history.length?'<ul>'+config.history.map(h=>'<li><p>'+esc(h.created)+' (UTC) · '+esc(h.label)+' · '+(h.delta>0?'+':'')+h.delta+' estrelas'+(h.context.activity?' · '+esc(h.context.activity)+' · '+esc(h.context.date)+' · '+esc(({learn:'Aprender',order:'Trilha da memória',bag:'O que vai na bolsa?',real:'Fazer'})[h.context.mode] || h.context.mode):'')+(h.context.new_balance===undefined?'':' · '+formatStars(h.context.previous_balance)+' → '+formatStars(h.context.new_balance)+' estrelas')+(h.context.reason?' · Motivo: '+esc(h.context.reason):'')+' · '+(h.context.item_state || (h.revoked?'Revogada':h.id.startsWith('award:')?'Registrada':'Ajuste registrado'))+'</p>'+(h.id.startsWith('award:')&&h.delta>0&&!h.revoked?'<button data-action="parent-revoke" data-credit="'+esc(h.id)+'">Revogar esta concessão</button>':'')+'</li>').join('')+'</ul>':'<p>Nenhum registro.</p>')+'</section>');
 }
+async function parentAdventure(){
+  const data=await api('/api/adventure/admin');
+  state.view='parent-adventure';
+  layout(DaviCampaign.admin(data,esc));
+}
+async function parentAdventureWeek(start){
+  const today=state.me.today;
+  const monday=add(today,-((dateObj(today).getDay()+6)%7));
+  const data=await api('/api/adventure/week?start='+encodeURIComponent(start||monday));
+  state.adventureWeek=data.start;
+  state.view='parent-adventure-week';
+  layout(DaviCampaign.week(data,esc,add,fmt));
+}
 async function setWorldBalance(stars) {
   const config=await api('/api/world/balance','PUT',{stars});
   await worldSettings(config);
@@ -937,7 +975,26 @@ async function action(e) {
     id = Number(b.dataset.id),
     day = b.dataset.date;
   await safe(async () => {
-    if (a==='child-now') await childNow();
+    if (globalThis.DaviCampaign&&!DaviCampaign.permit()&&a!=='forest-diagnostics-start'&&
+        (a.startsWith('forest-')||a.startsWith('game-')||a==='world-forest'||a==='world-select'||a==='world-picker'))return;
+    if (a==='campaign-pause')await DaviCampaign.takeBreak();
+    else if(a==='campaign-admin')await parentAdventure();
+    else if(a==='campaign-week')await parentAdventureWeek(day);
+    else if(a==='campaign-print')window.print();
+    else if(a==='campaign-approve'){
+      await api('/api/adventure/approve','POST',{event_id:id,date:day});
+      await parentAdventureWeek(state.adventureWeek);
+    }else if(a==='campaign-validation'){
+      const {token}=await api('/api/adventure/validation','PUT',{enabled:b.dataset.enabled==='true'});
+      DaviCampaign.validation(token);
+      state.worldSelection=null;
+      await parentAdventure();
+    }else if(a==='campaign-reset'){
+      if(!confirm('Reiniciar os capítulos? O histórico de aprovações, as descobertas, os itens e as posições continuam guardados.'))return;
+      await api('/api/adventure/reset','POST',{confirmed:true});
+      state.worldSelection=null;
+      await parentAdventure();
+    }else if (a==='child-now') await childNow();
     else if (a==='child-now-calendar'){state.childSurface='calendar';await child();}
     else if (a==='world-home') {state.childSurface='world';await child();}
     else if(a==='forest-diagnostics-start'){
@@ -948,7 +1005,7 @@ async function action(e) {
       state.childSurface='world';
       await child();
     }
-    else if(a==='world-picker') showWorldPicker();
+    else if(a==='world-picker') await showWorldPicker();
     else if(a==='world-select'){
       const world=b.dataset.world;
       const picker=b.closest('.world-picker');
@@ -1025,6 +1082,7 @@ async function action(e) {
     else if (a === "settings") await settings();
     else if (a === "logout") {
       await api("/api/logout", "POST", {});
+      globalThis.DaviCampaign?.validation(null);
       stopForestDiagnostics?.();
       stopForestDiagnostics=null;
       state.events = [];
@@ -1061,7 +1119,11 @@ document.addEventListener("submit", (e) => {
   if(e.target.method==='dialog')return;
   e.preventDefault();
   safe(async () => {
-    if (e.target.id === 'scheduleForm') {
+    if(e.target.id==='campaignPolicy'){
+      await api('/api/adventure/config','PUT',DaviCampaign.policyForm(e.target));await parentAdventure();
+    } else if(e.target.id==='screenPolicy'){
+      await api('/api/adventure/screen','PUT',DaviCampaign.screenForm(e.target));await parentAdventure();
+    } else if (e.target.id === 'scheduleForm') {
       await api('/api/schedule/config','PUT',{after_minutes:Number($('afterMinutes').value)});await settings();
     } else if (e.target.id === 'worldBalanceForm') {
       await setWorldBalance($('worldBalance').valueAsNumber);

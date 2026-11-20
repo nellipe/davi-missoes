@@ -701,6 +701,16 @@ function createFeatures() {
   if(!newMap)landmarks.push(...Trail.places.map(f=>({...f,x:f.x+data.map.trailOffset,icon:f.icon??'❧',discovery:!f.action})));
   const spawn=newMap?data.layout.spawn:data.spawn??{x:0,z:7.5};
   const world=data.world??'forest';
+  const nextChapter=host.campaign?.chapters[host.campaign.chapters.findIndex(chapter=>chapter.id===world)+1];
+  if(nextChapter){
+    const valid=createNavigation(data.map,data.collision,[]);
+    const scenery=newMap?data.layout.props.map(([,x,z])=>({x,z})):[];
+    const portal=[[3,3],[-3,3],[3,-3],[-3,-3],[0,4],[4,0],[-4,0],[0,-4]]
+      .map(([x,z])=>({x:x+spawn.x,z:z+spawn.z}))
+      .find(p=>segmentClear(spawn,p,valid)&&landmarks.every(f=>Math.hypot(p.x-f.x,p.z-f.z)>=2.4)&&
+        scenery.every(f=>Math.hypot(p.x-f.x,p.z-f.z)>=1.5));
+    if(portal)landmarks.push({...portal,id:'campaign-next',title:'Portal dos capítulos',icon:'◇',labelHeight:2.1});
+  }
   let assigned=[];
   if(host.missions.length){
     if(!surveyCache.has(world))surveyCache.set(world,activityGround({map:data.map,collision:data.collision,spawn,landmarks,sector:regionAt,
@@ -718,6 +728,31 @@ function createFeatures() {
   updateActivityLabels();
   if(activityModel)installActivitySigns();
   if(map2d?.setActivitySigns)map2d.setActivitySigns(features);
+}
+function addChapterPortal(){
+  const place=features.find(f=>f.id==='campaign-next');
+  if(!place)return;
+  const {x,z}=place,y=floor(x,z);
+  const arch=new T.TorusGeometry(.87,.16,7,20,Math.PI);
+  const post=new T.CylinderGeometry(.13,.19,1.0,8);
+  const base=new T.CylinderGeometry(.97,1.06,.14,16);
+  const stone=new T.MeshStandardMaterial({color:'#636190',roughness:.88});
+  const glyph=new T.MeshStandardMaterial({color:'#f0bb60',emissive:'#5f3315',roughness:.65});
+  const crown=new T.OctahedronGeometry(.27);
+  [arch,post,base,crown].forEach(g=>ownedGeometry.add(g));
+  [stone,glyph].forEach(m=>ownedMaterials.add(m));
+  const portal=new T.Group();
+  portal.name='Portal dos capítulos';
+  portal.position.set(x,y,z);
+  const spawn=data.spawn??data.layout.spawn;
+  portal.rotation.y=Math.atan2(spawn.x-x,spawn.z-z);
+  for(const [shape,material,px,py] of [[base,stone,0,.06],[arch,stone,0,1.04],
+    [post,stone,-.87,.54],[post,stone,.87,.54],[crown,glyph,0,2.06]]){
+    const mesh=new T.Mesh(shape,material);
+    mesh.position.set(px,py,0);
+    portal.add(mesh);
+  }
+  scene.add(portal);
 }
 function updateActivityLabels(){
   for(const label of labels){
@@ -986,7 +1021,7 @@ function updateForestScenery(dt, near, moving, buddyMoving) {
 function tick(now) {
   if (!player) return;
   frame = requestAnimationFrame(tick);
-  if (paused || document.hidden) {
+  if (paused || document.hidden || (globalThis.DaviCampaign&&!DaviCampaign.permit())) {
     last = now;
     return;
   }
@@ -1366,6 +1401,9 @@ function renderDialog() {
       button(esc(f.icon)+' '+esc(f.title),'travel',`data-id="${esc(f.id)}"`)).join('')+'</div>';
     if(events.length)body+=`<h3>Compromissos · ${esc(host.dateLabel)}</h3><div class="f-missions f-activity-list">${events.map(f=>
       `<article><small>${esc(f.activity.time)} · ${esc(activityStatusLabel(f.activity))}${f.sector?' · '+esc(f.sector):''}</small><h4>${esc(f.title)}</h4><div class="f-activity-actions">${f.sector?button('Caminhar','travel',`data-id="${esc(f.id)}" aria-label="Caminhar até ${esc(f.title)}"`):''}${button('Abrir atividade','activity-details',`data-id="${esc(f.id)}" aria-label="Abrir atividade ${esc(f.title)}"`)}</div></article>`).join('')}</div>`;
+  } else if(modal==='campaign-next'){
+    title='Portal dos capítulos';
+    body=DaviCampaign.portalDetail(host.campaign,data.world??'forest',esc)+button('Ver capítulos','chapters');
   } else if(place) {
     title=esc(place.title);
     const collected=data.progress.includes(place.id);
@@ -1584,7 +1622,14 @@ async function puzzleAction(command,trigger){
 }
 
 async function action(a, b) {
+  if(globalThis.DaviCampaign&&!DaviCampaign.permit())return;
   const name = a.replace("forest-", "");
+  if(name==='chapters'){
+    document.getElementById('forestDialog').close();
+    modal=null;
+    await host.onChapters();
+    return;
+  }
   if(name==='hint'){
     message('Pipo: '+(newMap?data.layout.hint:beyondSeam(player.position.x)?Trail.hint(trailX(player.position.x),player.position.z):'Siga a margem junto às bandeirinhas azuis.'));
     return;
@@ -1679,6 +1724,10 @@ async function action(a, b) {
         if(leafPending)return;
         const token=generation;
         const changed=!data.leaf_up;
+        if(host.campaign){
+          await save();
+          if(token!==generation)return;
+        }
         leafPending=host.api('/api/forest/trail/shelter','PUT',{leaf_up:changed});
         try {
           const result=await leafPending;
@@ -1700,6 +1749,11 @@ async function action(a, b) {
     }
     if (near.d < 1.8) {
       if(near.id==='calendar')await action('forest-calendar',{});
+      else if(near.id==='campaign-next'){
+        const token=generation;
+        const campaign=await host.campaignStatus();
+        if(token===generation){host.campaign=campaign;dialog('campaign-next');}
+      }
       else {newScene?.greet(near.id,clock);dialog(near.action??near.id);}
     }
     return;
@@ -2092,6 +2146,7 @@ async function open(options,pose=null) {
   syncOwned();
   activityModel=loaded.find(a=>a.name==='activity')?.scene;
   createFeatures();
+  if(host.campaign)addChapterPortal();
   if(!newMap){createWater();cascade();motes();}
   setQuality();
   bind();

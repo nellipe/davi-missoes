@@ -1,5 +1,5 @@
 """World selection and activities against a synthetic SQLite database over HTTP."""
-from test_lan import Client, HttpFixture
+from test_lan import Client, LegacyPlayFixture
 import json
 import server
 import world_maps
@@ -17,9 +17,11 @@ SOLUTIONS = {
 }
 
 
-class WorldMapTests(HttpFixture):
+class WorldMapTests(LegacyPlayFixture):
     def setUp(self):
         super().setUp()
+        with server.db() as c:
+            c.executemany('INSERT INTO campaign_unlocks VALUES(1,?)', [(key,) for key in world_maps.LAYOUTS])
         self.parent.login()
         self.authorize(self.child)
 

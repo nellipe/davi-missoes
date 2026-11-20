@@ -1,8 +1,8 @@
 """Forest adapter integration: only synthetic temporary SQLite and controlled clock."""
-from test_lan import HttpFixture,Client
+from test_lan import LegacyPlayFixture,Client
 import server
 import forest
-class ForestTests(HttpFixture):
+class ForestTests(LegacyPlayFixture):
  def setUp(self):
   super().setUp();self.parent.login();code=self.parent.request('/api/devices/code','POST')[1]['code'];self.child.request('/api/pair','POST',{'code':code});self.child.request('/api/me')
  def test_bridge_gate_position_shared_and_no_economy_side_effects(self):

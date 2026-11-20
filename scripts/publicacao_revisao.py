@@ -96,7 +96,7 @@ class OriginProbe:
             if media_type != "text/html" or b'id="content"' not in body:
                 raise ProbeFailure("/ HTML da aplicação não identificado")
             return
-        if path in MODULES:
+        if path in MODULES or path=='/campaign.js':
             if media_type != "text/javascript":
                 raise ProbeFailure(f"{path} tipo JavaScript inesperado")
             return
@@ -107,7 +107,10 @@ class OriginProbe:
             if path == "/api/forest/map" and all(isinstance(data.get(field), dict) for field in
                                                  ("position", "layout", "economy", "collision")):
                 return
-        except (ValueError, AttributeError):
+            if path == "/api/adventure" and [item['id'] for item in data.get('chapters', [])]==[
+                    'forest','praia','dinossauros','inventores']:
+                return
+        except (ValueError, AttributeError, KeyError, TypeError):
             pass
         raise ProbeFailure(f"{path} conteúdo inesperado")
 
@@ -116,7 +119,8 @@ def stable_origin(probe, expected, seconds, session_file=None):
     if session_file:
         probe.cookie = json.loads(session_file.read_text(encoding='utf-8'))["cookie"]
     raw, _, cookie_header = probe.get("/api/me")
-    if json.loads(raw).get("authorized") is not True:
+    profile=json.loads(raw)
+    if profile.get("authorized") is not True:
         raise ProbeFailure("/api/me sessão infantil indisponível")
     if not probe.cookie:
         cookies = SimpleCookie(cookie_header)
@@ -124,7 +128,9 @@ def stable_origin(probe, expected, seconds, session_file=None):
             raise ProbeFailure("/api/me sessão ausente")
         probe.cookie = "davi_session=" + cookies["davi_session"].value
 
-    paths = ("/", "/api/build", "/api/forest/map", *MODULES)
+    # Reading campaign status verifies access without acquiring a child's play lease.
+    feature = ('/api/adventure','/campaign.js') if profile.get('adventure') else ('/api/forest/map',)
+    paths = ("/", "/api/build", *feature, *MODULES)
     started = time.monotonic()
     rounds = 0
     with ThreadPoolExecutor(max_workers=len(paths)) as workers:

@@ -22,6 +22,8 @@ import world
 import forest
 import world_maps
 import schedule_window as timing
+import campaign
+import screen_time
 
 ROOT = Path(__file__).resolve().parent
 APP_VERSION = '0.7B-chibi.2'
@@ -123,6 +125,8 @@ def initialize():
         missions.initialize(c)
         world.initialize(c)
         timing.initialize(c)
+        campaign.initialize(c)
+        screen_time.initialize(c)
 
 def set_setting(k, v):
     with LOCK, db() as c:
@@ -313,6 +317,22 @@ class Handler(BaseHTTPRequestHandler):
     def is_parent(self):
         session=self.session()
         return bool(session and session['role']=='parent')
+    def play_owner(self):
+        return hashlib.sha256(self.session_token().encode()).hexdigest()
+    def preview(self, c, instant):
+        token=self.headers.get('X-Davi-Validation')
+        if token and self.is_parent() and screen_time.validation(c,self.play_owner(),token,instant):
+            return token
+        return None
+    def validating(self, c, instant):
+        return bool(self.preview(c,instant))
+    def play_block(self, c, instant, checkpoint=False):
+        if self.validating(c, instant):
+            return None
+        reason = screen_time.guard(c, self.play_owner(), self.headers.get('X-Davi-Play'), instant, checkpoint)
+        if reason:
+            return screen_time.reply(reason)
+        return None
     def origin_ok(self):
         return self.headers.get("Origin") in CONFIG.origins
     def request_ok(self):
@@ -330,10 +350,14 @@ class Handler(BaseHTTPRequestHandler):
                 if not asset.is_relative_to(allowed) or asset.suffix not in kinds or not asset.is_file():return self.fail('Não encontrado.',404)
                 kind=kinds[asset.suffix]
                 return self.send(200,asset.read_bytes(),kind)
-            if path in ('/','/app.js','/app.css','/game.js','/game.css','/world.js','/world.css','/forest.js','/forest.css'):
+            if path in ('/','/app.js','/app.css','/game.js','/game.css','/world.js','/world.css','/forest.js','/forest.css','/campaign.js','/campaign.css'):
                 name='app.html' if path=='/' else path[1:]
                 kind='text/html; charset=utf-8' if name.endswith('.html') else 'text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
-                return self.send(200,(ROOT/name).read_bytes(),kind)
+                source=(ROOT/name).read_bytes()
+                if path=='/':
+                    source=source.replace(b'</head>',b'  <link rel="stylesheet" href="/campaign.css" />\n  </head>')
+                    source=source.replace(b'<script src="/app.js"',b'<script src="/campaign.js" defer></script>\n    <script src="/app.js"')
+                return self.send(200,source,kind)
             if path=='/api/build':
                 return self.send(200,{'version':APP_VERSION,'commit':BUILD_COMMIT})
             if path=="/api/me":
@@ -346,7 +370,7 @@ class Handler(BaseHTTPRequestHandler):
                     extra['Set-Cookie']=self.session_cookie(token,age)
                 info={"parent":bool(session and session['role']=='parent'),
                       "authorized":bool(session), "configured":bool(get_setting("password")),
-                      "simple_lan":CONFIG.auto_child,
+                      "simple_lan":CONFIG.auto_child, "adventure":True,
                       "today":today().isoformat(),"timezone":"America/Sao_Paulo","version":APP_VERSION,"server_now":timing.now().astimezone(TZ).isoformat()}
                 if session: info.update(name=get_setting("name"), csrf=session['csrf'])
                 return self.send(200,info,extra=extra)
@@ -366,6 +390,29 @@ class Handler(BaseHTTPRequestHandler):
                 start=parse_date(query.get("start",[today().isoformat()])[0])
                 end=parse_date(query.get("end",[start.isoformat()])[0])
                 return self.send(200,{"events":occurrences(start,end)})
+            if path=='/api/adventure':
+                with db() as c:
+                    result=campaign.progress(c,self.validating(c,timing.now().timestamp()))
+                return self.send(200,result)
+            if path in ('/api/adventure/admin','/api/adventure/week'):
+                if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
+                if path.endswith('/admin'):
+                    with db() as c:
+                        generation, targets=campaign.state(c)
+                        result={**campaign.progress(c), 'generation':generation,'targets':targets,
+                                'events':campaign.event_options(c),'history':campaign.approval_history(c),
+                                'screen':screen_time.config(c),'usage':screen_time.usage(c,timing.now().timestamp())}
+                    return self.send(200,result)
+                start=parse_date(parse_qs(url.query).get('start',[today().isoformat()])[0])
+                end=start+dt.timedelta(days=6)
+                listing=occurrences(start,end)
+                result=[]
+                with db() as c:
+                    for event in listing:
+                        approved,category=campaign.approval_info(c,event,event['date'])
+                        if approved or (category and campaign.eligible_event(c,event,event['date'])):
+                            result.append({**event,'approved':approved,'can_approve':not approved and event['date']<=today().isoformat()})
+                return self.send(200,{'start':start.isoformat(),'end':end.isoformat(),'events':result})
             if path=='/api/schedule/config':
                 if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 with db() as c: return self.send(200,{'after_minutes':timing.tolerance(c)})
@@ -384,17 +431,36 @@ class Handler(BaseHTTPRequestHandler):
                         return self.send(200,{'history':rows})
                     match=re.fullmatch(r'/api/missions/([a-zA-Z0-9_-]{1,80})',path)
                     if match: return self.send(200,missions.template(c,match.group(1)))
-            if path=='/api/forest/map':
-                resume_trail = parse_qs(url.query).get('resume') == ['trail']
-                with db() as c:return self.send(200,forest.map_scene(c, resume_trail))
-            if path=='/api/forest/trail':
-                with db() as c:return self.send(200,forest.trail_scene(c))
-            if path=='/api/forest':
-                with db() as c:return self.send(200,forest.scene(c))
+            if path in ('/api/forest/map','/api/forest/trail','/api/forest'):
+                with LOCK, db() as c:
+                    c.execute('BEGIN IMMEDIATE')
+                    instant=timing.now().timestamp()
+                    if blocked:=self.play_block(c,instant):
+                        return self.send(423,blocked)
+                    preview=self.preview(c,instant)
+                    if path.endswith('/map'):
+                        result=forest.map_scene(c,parse_qs(url.query).get('resume')==['trail'],preview)
+                    elif path.endswith('/trail'):
+                        result=forest.trail_scene(c,preview)
+                    else:
+                        result=forest.scene(c,preview)
+                return self.send(200,result)
             if path=='/api/worlds':
-                with db() as c:return self.send(200,world_maps.selection(c))
+                with db() as c:
+                    result=world_maps.selection(c)
+                    result['campaign']=campaign.progress(c,self.validating(c,timing.now().timestamp()))
+                    if not any(w['id']==result['selected'] and w['unlocked'] for w in result['campaign']['chapters']):
+                        result['selected']='forest'
+                return self.send(200,result)
             if (match:=re.fullmatch(r'/api/worlds/([a-z]+)',path)) and match[1] in world_maps.LAYOUTS:
-                with db() as c:return self.send(200,world_maps.scene(c,match[1]))
+                with LOCK, db() as c:
+                    c.execute('BEGIN IMMEDIATE')
+                    instant=timing.now().timestamp()
+                    campaign.require_world(c,match[1],self.validating(c,instant))
+                    if blocked:=self.play_block(c,instant):
+                        return self.send(423,blocked)
+                    result=world_maps.scene(c,match[1],self.preview(c,instant))
+                return self.send(200,result)
             if path.startswith('/api/world'):
                 with db() as c:
                     if path=='/api/world': return self.send(200,world.scene(c))
@@ -402,7 +468,12 @@ class Handler(BaseHTTPRequestHandler):
                         if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                         return self.send(200,world.config(c))
                     match=re.fullmatch(r'/api/world/practice/([a-f0-9]{48})',path)
-                    if match: return self.send(200,world.practice(c,match.group(1)))
+                    if match:
+                        with LOCK:
+                            c.execute('BEGIN IMMEDIATE')
+                            if blocked:=self.play_block(c,timing.now().timestamp()):
+                                return self.send(423,blocked)
+                            return self.send(200,world.practice(c,match.group(1)))
             match=re.fullmatch(r'/api/events/(\d+)/mission',path)
             if match:
                 date=parse_qs(url.query).get('date',[''])[0]
@@ -421,6 +492,7 @@ class Handler(BaseHTTPRequestHandler):
                 for x in result:x["weekdays"]=json.loads(x["weekdays"])
                 return self.send(200,{"events":result})
             return self.fail("Não encontrado.",404)
+        except campaign.Locked as e: return self.fail(str(e),403)
         except (ValueError,TypeError,OverflowError) as e: return self.fail(str(e))
         except Exception: print("Erro interno GET.");return self.fail("Erro interno.",500)
     def do_POST(self): self.mutate("POST")
@@ -454,37 +526,105 @@ class Handler(BaseHTTPRequestHandler):
                 token,age=AUTH.create_session(role)
                 return self.send(200,{"ok":True},extra={"Set-Cookie":self.session_cookie(token,age)})
             if not session: return self.fail("Autorização necessária.",403)
+            if path.startswith('/api/adventure/'):
+                with LOCK, db() as c:
+                    c.execute('BEGIN IMMEDIATE')
+                    instant=timing.now()
+                    stamp=instant.timestamp()
+                    if path=='/api/adventure/play' and method=='POST':
+                        if self.validating(c,stamp):
+                            result=screen_time.reply(None,lease=screen_time.LEASE)
+                        elif (body.get('action')=='start' and body.get('world') in campaign.CHAPTERS and
+                              not campaign.unlocked(c,body['world'])):
+                            screen_time.play(c,self.play_owner(),body.get('tab'),'leave',stamp)
+                            result=screen_time.reply('chapter')
+                        else:
+                            result=screen_time.play(c,self.play_owner(),body.get('tab'),body.get('action'),stamp)
+                    elif session['role']!='parent':
+                        return self.fail('Acesso do responsável necessário.',403)
+                    elif path=='/api/adventure/config' and method=='PUT':
+                        campaign.configure(c,body)
+                        result=campaign.progress(c)
+                    elif path=='/api/adventure/screen' and method=='PUT':
+                        screen_time.configure(c,body,stamp)
+                        result=screen_time.config(c)
+                    elif path=='/api/adventure/validation' and method=='PUT':
+                        if type(body.get('enabled')) is not bool:
+                            raise ValueError('Escolha se deseja ativar a validação.')
+                        result={'token':screen_time.validation_grant(c,self.play_owner(),
+                                self.headers.get('X-Davi-Validation'),body['enabled'],stamp)}
+                    elif path=='/api/adventure/reset' and method=='POST':
+                        if body.get('confirmed') is not True:
+                            raise ValueError('Confirme o reinício da campanha.')
+                        campaign.reset(c)
+                        result=campaign.progress(c)
+                    elif path=='/api/adventure/approve' and method=='POST':
+                        date=parse_date(body.get('date'))
+                        event_id=body.get('event_id')
+                        if type(event_id) is not int or date>instant.astimezone(TZ).date():
+                            raise ValueError('Escolha uma ocorrência realizada até hoje.')
+                        event=mission_event(c,event_id,date.isoformat())
+                        result={'recorded':campaign.approve(c,event,date.isoformat(),instant)}
+                    else:
+                        return self.fail('Rota não encontrada.',404)
+                return self.send(200,result)
             if path=='/api/schedule/config' and method=='PUT':
                 if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c: result=timing.configure(c,body)
                 return self.send(200,result)
-            if path=='/api/forest/map/move' and method=='PUT':
-                with LOCK, db() as c:result=forest.map_move(c,body)
-                return self.send(200,result)
-            if path=='/api/forest/trail/move' and method=='PUT':
-                with LOCK, db() as c:result=forest.trail_move(c,body)
-                return self.send(200,result)
-            if path=='/api/forest/trail/shelter' and method=='PUT':
-                with LOCK, db() as c:result=forest.shelter_leaf(c,body)
-                return self.send(200,result)
-            if path=='/api/forest/move' and method=='PUT':
-                with LOCK, db() as c:result=forest.move(c,body)
+            forest_actions={'/api/forest/map/move':forest.map_move,'/api/forest/trail/move':forest.trail_move,
+                            '/api/forest/trail/shelter':forest.shelter_leaf,'/api/forest/move':forest.move}
+            if path in forest_actions and method=='PUT':
+                with LOCK, db() as c:
+                    c.execute('BEGIN IMMEDIATE')
+                    instant=timing.now().timestamp()
+                    if blocked:=self.play_block(c,instant,path.endswith('/move')):
+                        return self.send(423,blocked)
+                    preview=self.preview(c,instant)
+                    result=forest_actions[path](c,body,preview)
+                    if path.endswith('/shelter') and not preview:
+                        campaign.forest_discovery(c)
                 return self.send(200,result)
             if path=='/api/worlds/selection' and method=='PUT':
-                with LOCK, db() as c:result=world_maps.select(c,body)
+                with LOCK, db() as c:
+                    c.execute('BEGIN IMMEDIATE')
+                    validation=self.validating(c,timing.now().timestamp())
+                    key=body.get('world')
+                    if isinstance(key,str) and key in world_maps.LAYOUTS:
+                        campaign.require_world(c,key,validation)
+                    if validation and isinstance(key,str) and key in world_maps.WORLDS:
+                        result={**world_maps.selection(c),'selected':key}
+                    else:
+                        result=world_maps.select(c,body)
+                    result['campaign']=campaign.progress(c,validation)
                 return self.send(200,result)
             if (match:=re.fullmatch(r'/api/worlds/([a-z]+)/(move|interact)',path)) and match[1] in world_maps.LAYOUTS:
                 with LOCK, db() as c:
-                    if match[2]=='move' and method=='PUT': result=world_maps.move(c,match[1],body)
+                    c.execute('BEGIN IMMEDIATE')
+                    instant=timing.now().timestamp()
+                    preview=self.preview(c,instant)
+                    validation=bool(preview)
+                    campaign.require_world(c,match[1],validation)
+                    if blocked:=self.play_block(c,instant,match[2]=='move'):
+                        return self.send(423,blocked)
+                    if match[2]=='move' and method=='PUT': result=world_maps.move(c,match[1],body,preview)
                     elif match[2]=='interact' and method=='POST':
-                        c.execute('BEGIN IMMEDIATE')
-                        result=world_maps.interact(c,match[1],body)
+                        result=world_maps.interact(c,match[1],body,preview)
+                        finale=campaign.FINALES[campaign.CHAPTERS.index(match[1])]
+                        if (not validation and body.get('place')==finale and
+                                (result.get('outcome')=='solved' or (match[1]=='inventores' and finale in result['progress']))):
+                            campaign.discover(c,match[1])
                     else: return self.fail('Rota não encontrada.',404)
                 return self.send(200,result)
             if path.startswith('/api/world'):
                 if path in ('/api/world/config','/api/world/revoke','/api/world/inventory','/api/world/balance') and session['role']!='parent': return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c:
                     c.execute('BEGIN IMMEDIATE')
+                    if ('/practice' in path or path in ('/api/world/buy','/api/world/equip','/api/world/move','/api/world/real')) and self.validating(c,timing.now().timestamp()):
+                        return self.fail('A oficina e os treinos reais ficam disponíveis ao encerrar a validação.',403)
+                    if ('/practice' in path or path in ('/api/world/buy','/api/world/equip','/api/world/move')) and (
+                            blocked:=self.play_block(c,timing.now().timestamp(),path.endswith('/move'))):
+                        return self.send(423,blocked)
                     if path=='/api/world/buy' and method=='POST': result=world.buy(c,body)
                     elif path=='/api/world/equip' and method=='PUT': result=world.equip(c,body)
                     elif path=='/api/world/move' and method=='PUT': result=world.move(c,body)
@@ -530,6 +670,8 @@ class Handler(BaseHTTPRequestHandler):
                     c.execute('BEGIN IMMEDIATE')
                     event=mission_event(c,event_id,date)
                     if step_id and method=='PUT':
+                        if self.validating(c,timing.now().timestamp()):
+                            return self.fail('Encerre a validação para registrar etapas reais.',403)
                         if not date: raise ValueError('Informe a data da ocorrência.')
                         if not self.is_parent(): timing.require_open(c,event,date)
                         result=missions.confirm_step(c,event_id,date,step_id,body,session['role'])
@@ -561,6 +703,8 @@ class Handler(BaseHTTPRequestHandler):
                 if not event or not matches(event,day): return self.fail("Ocorrência não encontrada.",404)
                 with LOCK, db() as c:
                     c.execute("BEGIN IMMEDIATE")
+                    if self.validating(c,timing.now().timestamp()):
+                        return self.fail('Encerre a validação para registrar a atividade real.',403)
                     if c.execute("SELECT 1 FROM exceptions WHERE event_id=? AND date=?",(id,day.isoformat())).fetchone():return self.fail("Ocorrência excluída.",404)
                     if not self.is_parent(): timing.require_open(c,event,day.isoformat())
                     else: timing.correction(c,id,day.isoformat(),"completion:"+method)
@@ -597,6 +741,7 @@ class Handler(BaseHTTPRequestHandler):
                             c.execute("DELETE FROM completions WHERE event_id=?",(id,))
                         return self.send(200,{"ok":True})
             return self.fail("Rota não encontrada.",404)
+        except campaign.Locked as e:return self.fail(str(e),403)
         except missions.Conflict as e:return self.fail(str(e),409)
         except (ValueError,TypeError,KeyError,json.JSONDecodeError) as e:return self.fail(str(e))
         except Exception:print("Erro interno de escrita.");return self.fail("Erro interno.",500)
