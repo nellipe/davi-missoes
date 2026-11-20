@@ -286,16 +286,20 @@ class Handler(BaseHTTPRequestHandler):
         pass  # Sem URL, IP, cookie, código de autorização ou dados da agenda nos logs.
     def send(self,status=200,body=None,content_type="application/json; charset=utf-8",extra=None):
         raw=json.dumps(body,ensure_ascii=False).encode() if content_type.startswith("application/json") else body
-        self.send_response(status)
-        self.send_header("Content-Type",content_type)
-        self.send_header("Content-Length",str(len(raw)))
-        self.send_header("Cache-Control","no-store")
-        self.send_header("X-Content-Type-Options","nosniff")
-        self.send_header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
-        self.send_header("Referrer-Policy","no-referrer")
-        for k,v in (extra or {}).items(): self.send_header(k,v)
-        self.end_headers()
-        self.wfile.write(raw)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type",content_type)
+            self.send_header("Content-Length",str(len(raw)))
+            self.send_header("Cache-Control","no-store")
+            self.send_header("X-Content-Type-Options","nosniff")
+            self.send_header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+            self.send_header("Referrer-Policy","no-referrer")
+            for k,v in (extra or {}).items(): self.send_header(k,v)
+            self.end_headers()
+            self.wfile.write(raw)
+        except ConnectionError:
+            # A tab may close while its keepalive request saves a checkpoint.
+            self.close_connection=True
     def fail(self,msg,status=400): self.send(status,{"error":msg})
     def payload(self):
         size=int(self.headers.get("Content-Length","0"))
