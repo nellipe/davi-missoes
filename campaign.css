@@ -9,6 +9,15 @@
 .campaign-chapter progress { width:100%; accent-color:#3c775c; }
 .campaign-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr)); gap:.65rem 1rem; margin:.7rem 0; }
 .campaign-fields label { min-width:0; overflow-wrap:anywhere; }
+.campaign-restarts { grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr)); }
+.campaign-restarts > div { padding:.9rem; border:1px solid #bbc7d8; border-radius:.8rem; }
+.campaign-restarts p { margin-top:0; }
+.campaign-restarts small { display:block; margin-top:.5rem; }
+.new-game-dialog { width:min(38rem,calc(100% - 2rem)); max-height:calc(100% - 2rem); padding:1.3rem; border:1px solid #bbc7d8; border-radius:1rem; color:#172d46; }
+.new-game-dialog::backdrop { background:#172d4670; }
+.new-game-dialog form+form { margin-top:.55rem; }
+.new-game-dialog input { display:block; width:100%; margin:.45rem 0; }
+.new-game-dialog [role=alert]:empty { display:none; }
 .campaign-fields input,.campaign-fields select { display:block; width:100%; }
 .campaign-week-nav { display:flex; flex-wrap:wrap; gap:.5rem; }
 .campaign-week-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr)); gap:.75rem; }

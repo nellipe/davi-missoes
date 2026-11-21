@@ -7,6 +7,7 @@ import unicodedata
 import forest
 import missions
 import world_maps
+import world
 
 CHAPTERS = ('forest', 'praia', 'dinossauros', 'inventores')
 FINALES = ('leaf', 'chest-song', 'skeleton', 'machine')
@@ -48,8 +49,17 @@ def initialize(c):
         '''CREATE INDEX IF NOT EXISTS campaign_approvals_by_generation ON campaign_approvals(generation)''',
     ):
         c.execute(sql)
-    if not c.execute("INSERT OR IGNORE INTO campaign_state VALUES(1,1,'[3,6,9]')").rowcount:
+    if c.execute('SELECT 1 FROM campaign_state WHERE id=1').fetchone():
         return
+    if world.generation(c)>1:
+        generation=c.execute('''SELECT COALESCE(MAX(generation),0)+1 FROM (
+            SELECT generation FROM campaign_unlocks UNION ALL
+            SELECT generation FROM campaign_discoveries UNION ALL
+            SELECT generation FROM campaign_approvals)''').fetchone()[0]
+        c.execute("INSERT INTO campaign_state VALUES(1,?,'[3,6,9]')",(generation,))
+        c.execute("INSERT INTO campaign_unlocks VALUES(?,'forest')",(generation,))
+        return
+    c.execute("INSERT INTO campaign_state VALUES(1,1,'[3,6,9]')")
     reached = 0
     if c.execute("SELECT 1 FROM settings WHERE key='trail_shelter_leaf'").fetchone():
         discover(c, 'forest')
@@ -76,7 +86,7 @@ def progress(c, validation=False):
     generation, targets = state(c)
     unlocked = {r[0] for r in c.execute('SELECT world FROM campaign_unlocks WHERE generation=?', (generation,))}
     discovered = {r[0] for r in c.execute('SELECT world FROM campaign_discoveries WHERE generation=?', (generation,))}
-    return {'count': counts(c, generation), 'validation': validation, 'chapters': [
+    return {'count': counts(c, generation), 'validation': validation, 'game_generation':world.generation(c), 'chapters': [
         {'id': key, **{attr: world_maps.WORLDS[key][attr] for attr in ('title', 'icon')},
          'unlocked': validation or key in unlocked, 'discovered': key in discovered,
          'required': targets[i-1] if i else 0, 'discovery': DISCOVERIES[i]}

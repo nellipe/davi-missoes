@@ -176,11 +176,36 @@
       '<section class="panel"><h2>Progresso e validação</h2><p>'+data.count+' conquistas aprovadas nesta campanha.</p>'+
       '<p>O modo de validação abre todos os mundos nesta aba por até uma hora. Posições e descobertas de teste ficam na prévia. Compras e confirmações reais ficam disponíveis após encerrar a validação.</p>'+
       '<div class="actions"><button data-action="campaign-validation" data-enabled="'+!validator+'">'+(validator?'Encerrar validação':'Ativar validação')+'</button>'+
-      (validator?'<button data-action="world-home">Explorar em validação</button>':'')+
-      '<button data-action="campaign-reset">Reiniciar campanha</button></div></section>'+
+      (validator?'<button data-action="world-home">Explorar em validação</button>':'')+'</div></section>'+
+      '<section class="panel"><h2>Recomeçar</h2><div class="campaign-fields campaign-restarts">'+
+      '<div><p>Volte ao primeiro capítulo e mantenha estrelas, inventário, posições e descobertas.</p>'+
+      '<button data-action="campaign-reset">Reiniciar somente campanha</button></div>'+
+      (Number.isInteger(data.game_generation)?'<div><p>Recomece com o jogo zerado. A agenda e os registros reais continuam guardados.</p>'+
+      '<button data-action="campaign-new-game" '+(validator?'disabled':'')+'>Começar aventura do zero</button>'+
+      (validator?'<small>Encerre a validação para iniciar uma nova partida.</small>':'')+'</div>':'')+
+      '</div></section>'+
       '<section class="panel"><h2>Histórico de aprovações</h2>'+(data.history.length?'<ul>'+data.history.map(item=>
         '<li>'+esc(item.date)+' · '+esc(item.icon)+' '+esc(item.title)+' · '+esc(categories[item.category]||item.category)+
         ' · campanha '+item.generation+' · '+esc(new Date(item.approved_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}))+'</li>').join('')+'</ul>':'<p>Nenhuma atividade aprovada.</p>')+'</section>';
+  }
+  function confirmNewGame(generation,trigger) {
+    if(validator||!Number.isInteger(generation))return;
+    const dialog=document.createElement('dialog');
+    dialog.className='new-game-dialog';
+    dialog.setAttribute('aria-labelledby','newGameTitle');
+    dialog.innerHTML='<h2 id="newGameTitle">Começar aventura do zero?</h2>'+
+      '<p>A nova partida começa na Floresta com Davi e Pipo na aparência inicial. Serão reiniciados o saldo de estrelas, o inventário, as construções, as posições, as descobertas, os minijogos, a campanha ativa e o tempo utilizado. As sessões de jogo e de validação serão encerradas.</p>'+
+      '<p>A agenda, os roteiros, as atividades reais confirmadas, o histórico de aprovações, os aparelhos autorizados e as configurações do responsável serão preservados.</p>'+
+      '<form id="newGameForm" data-generation="'+generation+'"><label for="newGameConfirmation">Digite <strong>RECOMEÇAR</strong> para confirmar</label>'+
+      '<input id="newGameConfirmation" name="confirmation" autocomplete="off" spellcheck="false" pattern="RECOMEÇAR" required>'+
+      '<p role="alert"></p><button type="submit" disabled>Confirmar nova partida</button></form>'+
+      '<form method="dialog"><button>Cancelar</button></form>';
+    const input=dialog.querySelector('input'), submit=dialog.querySelector('[type=submit]');
+    input.addEventListener('input',()=>{submit.disabled=input.value!=='RECOMEÇAR';});
+    dialog.addEventListener('close',()=>{dialog.remove();if(trigger.isConnected)trigger.focus();},{once:true});
+    document.body.append(dialog);
+    dialog.showModal();
+    input.focus();
   }
   function week(data, esc, add, fmt) {
     const days=Array.from({length:7},(_,i)=>add(data.start,i));
@@ -206,6 +231,6 @@
     return {enabled:data.has('enabled'),session:Number(data.get('session')),daily:Number(data.get('daily')),
       pause:Number(data.get('pause')),opens:data.get('opens'),closes:data.get('closes')};
   }
-  window.DaviCampaign={enter,permit,decorate,headers,takeBreak,paused,chapters,portalDetail,admin,week,policyForm,screenForm,
+  window.DaviCampaign={enter,permit,decorate,headers,takeBreak,paused,chapters,portalDetail,admin,week,policyForm,screenForm,confirmNewGame,
     validation(token){validator=token;}};
 })();

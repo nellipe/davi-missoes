@@ -23,6 +23,7 @@ import forest
 import world_maps
 import schedule_window as timing
 import campaign
+import game_reset
 import screen_time
 
 ROOT = Path(__file__).resolve().parent
@@ -127,6 +128,7 @@ def initialize():
         timing.initialize(c)
         campaign.initialize(c)
         screen_time.initialize(c)
+        game_reset.initialize(c)
 
 def set_setting(k, v):
     with LOCK, db() as c:
@@ -330,7 +332,15 @@ class Handler(BaseHTTPRequestHandler):
         return None
     def validating(self, c, instant):
         return bool(self.preview(c,instant))
+    def require_game(self,c):
+        generation=world.generation(c)
+        sent=self.headers.get('X-Davi-Generation')
+        if sent!=str(generation) and not (sent is None and generation==1):
+            raise game_reset.Stale(generation)
+    def stale_game(self,error):
+        return self.send(409,{'error':str(error),'game_generation':error.generation})
     def play_block(self, c, instant, checkpoint=False):
+        self.require_game(c)
         if self.validating(c, instant):
             return None
         reason = screen_time.guard(c, self.play_owner(), self.headers.get('X-Davi-Play'), instant, checkpoint)
@@ -377,6 +387,7 @@ class Handler(BaseHTTPRequestHandler):
                       "simple_lan":CONFIG.auto_child, "adventure":True,
                       "today":today().isoformat(),"timezone":"America/Sao_Paulo","version":APP_VERSION,"server_now":timing.now().astimezone(TZ).isoformat()}
                 if session: info.update(name=get_setting("name"), csrf=session['csrf'])
+                with db() as c: info['game_generation']=world.generation(c)
                 return self.send(200,info,extra=extra)
             if path.startswith('/api/') and not (self.session() or (
                     CONFIG.auto_child and path in ('/api/calendar','/api/holidays'))):
@@ -396,12 +407,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200,{"events":occurrences(start,end)})
             if path=='/api/adventure':
                 with db() as c:
+                    c.execute('BEGIN')
                     result=campaign.progress(c,self.validating(c,timing.now().timestamp()))
                 return self.send(200,result)
             if path in ('/api/adventure/admin','/api/adventure/week'):
                 if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
                 if path.endswith('/admin'):
                     with db() as c:
+                        c.execute('BEGIN')
                         generation, targets=campaign.state(c)
                         result={**campaign.progress(c), 'generation':generation,'targets':targets,
                                 'events':campaign.event_options(c),'history':campaign.approval_history(c),
@@ -443,7 +456,8 @@ class Handler(BaseHTTPRequestHandler):
                         return self.send(423,blocked)
                     preview=self.preview(c,instant)
                     if path.endswith('/map'):
-                        result=forest.map_scene(c,parse_qs(url.query).get('resume')==['trail'],preview)
+                        resume=world.generation(c)==1 and parse_qs(url.query).get('resume')==['trail']
+                        result=forest.map_scene(c,resume,preview)
                     elif path.endswith('/trail'):
                         result=forest.trail_scene(c,preview)
                     else:
@@ -451,8 +465,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200,result)
             if path=='/api/worlds':
                 with db() as c:
+                    c.execute('BEGIN')
                     result=world_maps.selection(c)
                     result['campaign']=campaign.progress(c,self.validating(c,timing.now().timestamp()))
+                    result['game_generation']=result['campaign']['game_generation']
                     if not any(w['id']==result['selected'] and w['unlocked'] for w in result['campaign']['chapters']):
                         result['selected']='forest'
                 return self.send(200,result)
@@ -467,6 +483,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200,result)
             if path.startswith('/api/world'):
                 with db() as c:
+                    if path in ('/api/world','/api/world/config'):c.execute('BEGIN')
                     if path=='/api/world': return self.send(200,world.scene(c))
                     if path=='/api/world/config':
                         if not self.is_parent(): return self.fail('Acesso do responsável necessário.',403)
@@ -496,6 +513,7 @@ class Handler(BaseHTTPRequestHandler):
                 for x in result:x["weekdays"]=json.loads(x["weekdays"])
                 return self.send(200,{"events":result})
             return self.fail("Não encontrado.",404)
+        except game_reset.Stale as e: return self.stale_game(e)
         except campaign.Locked as e: return self.fail(str(e),403)
         except (ValueError,TypeError,OverflowError) as e: return self.fail(str(e))
         except Exception: print("Erro interno GET.");return self.fail("Erro interno.",500)
@@ -531,8 +549,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200,{"ok":True},extra={"Set-Cookie":self.session_cookie(token,age)})
             if not session: return self.fail("Autorização necessária.",403)
             if path.startswith('/api/adventure/'):
+                if path!='/api/adventure/play' and session['role']!='parent':
+                    return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c:
                     c.execute('BEGIN IMMEDIATE')
+                    self.require_game(c)
                     instant=timing.now()
                     stamp=instant.timestamp()
                     if path=='/api/adventure/play' and method=='POST':
@@ -544,8 +565,10 @@ class Handler(BaseHTTPRequestHandler):
                             result=screen_time.reply('chapter')
                         else:
                             result=screen_time.play(c,self.play_owner(),body.get('tab'),body.get('action'),stamp)
-                    elif session['role']!='parent':
-                        return self.fail('Acesso do responsável necessário.',403)
+                    elif path=='/api/adventure/new-game' and method=='POST':
+                        if self.validating(c,stamp):
+                            return self.fail('Encerre a validação para começar uma nova partida.',409)
+                        result=game_reset.restart(c,body,instant)
                     elif path=='/api/adventure/config' and method=='PUT':
                         campaign.configure(c,body)
                         result=campaign.progress(c)
@@ -592,6 +615,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/worlds/selection' and method=='PUT':
                 with LOCK, db() as c:
                     c.execute('BEGIN IMMEDIATE')
+                    self.require_game(c)
                     validation=self.validating(c,timing.now().timestamp())
                     key=body.get('world')
                     if isinstance(key,str) and key in world_maps.LAYOUTS:
@@ -601,6 +625,7 @@ class Handler(BaseHTTPRequestHandler):
                     else:
                         result=world_maps.select(c,body)
                     result['campaign']=campaign.progress(c,validation)
+                    result['game_generation']=result['campaign']['game_generation']
                 return self.send(200,result)
             if (match:=re.fullmatch(r'/api/worlds/([a-z]+)/(move|interact)',path)) and match[1] in world_maps.LAYOUTS:
                 with LOCK, db() as c:
@@ -624,6 +649,7 @@ class Handler(BaseHTTPRequestHandler):
                 if path in ('/api/world/config','/api/world/revoke','/api/world/inventory','/api/world/balance') and session['role']!='parent': return self.fail('Acesso do responsável necessário.',403)
                 with LOCK, db() as c:
                     c.execute('BEGIN IMMEDIATE')
+                    self.require_game(c)
                     if ('/practice' in path or path in ('/api/world/buy','/api/world/equip','/api/world/move','/api/world/real')) and self.validating(c,timing.now().timestamp()):
                         return self.fail('A oficina e os treinos reais ficam disponíveis ao encerrar a validação.',403)
                     if ('/practice' in path or path in ('/api/world/buy','/api/world/equip','/api/world/move')) and (
@@ -745,6 +771,7 @@ class Handler(BaseHTTPRequestHandler):
                             c.execute("DELETE FROM completions WHERE event_id=?",(id,))
                         return self.send(200,{"ok":True})
             return self.fail("Rota não encontrada.",404)
+        except game_reset.Stale as e:return self.stale_game(e)
         except campaign.Locked as e:return self.fail(str(e),403)
         except missions.Conflict as e:return self.fail(str(e),409)
         except (ValueError,TypeError,KeyError,json.JSONDecodeError) as e:return self.fail(str(e))

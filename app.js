@@ -4,6 +4,7 @@ let stopForestDiagnostics;
 const state = {
   me: null,
   forestMode: null,
+  gameGeneration: null,
   forestReward: null,
   worldSelection: null,
   view: "child",
@@ -81,7 +82,8 @@ async function api(path, method = "GET", body, options={}) {
     keepalive: options.keepalive || (method==='PUT' && path.endsWith('/move')),
     credentials: "same-origin",
     headers: { "Content-Type": "application/json", ...(state.me?.csrf ? { "X-CSRF-Token": state.me.csrf } : {}),
-      ...globalThis.DaviCampaign?.headers(!state.view.startsWith('parent')||path==='/api/adventure/validation') },
+      ...globalThis.DaviCampaign?.headers(!state.view.startsWith('parent')||path==='/api/adventure/validation'||path==='/api/adventure/new-game'),
+      ...(state.gameGeneration===null?{}:{'X-Davi-Generation':String(state.gameGeneration)}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   let j;
@@ -90,8 +92,31 @@ async function api(path, method = "GET", body, options={}) {
   } catch (e) {
     throw Error("Resposta inválida do servidor");
   }
+  receiveGameGeneration(j.game_generation,r.ok&&path==='/api/adventure/new-game');
   if (!r.ok) throw Object.assign(Error(j.error || j.message || "Não foi possível completar a ação"),{status:r.status});
   return j;
+}
+function receiveGameGeneration(next, initiatedHere) {
+  if(!Number.isInteger(next)||next===state.gameGeneration)return;
+  const previous=state.gameGeneration;
+  if(previous!==null&&next<previous)throw new Error('A partida foi atualizada. Tente novamente.');
+  try {
+    const stored=Number(localStorage.getItem('davi-game-generation'));
+    if(!Number.isInteger(stored)||stored<next){
+      if(next>1)localStorage.removeItem('davi-forest-place');
+      localStorage.setItem('davi-game-generation',String(next));
+    }
+  } catch {}
+  if(previous!==null&&!initiatedHere&&!state.view.startsWith('parent')){
+    window.location.reload();
+    throw new Error('Uma nova partida foi iniciada.');
+  }
+  if(previous!==null){
+    state.worldSelection=null;
+    state.forestReward=null;
+    globalThis.DaviCampaign?.validation(null);
+  }
+  state.gameGeneration=next;
 }
 function watchWorldBalance(signal, current, apply) {
   let pending;
@@ -994,6 +1019,8 @@ async function action(e) {
       await api('/api/adventure/reset','POST',{confirmed:true});
       state.worldSelection=null;
       await parentAdventure();
+    }else if(a==='campaign-new-game'){
+      DaviCampaign.confirmNewGame(state.gameGeneration,b);
     }else if (a==='child-now') await childNow();
     else if (a==='child-now-calendar'){state.childSurface='calendar';await child();}
     else if (a==='world-home') {state.childSurface='world';await child();}
@@ -1119,7 +1146,18 @@ document.addEventListener("submit", (e) => {
   if(e.target.method==='dialog')return;
   e.preventDefault();
   safe(async () => {
-    if(e.target.id==='campaignPolicy'){
+    if(e.target.id==='newGameForm'){
+      const form=e.target, confirmation=new FormData(form).get('confirmation');
+      try{
+        await api('/api/adventure/new-game','POST',{confirmation,generation:Number(form.dataset.generation)});
+      }catch(error){
+        form.querySelector('[role=alert]').textContent=error.message;
+        return;
+      }
+      form.closest('dialog').close();
+      await parentAdventure();
+      $('status').textContent='Nova partida iniciada. A agenda e o histórico real foram preservados.';
+    } else if(e.target.id==='campaignPolicy'){
       await api('/api/adventure/config','PUT',DaviCampaign.policyForm(e.target));await parentAdventure();
     } else if(e.target.id==='screenPolicy'){
       await api('/api/adventure/screen','PUT',DaviCampaign.screenForm(e.target));await parentAdventure();
@@ -1190,3 +1228,9 @@ safe(async () => {
 
 setInterval(refreshChildClock, 60000);
 document.addEventListener("visibilitychange", refreshChildClock);
+if(typeof window!=='undefined')window.addEventListener('storage',event=>{
+  if(event.key==='davi-game-generation'&&state.gameGeneration!==null&&
+      Number(event.newValue)>state.gameGeneration&&!state.view.startsWith('parent')){
+    api('/api/me').catch(()=>{});
+  }
+});
