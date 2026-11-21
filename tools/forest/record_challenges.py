@@ -7,7 +7,7 @@ import tempfile
 import threading
 
 from playwright.sync_api import sync_playwright
-from record_worlds import ROOT, SCRATCH, BROWSERS, VIDEO_SIZES, activate, challenge_control, perform_challenge
+from record_worlds import ROOT, SCRATCH, BROWSERS, VIDEO_SIZES, activate, challenge_control, perform_challenge, allow_legacy_fixture
 
 OUTPUT = ROOT / 'docs/evidencias-etapa9-2'
 PASSWORD = 'Synthetic-worlds-92'
@@ -232,6 +232,7 @@ def main():
         import server
         from lan_security import Config
         server.initialize()
+        allow_legacy_fixture(server)
         server.set_setting('password',server.hash_password(PASSWORD))
         with server.DaviHTTPServer(('127.0.0.1',0),server.Handler) as http:
             server.CONFIG=Config({'DAVI_PORT':str(http.server_port)})

@@ -3,11 +3,11 @@ from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 from unittest.mock import patch
-from test_lan import Client, HttpFixture
+from test_lan import Client, LegacyPlayFixture
 import server
 
 
-class WorldTests(HttpFixture):
+class WorldTests(LegacyPlayFixture):
     def setUp(self):
         super().setUp();self.parent.login()
         import datetime as dt, schedule_window

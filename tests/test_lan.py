@@ -75,6 +75,15 @@ class HttpFixture(unittest.TestCase):
         self.temp.cleanup()
 
 
+class LegacyPlayFixture(HttpFixture):
+    """Exercise the original mechanics with time limits disabled by the parent."""
+    def setUp(self):
+        super().setUp()
+        import screen_time
+        with server.db() as c:
+            screen_time.configure(c,{**screen_time.DEFAULT,'enabled':False},self.clock_mock.return_value.timestamp())
+
+
 class LanTests(HttpFixture):
     def authorize(self):
         self.parent.login()

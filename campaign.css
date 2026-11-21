@@ -1,0 +1,38 @@
+#playBar { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:.5rem 1rem; margin:.35rem 0; }
+#playBar p { margin:0; flex:1; }
+#playBar p:empty { display:none; }
+#playBar button { min-height:44px; }
+.campaign-intro { margin:.7rem 0; }
+.campaign-chapter { display:grid; align-content:start; gap:.38rem; }
+.campaign-chapter button { width:100%; }
+.campaign-chapter small { display:block; }
+.campaign-chapter progress { width:100%; accent-color:#3c775c; }
+.campaign-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr)); gap:.65rem 1rem; margin:.7rem 0; }
+.campaign-fields label { min-width:0; overflow-wrap:anywhere; }
+.campaign-restarts { grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr)); }
+.campaign-restarts > div { padding:.9rem; border:1px solid #bbc7d8; border-radius:.8rem; }
+.campaign-restarts p { margin-top:0; }
+.campaign-restarts small { display:block; margin-top:.5rem; }
+.new-game-dialog { width:min(38rem,calc(100% - 2rem)); max-height:calc(100% - 2rem); padding:1.3rem; border:1px solid #bbc7d8; border-radius:1rem; color:#172d46; }
+.new-game-dialog::backdrop { background:#172d4670; }
+.new-game-dialog form+form { margin-top:.55rem; }
+.new-game-dialog input { display:block; width:100%; margin:.45rem 0; }
+.new-game-dialog [role=alert]:empty { display:none; }
+.campaign-fields input,.campaign-fields select { display:block; width:100%; }
+.campaign-week-nav { display:flex; flex-wrap:wrap; gap:.5rem; }
+.campaign-week-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr)); gap:.75rem; }
+.campaign-day h2 { font-size:1rem; }
+.campaign-task { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:.35rem; padding:.5rem 0; border-top:1px solid #85858560; }
+.campaign-task .no-print { grid-column:2/-1; justify-self:start; }
+.campaign-mark { width:1rem; height:1rem; border:1px solid currentColor; border-radius:.15rem; }
+@media print {
+  @page { margin:12mm; }
+  body:has(.campaign-week) { background:white!important; color:#000!important; }
+  body:has(.campaign-week) > :is(header,footer,.skip-link), .campaign-week .no-print { display:none!important; }
+  body:has(.campaign-week) main { margin:0; padding:0; }
+  .campaign-week h1 { font-size:28px; }
+  .campaign-week-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:3mm; }
+  .campaign-week .campaign-day { background:white; border:1px solid #555; box-shadow:none; margin:0; padding:3mm; break-inside:avoid-page; }
+  .campaign-day h2 { margin:.1rem 0 .4rem; }
+  .campaign-task { padding:.3rem 0; }
+}

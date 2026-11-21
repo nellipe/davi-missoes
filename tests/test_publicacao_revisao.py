@@ -81,3 +81,17 @@ class GateTests(unittest.TestCase):
             with self.assertRaisesRegex(ProbeFailure, "sight.mjs HTTP 502"):
                 stable_origin(self.probe, SHA, 12)
         self.assertEqual(len(failures), 1)
+
+    def test_campaign_probe_reads_chapters_without_starting_play(self):
+        def fixture(path):
+            if path=='/api/me':
+                return b'{"authorized":true,"adventure":true}', 'application/json', 'davi_session=fake'
+            if path=='/api/adventure':
+                return b'{"chapters":[{"id":"forest"},{"id":"praia"},{"id":"dinossauros"},{"id":"inventores"}]}', 'application/json', ''
+            if path=='/campaign.js':
+                return b'window.DaviCampaign={}', 'text/javascript', ''
+            return self.fixture(path)
+        with patch.object(self.probe,'get',side_effect=fixture) as get:
+            stable_origin(self.probe,SHA,0)
+            self.assertEqual({args[0] for args,_ in get.call_args_list},
+                             {'/api/me','/','/api/build','/api/adventure','/campaign.js',*MODULES})

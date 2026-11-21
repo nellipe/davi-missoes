@@ -11,7 +11,7 @@ import threading
 from unittest.mock import patch
 
 from playwright.sync_api import sync_playwright
-from record_worlds import ROOT, SCRATCH, PASSWORD, activate, verify_width
+from record_worlds import ROOT, SCRATCH, PASSWORD, activate, verify_width, allow_legacy_fixture
 
 EVIDENCE = ROOT / 'docs/evidencias-etapa10'
 WORLDS = ('forest', 'praia', 'dinossauros', 'inventores')
@@ -417,6 +417,7 @@ def main():
         from lan_security import Config
         server.Handler.log_message=lambda *_:None
         server.initialize()
+        allow_legacy_fixture(server)
         server.set_setting('password',server.hash_password(PASSWORD))
         morning=dt.datetime(2026,11,19,8,10,tzinfo=schedule_window.TZ)
         with patch.object(schedule_window,'now',return_value=morning), server.DaviHTTPServer(('127.0.0.1',0),server.Handler) as http:

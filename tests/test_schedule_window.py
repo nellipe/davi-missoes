@@ -2,12 +2,12 @@
 import datetime as dt
 from unittest.mock import patch
 import test_world
-from test_lan import HttpFixture
+from test_lan import LegacyPlayFixture
 import server
 import schedule_window as timing
 
 
-class WindowTests(HttpFixture):
+class WindowTests(LegacyPlayFixture):
     start=test_world.WorldTests.start
     finish=test_world.WorldTests.finish
 
